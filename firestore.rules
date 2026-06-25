@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isDeveloper() {
+      return isAuth() && getRole() == 'developer';
+    }
+
+    function isOwnerOf(barbershopId) {
+      return isAuth() && getRole() == 'owner' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barbershopId == barbershopId;
+    }
+
+    function isBarberOf(barbershopId) {
+      return isAuth() && getRole() == 'barber' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barbershopId == barbershopId;
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if isAuth() && (request.auth.uid == userId || isDeveloper());
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update: if isAuth() && (request.auth.uid == userId || isDeveloper());
+      allow delete: if isDeveloper();
+    }
+
+    // Barbershops
+    match /barbershops/{barbershopId} {
+      allow read: if isAuth();
+      allow create: if isDeveloper();
+      allow update: if isDeveloper() || isOwnerOf(barbershopId);
+      allow delete: if isDeveloper();
+    }
+
+    // Appointments
+    match /appointments/{appointmentId} {
+      allow read: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isBarberOf(resource.data.barbershopId) ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isBarberOf(resource.data.barbershopId) ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow delete: if isDeveloper() || isOwnerOf(resource.data.barbershopId);
+    }
+
+    // Products / Inventory
+    match /products/{productId} {
+      allow read: if isAuth();
+      allow write: if isAuth() && (
+        isOwnerOf(resource.data.barbershopId) || isDeveloper()
+      );
+    }
+
+    // Sales
+    match /sales/{saleId} {
+      allow read: if isAuth() && (
+        resource.data.barberId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow create: if isAuth() && (
+        isBarberOf(request.resource.data.barbershopId) ||
+        isOwnerOf(request.resource.data.barbershopId)
+      );
+      allow update, delete: if isDeveloper();
+    }
+  }
+}
