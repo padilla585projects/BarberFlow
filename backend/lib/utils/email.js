@@ -1,29 +1,23 @@
-import { Resend } from 'resend'
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendEmail = sendEmail;
+exports.tplAppointmentConfirmed = tplAppointmentConfirmed;
+exports.tplAppointmentCancelled = tplAppointmentCancelled;
+exports.tplAppointmentReminder = tplAppointmentReminder;
+const resend_1 = require("resend");
 // API key → npx firebase-tools secrets:set RESEND_API_KEY
-const resend = new Resend(process.env.RESEND_API_KEY)
-
+const resend = new resend_1.Resend(process.env.RESEND_API_KEY);
 // FROM: cambia a tu dominio verificado en Resend cuando lo tengas.
 // Mientras tanto usa 'onboarding@resend.dev' para pruebas (solo envía a tu propio email).
-const FROM = 'BarberFlow <noreply@barberflow.app>'
-
-export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const { error } = await resend.emails.send({ from: FROM, to, subject, html })
-  if (error) throw new Error(`Resend error: ${error.message}`)
+const FROM = 'BarberFlow <noreply@barberflow.app>';
+async function sendEmail(to, subject, html) {
+    const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+    if (error)
+        throw new Error(`Resend error: ${error.message}`);
 }
-
 // ─── Templates ────────────────────────────────────────────────────────────────
-
-export function tplAppointmentConfirmed(data: {
-  clientName: string
-  barberName: string
-  barbershopName: string
-  services: string[]
-  date: string
-  timeSlot: string
-  totalPrice: number
-}): string {
-  return `
+function tplAppointmentConfirmed(data) {
+    return `
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -86,17 +80,10 @@ export function tplAppointmentConfirmed(data: {
       </table>
     </td></tr>
   </table>
-</body></html>`
+</body></html>`;
 }
-
-export function tplAppointmentCancelled(data: {
-  clientName: string
-  barberName: string
-  barbershopName: string
-  date: string
-  timeSlot: string
-}): string {
-  return `
+function tplAppointmentCancelled(data) {
+    return `
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><title>Cita cancelada</title></head>
@@ -121,17 +108,10 @@ export function tplAppointmentCancelled(data: {
       </table>
     </td></tr>
   </table>
-</body></html>`
+</body></html>`;
 }
-
-export function tplAppointmentReminder(data: {
-  clientName: string
-  barberName: string
-  barbershopName: string
-  date: string
-  timeSlot: string
-}): string {
-  return `
+function tplAppointmentReminder(data) {
+    return `
 <!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><title>Recordatorio de cita</title></head>
@@ -161,5 +141,6 @@ export function tplAppointmentReminder(data: {
       </table>
     </td></tr>
   </table>
-</body></html>`
+</body></html>`;
 }
+//# sourceMappingURL=email.js.map
