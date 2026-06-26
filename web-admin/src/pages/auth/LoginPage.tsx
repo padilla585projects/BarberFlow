@@ -2,18 +2,78 @@ import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import styles from './LoginPage.module.css'
 
+type Method = 'google' | 'email'
+type Mode = 'login' | 'register'
+
+function getFirebaseError(code: string): string {
+  const map: Record<string, string> = {
+    'auth/user-not-found':       'No existe cuenta con ese email',
+    'auth/wrong-password':       'Contraseña incorrecta',
+    'auth/invalid-credential':   'Email o contraseña incorrectos',
+    'auth/email-already-in-use': 'Ya existe una cuenta con ese email',
+    'auth/weak-password':        'La contraseña debe tener al menos 6 caracteres',
+    'auth/invalid-email':        'El email no es válido',
+    'auth/too-many-requests':    'Demasiados intentos. Prueba en unos minutos',
+    'auth/network-request-failed': 'Sin conexión. Comprueba tu red',
+  }
+  return map[code] ?? 'Error al iniciar sesión. Inténtalo de nuevo.'
+}
+
 export default function LoginPage() {
-  const { loginWithGoogle } = useAuth()
+  const { loginWithGoogle, loginWithEmail, signUpWithEmail } = useAuth()
+
+  const [method, setMethod] = useState<Method>('google')
+  const [mode, setMode] = useState<Mode>('login')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = async () => {
+  const reset = () => {
+    setError('')
+    setName('')
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+    setShowPassword(false)
+  }
+
+  const switchMethod = (m: Method) => { setMethod(m); reset() }
+  const switchMode = (m: Mode) => { setMode(m); reset() }
+
+  const handleGoogle = async () => {
     setLoading(true)
     setError('')
     try {
       await loginWithGoogle()
     } catch {
-      setError('Error al iniciar sesión. Inténtalo de nuevo.')
+      setError('Error al conectar con Google. Inténtalo de nuevo.')
+      setLoading(false)
+    }
+  }
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (mode === 'register') {
+      if (!name.trim()) { setError('Escribe tu nombre'); return }
+      if (password !== confirmPassword) { setError('Las contraseñas no coinciden'); return }
+      if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres'); return }
+    }
+
+    setLoading(true)
+    try {
+      if (mode === 'login') {
+        await loginWithEmail(email, password)
+      } else {
+        await signUpWithEmail(name.trim(), email, password)
+      }
+    } catch (err: any) {
+      setError(getFirebaseError(err?.code ?? ''))
       setLoading(false)
     }
   }
@@ -55,31 +115,129 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Lado derecho — login */}
+      {/* Lado derecho — form */}
       <div className={styles.formSide}>
         <div className={styles.card}>
-          <h2 className={styles.heading}>Bienvenido</h2>
-          <p className={styles.subtitle}>Accede con tu cuenta de Google para continuar</p>
+          <h2 className={styles.heading}>
+            {mode === 'register' ? 'Crear cuenta' : 'Bienvenido'}
+          </h2>
+          <p className={styles.subtitle}>
+            {mode === 'register'
+              ? 'Rellena los datos para registrarte'
+              : 'Accede a tu panel de BarberFlow'}
+          </p>
 
-          <div className={styles.divider}>
-            <div className={styles.dividerLine} />
-            <span className={styles.dividerText}>Panel de administración</span>
-            <div className={styles.dividerLine} />
+          {/* Selector de método */}
+          <div className={styles.methodTabs}>
+            <button
+              className={`${styles.methodTab} ${method === 'google' ? styles.methodTabActive : ''}`}
+              onClick={() => switchMethod('google')}
+            >
+              <GoogleIcon /> Google
+            </button>
+            <button
+              className={`${styles.methodTab} ${method === 'email' ? styles.methodTabActive : ''}`}
+              onClick={() => switchMethod('email')}
+            >
+              ✉️ Email y contraseña
+            </button>
           </div>
 
-          <button
-            className={styles.googleBtn}
-            onClick={handleLogin}
-            disabled={loading}
-          >
-            <GoogleIcon />
-            {loading ? 'Redirigiendo a Google...' : 'Continuar con Google'}
-          </button>
+          {/* Google */}
+          {method === 'google' && (
+            <button className={styles.googleBtn} onClick={handleGoogle} disabled={loading}>
+              <GoogleIcon />
+              {loading ? 'Redirigiendo...' : 'Continuar con Google'}
+            </button>
+          )}
+
+          {/* Email / contraseña */}
+          {method === 'email' && (
+            <form className={styles.emailForm} onSubmit={handleEmailSubmit}>
+              {mode === 'register' && (
+                <div className={styles.field}>
+                  <label>Nombre completo</label>
+                  <input
+                    type="text"
+                    placeholder="Juan García"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    autoComplete="name"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className={styles.field}>
+                <label>Email</label>
+                <input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label>Contraseña</label>
+                <div className={styles.passwordWrapper}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className={styles.eyeBtn}
+                    onClick={() => setShowPassword(v => !v)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? '🙈' : '👁'}
+                  </button>
+                </div>
+              </div>
+
+              {mode === 'register' && (
+                <div className={styles.field}>
+                  <label>Confirmar contraseña</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Repite la contraseña"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                </div>
+              )}
+
+              <button type="submit" className={styles.submitBtn} disabled={loading}>
+                {loading
+                  ? (mode === 'register' ? 'Creando cuenta...' : 'Entrando...')
+                  : (mode === 'register' ? 'Crear cuenta' : 'Iniciar sesión')}
+              </button>
+
+              <button
+                type="button"
+                className={styles.switchMode}
+                onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
+              >
+                {mode === 'login'
+                  ? '¿No tienes cuenta? Regístrate'
+                  : '¿Ya tienes cuenta? Inicia sesión'}
+              </button>
+            </form>
+          )}
 
           {error && <p className={styles.error}>{error}</p>}
 
           <p className={styles.footer}>
-            Acceso exclusivo para barberos, dueños y administradores.<br />
+            Acceso para barberos, dueños y administradores.<br />
             ¿Eres cliente? Usa la app móvil BarberFlow.
           </p>
         </div>
@@ -90,7 +248,7 @@ export default function LoginPage() {
 
 function GoogleIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 48 48">
+    <svg width="18" height="18" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
       <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
       <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
       <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>

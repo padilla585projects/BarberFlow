@@ -1,5 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { User as FirebaseUser, onAuthStateChanged, signInWithRedirect, getRedirectResult, signOut, GoogleAuthProvider } from 'firebase/auth'
+import {
+  User as FirebaseUser,
+  onAuthStateChanged,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { auth, db } from '../services/firebase'
 import { User, UserRole } from '../types'
@@ -9,12 +19,27 @@ interface AuthContextType {
   firebaseUser: FirebaseUser | null
   loading: boolean
   loginWithGoogle: () => Promise<void>
+  loginWithEmail: (email: string, password: string) => Promise<void>
+  signUpWithEmail: (name: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-const DEVELOPER_EMAILS = ['padilla585.projects@gmail.com'] // añadir emails de developers aquí
+const DEVELOPER_EMAILS = ['padilla585.projects@gmail.com']
+
+async function createUserDoc(fbUser: FirebaseUser, overrideName?: string): Promise<User> {
+  const role: UserRole = DEVELOPER_EMAILS.includes(fbUser.email ?? '') ? 'developer' : 'client'
+  const newUser: User = {
+    uid: fbUser.uid,
+    email: fbUser.email ?? '',
+    displayName: overrideName ?? fbUser.displayName ?? fbUser.email?.split('@')[0] ?? 'Usuario',
+    photoURL: fbUser.photoURL ?? undefined,
+    role,
+  }
+  await setDoc(doc(db, 'users', fbUser.uid), newUser)
+  return newUser
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -22,27 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Procesar el resultado del redirect de Google si viene de uno
     getRedirectResult(auth).catch(() => {})
 
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         setFirebaseUser(fbUser)
         const userDoc = await getDoc(doc(db, 'users', fbUser.uid))
-
         if (userDoc.exists()) {
           setUser(userDoc.data() as User)
         } else {
-          // Primer login: crear perfil
-          const role: UserRole = DEVELOPER_EMAILS.includes(fbUser.email ?? '') ? 'developer' : 'client'
-          const newUser: User = {
-            uid: fbUser.uid,
-            email: fbUser.email ?? '',
-            displayName: fbUser.displayName ?? '',
-            photoURL: fbUser.photoURL ?? undefined,
-            role,
-          }
-          await setDoc(doc(db, 'users', fbUser.uid), newUser)
+          const newUser = await createUserDoc(fbUser)
           setUser(newUser)
         }
       } else {
@@ -59,12 +73,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithRedirect(auth, provider)
   }
 
+  const loginWithEmail = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password)
+    // onAuthStateChanged se encarga del resto
+  }
+
+  const signUpWithEmail = async (name: string, email: string, password: string) => {
+    const result = await createUserWithEmailAndPassword(auth, email, password)
+    // Actualizar displayName en Firebase Auth
+    await updateProfile(result.user, { displayName: name })
+    // Crear doc en Firestore directamente con el nombre correcto
+    // (no esperamos a onAuthStateChanged para evitar que se cree sin nombre)
+    const newUser = await createUserDoc(result.user, name)
+    setUser(newUser)
+  }
+
   const logout = async () => {
     await signOut(auth)
   }
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, loginWithGoogle, loginWithEmail, signUpWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   )
