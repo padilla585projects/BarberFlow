@@ -1,0 +1,90 @@
+.page { max-width: 1100px; }
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.header h1 { font-size: 26px; font-weight: 700; }
+.sub { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+
+.addBtn {
+  background: var(--accent);
+  color: white;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.addBtn:hover { background: var(--accent-hover); }
+
+.loading, .empty {
+  text-align: center;
+  padding: 80px 0;
+  color: var(--text-muted);
+}
+.empty span { font-size: 48px; display: block; margin-bottom: 12px; }
+.empty p { margin-bottom: 20px; font-size: 16px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.shopIcon { font-size: 28px; }
+.cardActions { display: flex; gap: 8px; }
+
+.editBtn {
+  background: var(--surface2);
+  color: var(--text);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.editBtn:hover { border-color: var(--accent); color: var(--accent); }
+
+.deleteBtn {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.deleteBtn:hover { background: rgba(244,67,54,0.1); color: var(--error); border-color: var(--error); }
+
+.shopName { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+.shopInfo { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+
+.stats {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+}

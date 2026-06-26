@@ -1,26 +1,44 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/common/ProtectedRoute'
+import Layout from './components/common/Layout'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import BarbershopsPage from './pages/developer/BarbershopsPage'
+import BarbershopFormPage from './pages/developer/BarbershopFormPage'
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Rutas protegidas con layout */}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}>
+            <Layout>
+              <Routes>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                {/* Developer */}
+                <Route path="/barbershops" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopsPage /></ProtectedRoute>} />
+                <Route path="/barbershops/:id" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopFormPage /></ProtectedRoute>} />
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  )
+}
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/unauthorized" element={<div style={{ color: 'white', padding: 40 }}>No tienes acceso a esta sección.</div>} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        <AppRoutes />
       </BrowserRouter>
     </AuthProvider>
   )
