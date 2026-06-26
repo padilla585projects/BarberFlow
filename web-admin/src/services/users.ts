@@ -26,3 +26,10 @@ export async function updateUserRole(uid: string, role: UserRole, barbershopId?:
     ...(barbershopId !== undefined ? { barbershopId } : {}),
   })
 }
+
+export async function updateBarberSettings(
+  uid: string,
+  settings: { appointmentsPerHour?: number; phone?: string; bio?: string }
+): Promise<void> {
+  await updateDoc(doc(db, COL, uid), settings)
+}

@@ -7,6 +7,10 @@ export interface User {
   photoURL?: string;
   role: UserRole;
   barbershopId?: string;
+  /** Citas que puede atender por hora. Slot = 60 / appointmentsPerHour minutos */
+  appointmentsPerHour?: number;
+  phone?: string;
+  bio?: string;
 }
 
 export interface Barbershop {
