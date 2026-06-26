@@ -45,8 +45,9 @@ export interface DayHours {
 export interface Service {
   id: string;
   name: string;
-  duration: number;
+  duration: number; // minutos
   price: number;
+  description?: string;
 }
 
 export interface Appointment {
