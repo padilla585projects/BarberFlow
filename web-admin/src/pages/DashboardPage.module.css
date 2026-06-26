@@ -1,57 +1,192 @@
 .page { max-width: 1100px; }
 
-.page h1 {
-  font-size: 30px;
-  font-weight: 800;
-  margin-bottom: 6px;
-  letter-spacing: -0.03em;
+.topBar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
 }
+.topBar h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
+.sub { color: var(--text-muted); font-size: 13px; margin-top: 4px; text-transform: capitalize; }
 
-.sub {
-  color: var(--text-muted);
-  font-size: 13px;
-  margin-bottom: 40px;
-  text-transform: capitalize;
-  letter-spacing: 0.02em;
-}
+.loading { color: var(--text-muted); padding: 80px 0; text-align: center; font-size: 14px; }
+.empty { color: var(--text-muted); font-size: 13px; padding: 20px 0; }
 
-.grid {
+/* KPIs */
+.kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
 }
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
 
-.card {
+.kpi {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 28px 24px;
+  padding: 18px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: all 0.2s;
-  cursor: default;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s;
 }
+.kpi:hover { border-color: var(--border-light); }
+.kpiWarn { border-color: rgba(251,191,36,0.4) !important; }
+.kpiIcon { font-size: 22px; flex-shrink: 0; }
+.kpi > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpiValue { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.kpiLabel { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
 
-.card:hover {
-  border-color: #fff;
-  background: var(--surface2);
+/* Charts */
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
 }
+@media (max-width: 800px) { .charts { grid-template-columns: 1fr; } }
 
-.cardIcon { font-size: 26px; }
-
-.cardValue {
-  font-size: 36px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.03em;
-  line-height: 1;
+.chartCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 20px 16px;
 }
-
-.cardLabel {
+.chartTitle {
   font-size: 12px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-weight: 500;
+  margin-bottom: 16px;
 }
+
+.legend { display: flex; gap: 14px; margin-top: 12px; }
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.legendItem span {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Tooltip */
+.tooltip {
+  background: var(--surface2);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.tooltipLabel { color: var(--text-muted); font-size: 11px; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.tooltip p { margin: 2px 0; }
+
+/* Bottom row */
+.bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 800px) { .bottom { grid-template-columns: 1fr; } }
+
+.rankCard, .upcomingCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+.rankTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+/* Ranking */
+.rankList { display: flex; flex-direction: column; gap: 6px; }
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+.rankRow:hover { background: var(--surface2); }
+
+.rankNum {
+  font-size: 13px;
+  font-weight: 800;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.rankGold { color: #f59e0b; }
+.rankSilver { color: #94a3b8; }
+.rankBronze { color: #b45309; }
+
+.rankAvatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.rankAvatarFallback {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; flex-shrink: 0;
+}
+
+.rankInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.rankName { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rankSub { font-size: 11px; color: var(--text-muted); }
+.rankRevenue { font-size: 14px; font-weight: 800; flex-shrink: 0; }
+
+/* Upcoming */
+.upcomingList { display: flex; flex-direction: column; gap: 6px; }
+.upcomingRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  transition: border-color 0.15s;
+}
+.upcomingRow:hover { border-color: var(--border-light); }
+
+.upcomingDate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 46px;
+  flex-shrink: 0;
+}
+.upcomingDay { font-size: 11px; font-weight: 700; color: #fff; text-transform: capitalize; }
+.upcomingTime { font-size: 13px; font-weight: 800; color: #fff; }
+
+.upcomingInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.upcomingBarber { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upcomingServices { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.upcomingStatus {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.statusConfirmed { background: rgba(96,165,250,0.12); color: #60a5fa; }
+.statusPending { background: rgba(251,191,36,0.12); color: #fbbf24; }
