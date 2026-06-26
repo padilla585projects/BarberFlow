@@ -15,6 +15,7 @@ const ownerNav: NavItem[] = [
   { to: '/services', icon: '📋', label: 'Servicios' },
   { to: '/inventory', icon: '📦', label: 'Inventario' },
   { to: '/appointments', icon: '📅', label: 'Citas' },
+  { to: '/sales', icon: '💶', label: 'Ventas' },
   { to: '/reports', icon: '📈', label: 'Reportes' },
 ]
 

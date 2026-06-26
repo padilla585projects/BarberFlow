@@ -13,6 +13,7 @@ import BarbersPage from './pages/owner/BarbersPage'
 import ServicesPage from './pages/owner/ServicesPage'
 import BarbershopPage from './pages/owner/BarbershopPage'
 import ReportsPage from './pages/owner/ReportsPage'
+import SalesPage from './pages/owner/SalesPage'
 
 function AppRoutes() {
   return (
@@ -37,6 +38,7 @@ function AppRoutes() {
                 <Route path="/services" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ServicesPage /></ProtectedRoute>} />
                 <Route path="/barbershop" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><BarbershopPage /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ReportsPage /></ProtectedRoute>} />
+                <Route path="/sales" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><SalesPage /></ProtectedRoute>} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
