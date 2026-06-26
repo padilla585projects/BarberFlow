@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import BarbershopsPage from './pages/developer/BarbershopsPage'
 import BarbershopFormPage from './pages/developer/BarbershopFormPage'
 import UsersPage from './pages/developer/UsersPage'
+import InventoryPage from './pages/owner/InventoryPage'
 
 function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ function AppRoutes() {
                 <Route path="/barbershops" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopsPage /></ProtectedRoute>} />
                 <Route path="/barbershops/:id" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopFormPage /></ProtectedRoute>} />
                 <Route path="/users" element={<ProtectedRoute allowedRoles={['developer']}><UsersPage /></ProtectedRoute>} />
+                <Route path="/inventory" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><InventoryPage /></ProtectedRoute>} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
