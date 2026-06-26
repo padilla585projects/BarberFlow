@@ -12,34 +12,77 @@ export default function LoginPage() {
     setError('')
     try {
       await loginWithGoogle()
-    } catch (e) {
+    } catch {
       setError('Error al iniciar sesión. Inténtalo de nuevo.')
-    } finally {
       setLoading(false)
     }
   }
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.logo}>✂️</div>
-        <h1 className={styles.title}>BarberFlow</h1>
-        <p className={styles.subtitle}>Panel de administración</p>
+      {/* Lado izquierdo — branding */}
+      <div className={styles.brand}>
+        <div className={styles.brandBg} />
+        <div className={styles.brandTop}>
+          <span className={styles.brandScissors}>✂️</span>
+          <span className={styles.brandTopName}>BarberFlow</span>
+        </div>
 
-        <button
-          className={styles.googleBtn}
-          onClick={handleLogin}
-          disabled={loading}
-        >
-          <GoogleIcon />
-          {loading ? 'Iniciando sesión...' : 'Continuar con Google'}
-        </button>
+        <div className={styles.brandCenter}>
+          <h1 className={styles.brandTagline}>
+            Gestión<br />
+            <span>sin</span><br />
+            límites
+          </h1>
+          <p className={styles.brandSub}>
+            La plataforma completa para barberías modernas. Reservas, barberos, inventario y reportes en un solo lugar.
+          </p>
+        </div>
 
-        {error && <p className={styles.error}>{error}</p>}
+        <div className={styles.brandBottom}>
+          <div className={styles.stat}>
+            <p className={styles.statValue}>100%</p>
+            <p className={styles.statLabel}>Control</p>
+          </div>
+          <div className={styles.stat}>
+            <p className={styles.statValue}>∞</p>
+            <p className={styles.statLabel}>Barberías</p>
+          </div>
+          <div className={styles.stat}>
+            <p className={styles.statValue}>24/7</p>
+            <p className={styles.statLabel}>Disponible</p>
+          </div>
+        </div>
+      </div>
 
-        <p className={styles.footer}>
-          Acceso exclusivo para barberos, dueños y administradores
-        </p>
+      {/* Lado derecho — login */}
+      <div className={styles.formSide}>
+        <div className={styles.card}>
+          <h2 className={styles.heading}>Bienvenido</h2>
+          <p className={styles.subtitle}>Accede con tu cuenta de Google para continuar</p>
+
+          <div className={styles.divider}>
+            <div className={styles.dividerLine} />
+            <span className={styles.dividerText}>Panel de administración</span>
+            <div className={styles.dividerLine} />
+          </div>
+
+          <button
+            className={styles.googleBtn}
+            onClick={handleLogin}
+            disabled={loading}
+          >
+            <GoogleIcon />
+            {loading ? 'Redirigiendo a Google...' : 'Continuar con Google'}
+          </button>
+
+          {error && <p className={styles.error}>{error}</p>}
+
+          <p className={styles.footer}>
+            Acceso exclusivo para barberos, dueños y administradores.<br />
+            ¿Eres cliente? Usa la app móvil BarberFlow.
+          </p>
+        </div>
       </div>
     </div>
   )

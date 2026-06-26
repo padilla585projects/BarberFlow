@@ -1,54 +1,80 @@
 .page { max-width: 760px; }
 
 .header { margin-bottom: 28px; }
-.header h1 { font-size: 24px; font-weight: 700; margin-top: 12px; }
+.header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-top: 12px;
+}
 
 .backBtn {
   background: none;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
   padding: 0;
   transition: color 0.15s;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
-.backBtn:hover { color: var(--text); }
+.backBtn:hover { color: #fff; }
 
-.form { display: flex; flex-direction: column; gap: 28px; }
+.form { display: flex; flex-direction: column; gap: 20px; }
 
 .section {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  padding: 28px;
 }
+
 .section h2 {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 20px;
+  letter-spacing: 0.1em;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
 .field:last-child { margin-bottom: 0; }
 
-.field label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
 
-.field input, .field select {
+.field input {
   background: var(--surface2);
   border: 1px solid var(--border);
-  color: var(--text);
-  padding: 10px 14px;
+  color: #fff;
+  padding: 11px 14px;
   border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.15s;
 }
-.field input:focus, .field select:focus {
+.field input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: #fff;
+  background: var(--surface3);
 }
+.field input::placeholder { color: var(--text-subtle); }
 
 .hint { font-size: 11px; color: var(--text-muted); }
 
@@ -59,12 +85,14 @@
   align-items: center;
   gap: 8px;
   background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 6px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 7px 12px;
   font-size: 13px;
+  font-weight: 500;
 }
-.chipMeta { color: var(--accent); font-size: 12px; }
+.chipMeta { color: var(--text-muted); font-size: 12px; }
+
 .removeBtn {
   background: none;
   color: var(--text-muted);
@@ -77,63 +105,57 @@
 
 .addService { display: flex; gap: 8px; align-items: center; }
 
-.serviceInput {
-  flex: 1;
+.serviceInput, .serviceInputSm {
   background: var(--surface2);
   border: 1px solid var(--border);
-  color: var(--text);
-  padding: 9px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-.serviceInput:focus { outline: none; border-color: var(--accent); }
-
-.serviceInputSm {
-  width: 70px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 9px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  text-align: center;
-}
-.serviceInputSm:focus { outline: none; border-color: var(--accent); }
-
-.addServiceBtn {
-  background: var(--surface2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 9px 14px;
+  color: #fff;
+  padding: 10px 12px;
   border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
+  transition: border-color 0.15s;
+}
+.serviceInput { flex: 1; }
+.serviceInputSm { width: 72px; text-align: center; }
+.serviceInput:focus, .serviceInputSm:focus { outline: none; border-color: #fff; }
+.serviceInput::placeholder { color: var(--text-subtle); }
+
+.addServiceBtn {
+  background: var(--surface3);
+  color: #fff;
+  border: 1px solid var(--border-light);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
   transition: all 0.15s;
+  letter-spacing: 0.02em;
 }
-.addServiceBtn:hover { border-color: var(--accent); color: var(--accent); }
+.addServiceBtn:hover { background: #fff; color: #000; border-color: #fff; }
 
-.actions { display: flex; justify-content: flex-end; gap: 12px; }
+.actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 4px; }
 
 .cancelBtn {
-  background: var(--surface);
+  background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
   padding: 11px 24px;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   transition: all 0.15s;
 }
-.cancelBtn:hover { color: var(--text); }
+.cancelBtn:hover { color: #fff; border-color: #fff; }
 
 .saveBtn {
-  background: var(--accent);
-  color: white;
+  background: #fff;
+  color: #000;
   padding: 11px 28px;
   border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
-  transition: background 0.15s;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  transition: all 0.15s;
 }
-.saveBtn:hover:not(:disabled) { background: var(--accent-hover); }
-.saveBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.saveBtn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.saveBtn:disabled { opacity: 0.4; cursor: not-allowed; }

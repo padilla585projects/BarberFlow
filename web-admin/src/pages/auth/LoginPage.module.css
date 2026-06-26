@@ -1,88 +1,199 @@
 .container {
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg);
+}
+
+/* Lado izquierdo - imagen/branding */
+.brand {
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.brandBg {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,0.015) 40px,
+      rgba(255,255,255,0.015) 41px
+    );
+}
+
+.brandTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.brandScissors { font-size: 28px; }
+
+.brandTopName {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.brandCenter {
+  position: relative;
+  z-index: 1;
+}
+
+.brandTagline {
+  font-family: 'Bebas Neue', 'Inter', sans-serif;
+  font-size: clamp(52px, 6vw, 80px);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.brandTagline span {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+}
+
+.brandSub {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin-top: 20px;
+  line-height: 1.7;
+  max-width: 340px;
+}
+
+.brandBottom {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 32px;
+}
+
+.stat { }
+.statValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+}
+.statLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Lado derecho - form */
+.formSide {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 48px;
   background: var(--bg);
-  background-image: radial-gradient(ellipse at 20% 50%, rgba(233,69,96,0.08) 0%, transparent 60%),
-                    radial-gradient(ellipse at 80% 20%, rgba(26,26,46,0.6) 0%, transparent 60%);
 }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 48px 40px;
   width: 100%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: var(--shadow);
+  max-width: 380px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
+  gap: 0;
 }
 
-.logo {
-  font-size: 48px;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  color: var(--text);
+.heading {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
 }
 
 .subtitle {
   color: var(--text-muted);
   font-size: 14px;
-  margin-bottom: 16px;
+  margin-bottom: 40px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.dividerText {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .googleBtn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   justify-content: center;
   width: 100%;
-  padding: 14px 20px;
-  background: var(--surface2);
-  color: var(--text);
-  border: 1px solid var(--border);
+  padding: 15px 20px;
+  background: #fff;
+  color: #000;
+  border: none;
   border-radius: var(--radius);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   transition: all 0.2s;
-  margin-top: 8px;
+  box-shadow: 0 0 0 0 rgba(255,255,255,0);
 }
 
 .googleBtn:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-hover);
+  box-shadow: 0 0 40px rgba(255,255,255,0.12);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(233,69,96,0.3);
 }
 
 .googleBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .error {
   color: var(--error);
   font-size: 13px;
-  background: rgba(244,67,54,0.1);
-  padding: 10px 16px;
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.2);
+  padding: 10px 14px;
   border-radius: 8px;
-  width: 100%;
+  margin-top: 16px;
 }
 
 .footer {
-  color: var(--text-muted);
+  color: var(--text-subtle);
   font-size: 12px;
-  margin-top: 8px;
-  line-height: 1.6;
+  text-align: center;
+  margin-top: 32px;
+  line-height: 1.7;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; }
+  .brand { display: none; }
 }
