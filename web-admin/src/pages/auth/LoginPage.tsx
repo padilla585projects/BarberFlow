@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import styles from './LoginPage.module.css'
 
 type Method = 'google' | 'email'
-type Mode = 'login' | 'register'
+type Mode = 'login' | 'register' | 'forgot'
 
 function getFirebaseError(code: string): string {
   const map: Record<string, string> = {
@@ -20,7 +20,7 @@ function getFirebaseError(code: string): string {
 }
 
 export default function LoginPage() {
-  const { loginWithGoogle, loginWithEmail, signUpWithEmail } = useAuth()
+  const { loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } = useAuth()
 
   const [method, setMethod] = useState<Method>('google')
   const [mode, setMode] = useState<Mode>('login')
@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resetSent, setResetSent] = useState(false)
 
   const reset = () => {
     setError('')
@@ -41,8 +42,8 @@ export default function LoginPage() {
     setShowPassword(false)
   }
 
-  const switchMethod = (m: Method) => { setMethod(m); reset() }
-  const switchMode = (m: Mode) => { setMode(m); reset() }
+  const switchMethod = (m: Method) => { setMethod(m); reset(); setResetSent(false) }
+  const switchMode = (m: Mode) => { setMode(m); reset(); setResetSent(false) }
 
   const handleGoogle = async () => {
     setLoading(true)
@@ -58,6 +59,19 @@ export default function LoginPage() {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (mode === 'forgot') {
+      setLoading(true)
+      try {
+        await resetPassword(email)
+        setResetSent(true)
+      } catch (err: any) {
+        setError(getFirebaseError(err?.code ?? ''))
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
 
     if (mode === 'register') {
       if (!name.trim()) { setError('Escribe tu nombre'); return }
@@ -119,16 +133,18 @@ export default function LoginPage() {
       <div className={styles.formSide}>
         <div className={styles.card}>
           <h2 className={styles.heading}>
-            {mode === 'register' ? 'Crear cuenta' : 'Bienvenido'}
+            {mode === 'register' ? 'Crear cuenta' : mode === 'forgot' ? 'Recuperar cuenta' : 'Bienvenido'}
           </h2>
           <p className={styles.subtitle}>
             {mode === 'register'
               ? 'Rellena los datos para registrarte'
+              : mode === 'forgot'
+              ? 'Te enviaremos un enlace para restablecer tu contraseña'
               : 'Accede a tu panel de BarberFlow'}
           </p>
 
-          {/* Selector de método */}
-          <div className={styles.methodTabs}>
+          {/* Selector de método — oculto en modo forgot */}
+          <div className={styles.methodTabs} style={{ display: mode === 'forgot' ? 'none' : undefined }}>
             <button
               className={`${styles.methodTab} ${method === 'google' ? styles.methodTabActive : ''}`}
               onClick={() => switchMethod('google')}
@@ -152,85 +168,100 @@ export default function LoginPage() {
           )}
 
           {/* Email / contraseña */}
-          {method === 'email' && (
+          {(method === 'email' || mode === 'forgot') && (
             <form className={styles.emailForm} onSubmit={handleEmailSubmit}>
-              {mode === 'register' && (
-                <div className={styles.field}>
-                  <label>Nombre completo</label>
-                  <input
-                    type="text"
-                    placeholder="Juan García"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    autoComplete="name"
-                    required
-                  />
-                </div>
+
+              {/* ── Recuperar contraseña ── */}
+              {mode === 'forgot' && (
+                resetSent ? (
+                  <div className={styles.resetSuccess}>
+                    <span>✉️</span>
+                    <div>
+                      <p><strong>Email enviado</strong></p>
+                      <p>Revisa tu bandeja de entrada en <strong>{email}</strong> y sigue el enlace para restablecer tu contraseña.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.field}>
+                      <label>Tu email</label>
+                      <input type="email" placeholder="tu@email.com" value={email}
+                        onChange={e => setEmail(e.target.value)} autoFocus required />
+                    </div>
+                    <button type="submit" className={styles.submitBtn} disabled={loading || !email.trim()}>
+                      {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
+                    </button>
+                  </>
+                )
+              )}
+              {mode === 'forgot' && (
+                <button type="button" className={styles.switchMode} onClick={() => switchMode('login')}>
+                  ← Volver al inicio de sesión
+                </button>
               )}
 
-              <div className={styles.field}>
-                <label>Email</label>
-                <input
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  autoComplete="email"
-                  required
-                />
-              </div>
+              {/* ── Login / Register fields ── */}
+              {mode !== 'forgot' && (<>
+                {mode === 'register' && (
+                  <div className={styles.field}>
+                    <label>Nombre completo</label>
+                    <input type="text" placeholder="Juan García" value={name}
+                      onChange={e => setName(e.target.value)} autoComplete="name" required />
+                  </div>
+                )}
 
-              <div className={styles.field}>
-                <label>Contraseña</label>
-                <div className={styles.passwordWrapper}>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className={styles.eyeBtn}
-                    onClick={() => setShowPassword(v => !v)}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? '🙈' : '👁'}
+                <div className={styles.field}>
+                  <label>Email</label>
+                  <input type="email" placeholder="tu@email.com" value={email}
+                    onChange={e => setEmail(e.target.value)} autoComplete="email" required />
+                </div>
+
+                <div className={styles.field}>
+                  <label>Contraseña</label>
+                  <div className={styles.passwordWrapper}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={mode === 'register' ? 'Mínimo 6 caracteres' : '••••••••'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                      required
+                    />
+                    <button type="button" className={styles.eyeBtn}
+                      onClick={() => setShowPassword(v => !v)} tabIndex={-1}>
+                      {showPassword ? '🙈' : '👁'}
+                    </button>
+                  </div>
+                </div>
+
+                {mode === 'register' && (
+                  <div className={styles.field}>
+                    <label>Confirmar contraseña</label>
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Repite la contraseña"
+                      value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                      autoComplete="new-password" required />
+                  </div>
+                )}
+
+                <button type="submit" className={styles.submitBtn} disabled={loading}>
+                  {loading
+                    ? (mode === 'register' ? 'Creando cuenta...' : 'Entrando...')
+                    : (mode === 'register' ? 'Crear cuenta' : 'Iniciar sesión')}
+                </button>
+
+                <div className={styles.formLinks}>
+                  <button type="button" className={styles.switchMode}
+                    onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}>
+                    {mode === 'login' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
                   </button>
+                  {mode === 'login' && (
+                    <button type="button" className={styles.forgotLink}
+                      onClick={() => switchMode('forgot')}>
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  )}
                 </div>
-              </div>
-
-              {mode === 'register' && (
-                <div className={styles.field}>
-                  <label>Confirmar contraseña</label>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Repite la contraseña"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    required
-                  />
-                </div>
-              )}
-
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
-                {loading
-                  ? (mode === 'register' ? 'Creando cuenta...' : 'Entrando...')
-                  : (mode === 'register' ? 'Crear cuenta' : 'Iniciar sesión')}
-              </button>
-
-              <button
-                type="button"
-                className={styles.switchMode}
-                onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
-              >
-                {mode === 'login'
-                  ? '¿No tienes cuenta? Regístrate'
-                  : '¿Ya tienes cuenta? Inicia sesión'}
-              </button>
+              </>)}
             </form>
           )}
 
