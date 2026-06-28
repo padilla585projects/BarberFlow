@@ -54,14 +54,8 @@ service cloud.firestore {
 
     // Appointments
     match /appointments/{appointmentId} {
-      // Clients can read any appointment to check barber availability (slot conflict detection)
-      allow read: if isAuth() && (
-        resource.data.clientId == request.auth.uid ||
-        isBarberOf(resource.data.barbershopId) ||
-        isOwnerOf(resource.data.barbershopId) ||
-        isDeveloper() ||
-        getRole() == 'client'
-      );
+      // Any authenticated user can read appointments (clients need slot availability, barbers/owners need their agenda)
+      allow read: if isAuth();
       allow create: if isAuth();
       allow update: if isAuth() && (
         resource.data.clientId == request.auth.uid ||
