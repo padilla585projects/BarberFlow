@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../hooks/useAuth';
+import { registerForPushNotifications } from '../services/notifications';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { ClientNavigator } from './ClientNavigator';
 import { BarberNavigator } from './BarberNavigator';
@@ -30,6 +31,13 @@ export function RootNavigator({ onReady }: RootNavigatorProps) {
       onReady();
     }
   }, [loading, onReady]);
+
+  // Register push token once authenticated
+  useEffect(() => {
+    if (firebaseUser?.uid) {
+      registerForPushNotifications(firebaseUser.uid).catch(console.error);
+    }
+  }, [firebaseUser?.uid]);
 
   // While loading, show a dark placeholder (native splash covers it)
   if (loading) {

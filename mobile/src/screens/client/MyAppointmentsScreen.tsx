@@ -6,6 +6,8 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {
   collection,
@@ -13,6 +15,8 @@ import {
   where,
   orderBy,
   getDocs,
+  doc,
+  updateDoc,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { Appointment } from '../../types';
@@ -68,6 +72,30 @@ export function MyAppointmentsScreen() {
     fetchAppointments();
   }, []);
 
+  const cancelAppointment = (id: string) => {
+    Alert.alert(
+      'Cancelar cita',
+      '¿Seguro que quieres cancelar esta cita?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Sí, cancelar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, 'appointments', id), { status: 'cancelled' });
+              setAppointments((prev) =>
+                prev.map((a) => (a.id === id ? { ...a, status: 'cancelled' as const } : a)),
+              );
+            } catch (err) {
+              Alert.alert('Error', 'No se pudo cancelar la cita');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchAppointments();
@@ -110,11 +138,24 @@ export function MyAppointmentsScreen() {
                   </Text>
                 </View>
               </View>
+
+              {(item as any).barberName && (
+                <Text style={styles.cardBarber}>Barbero: {(item as any).barberName}</Text>
+              )}
               <Text style={styles.cardDate}>
                 {dateStr} · {item.timeSlot}
               </Text>
               {item.totalPrice > 0 && (
                 <Text style={styles.cardPrice}>{item.totalPrice.toFixed(2)} €</Text>
+              )}
+              {(item.status === 'pending' || item.status === 'confirmed') && (
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => cancelAppointment(item.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.cancelBtnText}>Cancelar cita</Text>
+                </TouchableOpacity>
               )}
             </View>
           );
@@ -143,8 +184,18 @@ const styles = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardShop: { fontSize: 15, fontWeight: '700', color: TEXT },
+  cardBarber: { fontSize: 13, color: GOLD, fontWeight: '600' },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '700' },
   cardDate: { fontSize: 13, color: MUTED },
   cardPrice: { fontSize: 14, fontWeight: '600', color: GOLD },
+  cancelBtn: {
+    marginTop: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
+    alignItems: 'center',
+  },
+  cancelBtnText: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
 });

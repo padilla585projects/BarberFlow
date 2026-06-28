@@ -5,13 +5,24 @@ exports.tplAppointmentConfirmed = tplAppointmentConfirmed;
 exports.tplAppointmentCancelled = tplAppointmentCancelled;
 exports.tplAppointmentReminder = tplAppointmentReminder;
 const resend_1 = require("resend");
-// API key → npx firebase-tools secrets:set RESEND_API_KEY
-const resend = new resend_1.Resend(process.env.RESEND_API_KEY);
 // FROM: cambia a tu dominio verificado en Resend cuando lo tengas.
 // Mientras tanto usa 'onboarding@resend.dev' para pruebas (solo envía a tu propio email).
-const FROM = 'BarberFlow <noreply@barberflow.app>';
+// TODO: cambiar a 'BarberFlow <noreply@barberflow.app>' cuando el dominio esté verificado en Resend
+const FROM = 'BarberFlow <onboarding@resend.dev>';
+// Lazy init: el cliente se crea en tiempo de ejecución (cuando el secret ya está disponible),
+// no al analizar el módulo durante el deploy.
+let _resend = null;
+function getResend() {
+    if (!_resend) {
+        const key = process.env.RESEND_API_KEY;
+        if (!key)
+            throw new Error('RESEND_API_KEY secret is not set');
+        _resend = new resend_1.Resend(key);
+    }
+    return _resend;
+}
 async function sendEmail(to, subject, html) {
-    const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+    const { error } = await getResend().emails.send({ from: FROM, to, subject, html });
     if (error)
         throw new Error(`Resend error: ${error.message}`);
 }

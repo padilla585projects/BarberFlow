@@ -36,8 +36,6 @@ export function AgendaScreen() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const fetchAgenda = async () => {
     const user = auth.currentUser;
@@ -48,7 +46,6 @@ export function AgendaScreen() {
         collection(db, 'appointments'),
         where('barberId', '==', user.uid),
         where('date', '>=', today),
-        where('date', '<', tomorrow),
         orderBy('date'),
       );
       const snap = await getDocs(q);
@@ -106,7 +103,7 @@ export function AgendaScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <View>
-              <Text style={styles.heading}>Agenda de hoy</Text>
+              <Text style={styles.heading}>Mi agenda</Text>
               <Text style={styles.sub}>
                 {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
