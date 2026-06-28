@@ -76,7 +76,7 @@ export default function AppointmentsPage() {
     .filter(a => a.status === 'completed')
     .reduce((s, a) => s + a.totalPrice, 0)
 
-  const getBarberName = (id: string) => barbers.find(b => b.uid === id)?.displayName ?? id.slice(0, 8)
+  const getBarberName = (id: string) => barbers.find(b => b.uid === id)?.displayName ?? (id ? id.slice(0, 8) : 'Sin asignar')
 
   return (
     <div className={styles.page}>
@@ -164,7 +164,7 @@ export default function AppointmentsPage() {
           </div>
           {filtered.map(apt => (
             <div key={apt.id} className={styles.row}>
-              <span className={styles.cell}>{apt.clientId.slice(0, 8)}...</span>
+              <span className={styles.cell}>{(apt.clientId ?? '').slice(0, 8)}...</span>
               <span className={styles.cell}>{getBarberName(apt.barberId)}</span>
               <div className={styles.services}>
                 {apt.services.map(s => (
