@@ -14,6 +14,9 @@ import ServicesPage from './pages/owner/ServicesPage'
 import BarbershopPage from './pages/owner/BarbershopPage'
 import ReportsPage from './pages/owner/ReportsPage'
 import SalesPage from './pages/owner/SalesPage'
+import OrdersPage from './pages/owner/OrdersPage'
+import ReviewsPage from './pages/owner/ReviewsPage'
+import PromosPage from './pages/owner/PromosPage'
 
 function AppRoutes() {
   return (
@@ -39,6 +42,9 @@ function AppRoutes() {
                 <Route path="/barbershop" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><BarbershopPage /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ReportsPage /></ProtectedRoute>} />
                 <Route path="/sales" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><SalesPage /></ProtectedRoute>} />
+                <Route path="/orders" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><OrdersPage /></ProtectedRoute>} />
+                <Route path="/reviews" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ReviewsPage /></ProtectedRoute>} />
+                <Route path="/promos" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><PromosPage /></ProtectedRoute>} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

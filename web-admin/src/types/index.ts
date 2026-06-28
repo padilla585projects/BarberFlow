@@ -102,3 +102,51 @@ export interface BarberStats {
   totalEarnings: number;
   period: { from: Date; to: Date };
 }
+
+export interface OrderItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientEmail: string;
+  barbershopId: string;
+  barbershopName: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  address?: string;
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface Review {
+  id: string;
+  clientId: string;
+  clientName: string;
+  barberId: string;
+  barberName: string;
+  barbershopId: string;
+  rating: number;
+  comment?: string;
+  createdAt: Date;
+}
+
+export interface Promo {
+  id: string;
+  code: string;
+  description: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  barbershopId: string;
+  maxUses: number;
+  usedCount: number;
+  active: boolean;
+  expiresAt?: Date;
+  createdAt: Date;
+}

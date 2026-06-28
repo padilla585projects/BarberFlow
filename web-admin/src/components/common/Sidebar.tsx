@@ -9,29 +9,33 @@ interface NavItem {
 }
 
 const ownerNav: NavItem[] = [
-  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { to: '/barbershop', icon: '✂️', label: 'Mi Barbería' },
-  { to: '/barbers', icon: '👤', label: 'Barberos' },
-  { to: '/services', icon: '📋', label: 'Servicios' },
-  { to: '/inventory', icon: '📦', label: 'Inventario' },
+  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
+  { to: '/barbershop',   icon: '✂️',  label: 'Mi Barbería' },
+  { to: '/barbers',      icon: '👤', label: 'Barberos' },
+  { to: '/services',     icon: '📋', label: 'Servicios' },
+  { to: '/inventory',    icon: '📦', label: 'Inventario' },
   { to: '/appointments', icon: '📅', label: 'Citas' },
-  { to: '/sales', icon: '💶', label: 'Ventas' },
-  { to: '/reports', icon: '📈', label: 'Reportes' },
+  { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
+  { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+  { to: '/promos',       icon: '🎟️', label: 'Promociones' },
+  { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
+  { to: '/reports',      icon: '📈', label: 'Reportes' },
 ]
 
 const barberNav: NavItem[] = [
-  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
   { to: '/appointments', icon: '📅', label: 'Mis Citas' },
-  { to: '/sales', icon: '💶', label: 'Ventas' },
-  { to: '/stats', icon: '📈', label: 'Mis Stats' },
+  { to: '/sales',        icon: '💶', label: 'Ventas' },
 ]
 
 const developerNav: NavItem[] = [
-  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+  { to: '/dashboard',   icon: '📊', label: 'Dashboard' },
   { to: '/barbershops', icon: '🏪', label: 'Barberías' },
-  { to: '/users', icon: '👥', label: 'Usuarios' },
-  { to: '/inventory', icon: '📦', label: 'Inventario' },
-  { to: '/reports', icon: '📈', label: 'Reportes' },
+  { to: '/users',       icon: '👥', label: 'Usuarios' },
+  { to: '/inventory',   icon: '📦', label: 'Inventario' },
+  { to: '/orders',      icon: '🛍️', label: 'Pedidos Shop' },
+  { to: '/reviews',     icon: '⭐', label: 'Reseñas' },
+  { to: '/reports',     icon: '📈', label: 'Reportes' },
 ]
 
 export default function Sidebar() {

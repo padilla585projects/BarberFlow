@@ -60,13 +60,13 @@ export function CheckoutScreen({ route, navigation }: Props) {
         })),
         totalPrice: cart.totalPrice,
         notes: notes.trim() || null,
-        status: 'reserved',
+        status: 'pending',
         createdAt: serverTimestamp(),
         barbershopId,
       };
 
       const docRef = await addDoc(
-        collection(db, 'barbershops', barbershopId, 'productOrders'),
+        collection(db, 'orders'),
         orderData,
       );
 

@@ -10,3 +10,18 @@ build/
 .firebase/
 firebase-debug.log
 firestore-debug.log
+.gstack/
+
+# Debug screenshots
+phone_*.png
+phone_*.jpg
+ph.png
+ph.jpg
+tmp_raw.png
+base.apk
+btn_crop*.png
+cur.png
+device_screenshot.png
+ds_small.png
+rnsettings.xml
+seed.mjs

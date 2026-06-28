@@ -25,6 +25,15 @@
       ]
     },
     {
+      "collectionGroup": "appointments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "sales",
       "queryScope": "COLLECTION",
       "fields": [
@@ -38,6 +47,79 @@
       "fields": [
         { "fieldPath": "barbershopId", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clientId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barberId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "loyalty",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "barbershopId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "loyalty",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "points", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "promos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barbershopId", "order": "ASCENDING" },
+        { "fieldPath": "active", "order": "ASCENDING" }
       ]
     }
   ],

@@ -21,6 +21,7 @@ import {
   addDoc,
   serverTimestamp,
   increment,
+  where,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { PointTransaction, LoyaltyReward } from '../../types';
@@ -90,11 +91,9 @@ export function LoyaltyScreen() {
       // Try to find the user's most-visited barbershop from their appointments
       if (!barbershopId) {
         const appointmentsSnap = await getDocs(
-          query(collection(db, 'appointments'))
+          query(collection(db, 'appointments'), where('clientId', '==', user.uid))
         );
-        const userAppts = appointmentsSnap.docs.filter(
-          (d) => d.data().clientId === user.uid
-        );
+        const userAppts = appointmentsSnap.docs;
         if (userAppts.length > 0) {
           // Use the most recent appointment's barbershop
           const sorted = userAppts.sort((a, b) => {

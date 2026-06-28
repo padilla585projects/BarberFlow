@@ -375,7 +375,18 @@ export function BookScreen({ route, navigation }: Props) {
           setServices(serviceList);
 
           if (shopData.openingHours) {
-            setOpeningHours(shopData.openingHours as OpeningHours);
+            // Firestore stores { open: boolean, from: 'HH:MM', to: 'HH:MM' }
+            // DayHours expects { open: 'HH:MM', close: 'HH:MM' }
+            const raw = shopData.openingHours as Record<string, {open: boolean; from?: string; to?: string} | null>;
+            const mapped: OpeningHours = {};
+            for (const [day, val] of Object.entries(raw)) {
+              if (val && val.open && val.from && val.to) {
+                mapped[day] = { open: val.from, close: val.to };
+              } else {
+                mapped[day] = null;
+              }
+            }
+            setOpeningHours(mapped);
           }
         }
       } catch (err) {

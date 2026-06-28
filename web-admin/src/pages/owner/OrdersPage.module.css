@@ -1,0 +1,155 @@
+.page { max-width: 1000px; }
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+.header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
+.sub { color: var(--text-muted); font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+.shopSelect {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+}
+.shopSelect:focus { outline: none; border-color: #fff; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.statWarn { border-color: #fbbf24; }
+.statValue { font-size: 24px; font-weight: 800; }
+.statLabel { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.filterBtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.filterBtn:hover { border-color: #fff; color: #fff; }
+.filterActive { border-color: #fff !important; color: #fff !important; }
+.filterCount {
+  background: var(--border);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.loading { color: var(--text-muted); padding: 40px; text-align: center; }
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.empty span { font-size: 40px; }
+.empty p { font-size: 15px; }
+
+.list { display: flex; flex-direction: column; gap: 10px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  gap: 16px;
+}
+.cardHead:hover { background: rgba(255,255,255,0.03); }
+.cardLeft { display: flex; align-items: center; gap: 14px; }
+.orderId {
+  font-family: monospace;
+  font-size: 12px;
+  background: var(--border);
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.clientName { font-weight: 600; font-size: 14px; }
+.clientEmail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.cardRight { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.amount { font-weight: 700; font-size: 16px; }
+.status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.date { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.toggle { color: var(--text-muted); font-size: 11px; }
+
+.cardBody {
+  border-top: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.items { display: flex; flex-direction: column; gap: 6px; }
+.itemsTitle { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
+.item { display: flex; gap: 12px; font-size: 14px; }
+.item span:first-child { flex: 1; }
+.item span:last-child { font-weight: 600; }
+.address { font-size: 13px; color: var(--text-muted); }
+
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.actionsLabel { font-size: 12px; color: var(--text-muted); margin-right: 4px; }
+.actionBtn {
+  background: transparent;
+  border: 1px solid;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.actionBtn:hover { opacity: 0.7; }
+.actionBtn:disabled { opacity: 0.4; cursor: default; }

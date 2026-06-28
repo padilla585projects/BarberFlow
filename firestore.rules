@@ -26,10 +26,22 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      allow read: if isAuth() && (request.auth.uid == userId || isDeveloper());
+      // Barber/owner profiles are public to any authenticated user (clients need them for booking)
+      allow read: if isAuth() && (request.auth.uid == userId || isDeveloper() || getRole() == 'owner' || getRole() == 'barber' || resource.data.role in ['barber', 'owner']);
       allow create: if isAuth() && request.auth.uid == userId;
       allow update: if isAuth() && (request.auth.uid == userId || isDeveloper());
       allow delete: if isDeveloper();
+
+      // Points history subcollection — user reads/writes their own
+      match /pointsHistory/{entryId} {
+        allow read, write: if isAuth() && request.auth.uid == userId;
+      }
+
+      // Barber schedule (clients need to read barber availability for booking)
+      match /schedule/{docId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && (request.auth.uid == userId || isDeveloper());
+      }
     }
 
     // Barbershops
@@ -42,11 +54,13 @@ service cloud.firestore {
 
     // Appointments
     match /appointments/{appointmentId} {
+      // Clients can read any appointment to check barber availability (slot conflict detection)
       allow read: if isAuth() && (
         resource.data.clientId == request.auth.uid ||
         isBarberOf(resource.data.barbershopId) ||
         isOwnerOf(resource.data.barbershopId) ||
-        isDeveloper()
+        isDeveloper() ||
+        getRole() == 'client'
       );
       allow create: if isAuth();
       allow update: if isAuth() && (
@@ -61,12 +75,15 @@ service cloud.firestore {
     // Products / Inventory
     match /products/{productId} {
       allow read: if isAuth();
-      allow write: if isAuth() && (
+      allow create: if isAuth() && (
+        isOwnerOf(request.resource.data.barbershopId) || isDeveloper()
+      );
+      allow update, delete: if isAuth() && (
         isOwnerOf(resource.data.barbershopId) || isDeveloper()
       );
     }
 
-    // Sales
+    // Sales (POS — created by barber or owner in the shop)
     match /sales/{saleId} {
       allow read: if isAuth() && (
         resource.data.barberId == request.auth.uid ||
@@ -75,9 +92,95 @@ service cloud.firestore {
       );
       allow create: if isAuth() && (
         isBarberOf(request.resource.data.barbershopId) ||
-        isOwnerOf(request.resource.data.barbershopId)
+        isOwnerOf(request.resource.data.barbershopId) ||
+        isDeveloper()
       );
-      allow update, delete: if isDeveloper();
+      allow update, delete: if isDeveloper() || isOwnerOf(resource.data.barbershopId);
+    }
+
+    // Orders (shop purchases by clients)
+    match /orders/{orderId} {
+      allow read: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        isOwnerOf(resource.data.barbershopId) || isDeveloper()
+      );
+      allow delete: if isDeveloper();
+    }
+
+    // Reviews
+    match /reviews/{reviewId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.clientId == request.auth.uid;
+      allow update: if isAuth() && (
+        resource.data.clientId == request.auth.uid || isDeveloper()
+      );
+      allow delete: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+    }
+
+    // Loyalty points
+    match /loyalty/{docId} {
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow create, update: if isAuth() && (
+        request.resource.data.userId == request.auth.uid ||
+        isDeveloper()
+      );
+      allow delete: if isDeveloper();
+    }
+
+    // Loyalty settings (owner configures, all authenticated can read)
+    match /loyaltySettings/{barbershopId} {
+      allow read: if isAuth();
+      allow write: if isOwnerOf(barbershopId) || isDeveloper();
+    }
+
+    // Promo codes (all auth users can read; owner/dev can write)
+    match /promos/{promoId} {
+      allow read: if isAuth();
+      allow create: if isOwnerOf(request.resource.data.barbershopId) || isDeveloper();
+      allow update: if isOwnerOf(resource.data.barbershopId) || isDeveloper();
+      allow delete: if isOwnerOf(resource.data.barbershopId) || isDeveloper();
+    }
+
+    // Waitlist
+    match /waitlist/{entryId} {
+      allow read: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isBarberOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow create: if isAuth();
+      allow update: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      allow delete: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+    }
+
+    // Notifications (each user reads their own)
+    match /notifications/{notifId} {
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isDeveloper();
+      allow update: if isAuth() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuth() && resource.data.userId == request.auth.uid;
     }
   }
 }

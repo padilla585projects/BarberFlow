@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import styles from './LoginPage.module.css'
 
@@ -20,7 +21,13 @@ function getFirebaseError(code: string): string {
 }
 
 export default function LoginPage() {
-  const { loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } = useAuth()
+  const { user, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } = useAuth()
+  const navigate = useNavigate()
+
+  // Redirigir al dashboard en cuanto el usuario queda autenticado
+  useEffect(() => {
+    if (user) navigate('/dashboard', { replace: true })
+  }, [user])
 
   const [method, setMethod] = useState<Method>('google')
   const [mode, setMode] = useState<Mode>('login')
@@ -86,6 +93,7 @@ export default function LoginPage() {
       } else {
         await signUpWithEmail(name.trim(), email, password)
       }
+      // El useEffect se encarga de navegar cuando user quede seteado
     } catch (err: any) {
       setError(getFirebaseError(err?.code ?? ''))
       setLoading(false)
