@@ -33,6 +33,7 @@ const STATUS_COLOR: Record<Appointment['status'], string> = {
   confirmed: '#10B981',
   completed: '#6B7280',
   cancelled: '#EF4444',
+  no_show: '#DC2626',
 };
 
 const STATUS_LABEL: Record<Appointment['status'], string> = {
@@ -40,6 +41,7 @@ const STATUS_LABEL: Record<Appointment['status'], string> = {
   confirmed: 'Confirmada',
   completed: 'Completada',
   cancelled: 'Cancelada',
+  no_show: 'No presentado',
 };
 
 type FilterTab = 'all' | Appointment['status'];
@@ -50,6 +52,7 @@ const TABS: { key: FilterTab; label: string }[] = [
   { key: 'confirmed', label: 'Confirmadas' },
   { key: 'completed', label: 'Completadas' },
   { key: 'cancelled', label: 'Canceladas' },
+  { key: 'no_show', label: 'No presentados' },
 ];
 
 export function ShopAppointmentsScreen() {
@@ -251,12 +254,27 @@ export function ShopAppointmentsScreen() {
               </View>
             )}
             {item.status === 'confirmed' && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
-                onPress={() => updateStatus(item.id, 'completed')}
-              >
-                <Text style={styles.actionBtnText}>✓✓</Text>
-              </TouchableOpacity>
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
+                  onPress={() => updateStatus(item.id, 'completed')}
+                >
+                  <Text style={styles.actionBtnText}>✓✓</Text>
+                </TouchableOpacity>
+                {(() => {
+                  const apptDate = item.date && (item.date as any).toDate
+                    ? (item.date as any).toDate()
+                    : new Date(item.date);
+                  return apptDate < new Date();
+                })() && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
+                    onPress={() => updateStatus(item.id, 'no_show')}
+                  >
+                    <Text style={styles.actionBtnText}>NS</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </View>
         )}

@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AgendaScreen } from '../screens/barber/AgendaScreen';
 import { BarberStatsScreen } from '../screens/barber/BarberStatsScreen';
+import { BarberScheduleScreen } from '../screens/barber/BarberScheduleScreen';
 
 export type BarberStackParamList = {
   Agenda: undefined;
   Stats: undefined;
+  Schedule: undefined;
 };
 
 const Stack = createNativeStackNavigator<BarberStackParamList>();
@@ -39,6 +41,11 @@ export function BarberNavigator() {
         name="Stats"
         component={BarberStatsScreen}
         options={{ title: 'Estadísticas' }}
+      />
+      <Stack.Screen
+        name="Schedule"
+        component={BarberScheduleScreen}
+        options={{ title: 'Mi horario' }}
       />
     </Stack.Navigator>
   );

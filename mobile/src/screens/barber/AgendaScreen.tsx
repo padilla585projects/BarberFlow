@@ -87,6 +87,7 @@ export function AgendaScreen() {
     confirmed: '#10B981',
     completed: '#6B7280',
     cancelled: '#EF4444',
+    no_show: '#DC2626',
   };
 
   if (loading) {
@@ -113,6 +114,9 @@ export function AgendaScreen() {
               </Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 16 }}>
+              <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
+                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
                 <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
               </TouchableOpacity>
@@ -141,7 +145,8 @@ export function AgendaScreen() {
                 <Text style={[styles.badgeText, { color: STATUS_COLOR[item.status] }]}>
                   {item.status === 'pending' ? 'Pendiente' :
                    item.status === 'confirmed' ? 'Confirmada' :
-                   item.status === 'completed' ? 'Completada' : 'Cancelada'}
+                   item.status === 'completed' ? 'Completada' :
+                   item.status === 'no_show' ? 'No presentado' : 'Cancelada'}
                 </Text>
               </View>
             </View>
@@ -162,12 +167,27 @@ export function AgendaScreen() {
               </View>
             )}
             {item.status === 'confirmed' && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
-                onPress={() => updateStatus(item.id, 'completed')}
-              >
-                <Text style={styles.actionBtnText}>✓✓</Text>
-              </TouchableOpacity>
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
+                  onPress={() => updateStatus(item.id, 'completed')}
+                >
+                  <Text style={styles.actionBtnText}>✓✓</Text>
+                </TouchableOpacity>
+                {(() => {
+                  const apptDate = item.date && (item.date as any).toDate
+                    ? (item.date as any).toDate()
+                    : new Date(item.date);
+                  return apptDate < new Date();
+                })() && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
+                    onPress={() => updateStatus(item.id, 'no_show')}
+                  >
+                    <Text style={styles.actionBtnText}>NS</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </View>
         )}

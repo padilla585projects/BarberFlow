@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  FlatList,
+  TextInput,
 } from 'react-native';
 import {
   collection,
@@ -15,10 +17,17 @@ import {
   query,
   where,
   getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  increment,
+  Timestamp,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
+
+/* ── Types ─────────────────────────────────────────────────────────────────── */
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'Book'>;
 
@@ -27,6 +36,40 @@ interface BarberOption {
   displayName: string;
 }
 
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  duration: number; // minutes
+}
+
+interface DayHours {
+  open: string; // "09:00"
+  close: string; // "20:00"
+}
+
+type OpeningHours = Record<string, DayHours | null>;
+
+interface ExistingAppointment {
+  timeSlot: string;
+  totalDuration: number; // minutes
+}
+
+interface BarberDaySchedule {
+  active: boolean;
+  start: string;   // "09:00"
+  end: string;     // "20:00"
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+interface BarberSchedule {
+  weeklyHours: Record<string, BarberDaySchedule>;
+  daysOff: string[]; // ["2026-07-04", ...]
+}
+
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
 const GOLD    = '#C9A84C';
@@ -34,47 +77,518 @@ const TEXT    = '#FFFFFF';
 const MUTED   = '#888888';
 const BORDER  = '#282828';
 
-const TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+/* ── Helpers ───────────────────────────────────────────────────────────────── */
+
+const SPANISH_DAYS_SHORT = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+const SPANISH_MONTHS = [
+  'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+  'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+];
+
+/**
+ * JS Date.getDay() returns 0=Sunday..6=Saturday.
+ * Map to the Firestore openingHours key (english lowercase).
+ */
+const DAY_INDEX_TO_KEY: Record<number, string> = {
+  0: 'sunday',
+  1: 'monday',
+  2: 'tuesday',
+  3: 'wednesday',
+  4: 'thursday',
+  5: 'friday',
+  6: 'saturday',
+};
+
+/** Parse "HH:MM" to total minutes since midnight. */
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/** Format total minutes since midnight to "HH:MM". */
+function minutesToTime(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/** Build the next 14 calendar days starting from tomorrow. */
+function buildDateRange(): Date[] {
+  const dates: Date[] = [];
+  const now = new Date();
+  for (let i = 1; i <= 14; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    d.setHours(0, 0, 0, 0);
+    dates.push(d);
+  }
+  return dates;
+}
+
+/** Check whether a candidate slot overlaps with any existing appointment. */
+function slotConflicts(
+  slotStart: number,
+  slotDuration: number,
+  existing: ExistingAppointment[],
+): boolean {
+  const slotEnd = slotStart + slotDuration;
+  return existing.some((appt) => {
+    const apptStart = timeToMinutes(appt.timeSlot);
+    const apptEnd = apptStart + appt.totalDuration;
+    return slotStart < apptEnd && slotEnd > apptStart;
+  });
+}
+
+/**
+ * Generate available time slots for a given day.
+ * Slots are placed every 30 minutes, but only if the full service duration
+ * fits before the shop closes AND doesn't overlap existing appointments
+ * or the barber's break time.
+ */
+function generateSlots(
+  hours: DayHours,
+  totalDuration: number,
+  existing: ExistingAppointment[],
+  breakStart?: string,
+  breakEnd?: string,
+): { time: string; available: boolean }[] {
+  const openMin = timeToMinutes(hours.open);
+  const closeMin = timeToMinutes(hours.close);
+  const breakStartMin = breakStart ? timeToMinutes(breakStart) : null;
+  const breakEndMin = breakEnd ? timeToMinutes(breakEnd) : null;
+  const slots: { time: string; available: boolean }[] = [];
+
+  for (let m = openMin; m + totalDuration <= closeMin; m += 30) {
+    const time = minutesToTime(m);
+    const slotEnd = m + totalDuration;
+
+    // Check if the slot overlaps with the barber's break
+    const overlapsBreak =
+      breakStartMin !== null &&
+      breakEndMin !== null &&
+      m < breakEndMin &&
+      slotEnd > breakStartMin;
+
+    const available = !overlapsBreak && !slotConflicts(m, totalDuration, existing);
+    slots.push({ time, available });
+  }
+  return slots;
+}
+
+/** Format a Date as "YYYY-MM-DD" for comparing with daysOff. */
+function formatDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Check whether the barber works on a given date according to their schedule.
+ * Returns { works: false } if barber is off, or { works: true, daySchedule }
+ * with the schedule for that day.
+ */
+function barberWorksOnDate(
+  date: Date,
+  schedule: BarberSchedule,
+): { works: false } | { works: true; daySchedule: BarberDaySchedule } {
+  // Check explicit days off
+  const dateStr = formatDateKey(date);
+  if (schedule.daysOff?.includes(dateStr)) return { works: false };
+
+  // Check weekly hours
+  const dayKey = DAY_INDEX_TO_KEY[date.getDay()];
+  const daySchedule = schedule.weeklyHours?.[dayKey];
+  if (!daySchedule || !daySchedule.active) return { works: false };
+
+  return { works: true, daySchedule };
+}
+
+/* ── Component ─────────────────────────────────────────────────────────────── */
 
 export function BookScreen({ route, navigation }: Props) {
   const { barbershopId, barbershopName } = route.params;
+
+  // Data
   const [barbers, setBarbers] = useState<BarberOption[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [openingHours, setOpeningHours] = useState<OpeningHours | null>(null);
+  const [existingAppointments, setExistingAppointments] = useState<ExistingAppointment[]>([]);
+  const [barberSchedule, setBarberSchedule] = useState<BarberSchedule | null>(null);
+
+  // Selections
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<BarberOption | null>(null);
+  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingBarbers, setLoadingBarbers] = useState(true);
+
+  // Promo code
+  const [promoExpanded, setPromoExpanded] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState<{
+    id: string;
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+  } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+
+  // Waitlist
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+
+  // Loading states
+  const [loadingInit, setLoadingInit] = useState(true);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const dates = useMemo(buildDateRange, []);
+
+  /**
+   * Set of date strings ("YYYY-MM-DD") where the selected barber does NOT work.
+   * Used to grey out dates in the picker.
+   */
+  const barberUnavailableDates = useMemo(() => {
+    const set = new Set<string>();
+    if (!barberSchedule) return set;
+    for (const d of dates) {
+      const result = barberWorksOnDate(d, barberSchedule);
+      if (!result.works) set.add(formatDateKey(d));
+    }
+    return set;
+  }, [barberSchedule, dates]);
+
+  /* ── Derived values ────────────────────────────────────────────────────── */
+
+  const selectedServicesList = useMemo(
+    () => services.filter((s) => selectedServices.has(s.id)),
+    [services, selectedServices],
+  );
+
+  const totalDuration = useMemo(
+    () => selectedServicesList.reduce((sum, s) => sum + s.duration, 0),
+    [selectedServicesList],
+  );
+
+  const totalPrice = useMemo(
+    () => selectedServicesList.reduce((sum, s) => sum + s.price, 0),
+    [selectedServicesList],
+  );
+
+  const discountAmount = useMemo(() => {
+    if (!promoApplied) return 0;
+    if (promoApplied.type === 'percentage') {
+      return Math.round(totalPrice * promoApplied.value) / 100;
+    }
+    return Math.min(promoApplied.value, totalPrice);
+  }, [promoApplied, totalPrice]);
+
+  const finalPrice = totalPrice - discountAmount;
+
+  const dayKey = useMemo(() => {
+    if (!selectedDate) return null;
+    return DAY_INDEX_TO_KEY[selectedDate.getDay()];
+  }, [selectedDate]);
+
+  /** Whether the selected barber is off on the selected date. */
+  const barberDayOff = useMemo(() => {
+    if (!selectedDate || !barberSchedule) return false;
+    const result = barberWorksOnDate(selectedDate, barberSchedule);
+    return !result.works;
+  }, [selectedDate, barberSchedule]);
+
+  /** The barber's day schedule for the selected date (if they have one). */
+  const barberDayConfig = useMemo((): BarberDaySchedule | null => {
+    if (!selectedDate || !barberSchedule) return null;
+    const result = barberWorksOnDate(selectedDate, barberSchedule);
+    return result.works ? result.daySchedule : null;
+  }, [selectedDate, barberSchedule]);
+
+  const todayHours = useMemo((): DayHours | null => {
+    if (!dayKey) return null;
+
+    // If the barber has a personal schedule and works this day, use their hours
+    if (barberDayConfig) {
+      return { open: barberDayConfig.start, close: barberDayConfig.end };
+    }
+    // If barber has a schedule but is off this day, no hours
+    if (barberDayOff) return null;
+
+    // Fallback to barbershop hours
+    if (!openingHours) return null;
+    return openingHours[dayKey] ?? null;
+  }, [openingHours, dayKey, barberDayConfig, barberDayOff]);
+
+  const slots = useMemo(() => {
+    if (!todayHours || totalDuration <= 0) return [];
+    return generateSlots(
+      todayHours,
+      totalDuration,
+      existingAppointments,
+      barberDayConfig?.breakStart,
+      barberDayConfig?.breakEnd,
+    );
+  }, [todayHours, totalDuration, existingAppointments, barberDayConfig]);
+
+  const allSlotsTaken = useMemo(() => {
+    if (!todayHours || totalDuration <= 0 || slots.length === 0) return false;
+    return slots.every((s) => !s.available);
+  }, [todayHours, totalDuration, slots]);
+
+  /* ── Initial data fetch: barbers, services, openingHours ───────────── */
 
   useEffect(() => {
-    const fetchBarbers = async () => {
+    const load = async () => {
       try {
-        const q = query(
-          collection(db, 'users'),
-          where('barbershopId', '==', barbershopId),
-          where('role', 'in', ['barber', 'owner']),
-        );
-        const snap = await getDocs(q);
-        const list = snap.docs.map((d) => ({
+        // Fetch barbers, services and shop data in parallel
+        const [barbersSnap, servicesSnap, shopSnap] = await Promise.all([
+          getDocs(
+            query(
+              collection(db, 'users'),
+              where('barbershopId', '==', barbershopId),
+              where('role', 'in', ['barber', 'owner']),
+            ),
+          ),
+          getDocs(
+            query(
+              collection(db, 'barbershops', barbershopId, 'services'),
+              where('active', '==', true),
+            ),
+          ),
+          getDoc(doc(db, 'barbershops', barbershopId)),
+        ]);
+
+        // Barbers
+        const barberList = barbersSnap.docs.map((d) => ({
           uid: d.data().uid ?? d.id,
           displayName: d.data().displayName ?? d.data().email ?? 'Barbero',
         }));
-        setBarbers(list);
-        if (list.length === 1) setSelectedBarber(list[0]);
+        setBarbers(barberList);
+        if (barberList.length === 1) setSelectedBarber(barberList[0]);
+
+        // Services
+        const serviceList = servicesSnap.docs.map((d) => ({
+          id: d.id,
+          name: d.data().name ?? '',
+          price: d.data().price ?? 0,
+          duration: d.data().duration ?? 30,
+        }));
+        setServices(serviceList);
+
+        // Opening hours
+        if (shopSnap.exists()) {
+          const data = shopSnap.data();
+          if (data.openingHours) {
+            setOpeningHours(data.openingHours as OpeningHours);
+          }
+        }
       } catch (err) {
-        console.error('[BookScreen] Error loading barbers:', err);
+        console.error('[BookScreen] Error loading initial data:', err);
+        Alert.alert('Error', 'No se pudo cargar la información de la barbería.');
       } finally {
-        setLoadingBarbers(false);
+        setLoadingInit(false);
       }
     };
-    fetchBarbers();
+    load();
   }, [barbershopId]);
+
+  /* ── Fetch barber's personal schedule when barber changes ─────────── */
+
+  useEffect(() => {
+    if (!selectedBarber) {
+      setBarberSchedule(null);
+      return;
+    }
+
+    const fetchSchedule = async () => {
+      try {
+        const scheduleDoc = await getDoc(
+          doc(db, 'users', selectedBarber.uid, 'schedule', 'config'),
+        );
+        if (scheduleDoc.exists()) {
+          setBarberSchedule(scheduleDoc.data() as BarberSchedule);
+        } else {
+          setBarberSchedule(null);
+        }
+      } catch (err) {
+        console.error('[BookScreen] Error fetching barber schedule:', err);
+        setBarberSchedule(null);
+      }
+    };
+
+    fetchSchedule();
+  }, [selectedBarber]);
+
+  /* ── Fetch existing appointments when barber+date change ───────────── */
+
+  useEffect(() => {
+    if (!selectedBarber || !selectedDate) {
+      setExistingAppointments([]);
+      return;
+    }
+
+    const fetchAppointments = async () => {
+      setLoadingSlots(true);
+      try {
+        // Build day boundaries (start of day to end of day)
+        const dayStart = new Date(selectedDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(selectedDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const q = query(
+          collection(db, 'appointments'),
+          where('barbershopId', '==', barbershopId),
+          where('barberId', '==', selectedBarber.uid),
+          where('date', '>=', Timestamp.fromDate(dayStart)),
+          where('date', '<=', Timestamp.fromDate(dayEnd)),
+        );
+        const snap = await getDocs(q);
+
+        const appts: ExistingAppointment[] = snap.docs
+          .filter((d) => {
+            const status = d.data().status;
+            return status !== 'cancelled';
+          })
+          .map((d) => {
+            const data = d.data();
+            // Calculate total duration from services array, fallback to 60 min
+            const svcArray = data.services as { duration?: number }[] | undefined;
+            const dur = svcArray && svcArray.length > 0
+              ? svcArray.reduce((sum: number, s: { duration?: number }) => sum + (s.duration ?? 30), 0)
+              : 60;
+            return {
+              timeSlot: data.timeSlot as string,
+              totalDuration: dur,
+            };
+          });
+
+        setExistingAppointments(appts);
+      } catch (err) {
+        console.error('[BookScreen] Error fetching appointments:', err);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchAppointments();
+  }, [selectedBarber, selectedDate, barbershopId]);
+
+  // Reset slot when date, barber, or services change
+  useEffect(() => {
+    setSelectedSlot(null);
+  }, [selectedDate, selectedBarber, selectedServices]);
+
+  // Deselect date if the new barber doesn't work on the currently selected date
+  useEffect(() => {
+    if (!selectedDate || !barberSchedule) return;
+    const result = barberWorksOnDate(selectedDate, barberSchedule);
+    if (!result.works) {
+      setSelectedDate(null);
+    }
+  }, [barberSchedule]); // intentionally only react to schedule changes
+
+  /* ── Service toggle ────────────────────────────────────────────────────── */
+
+  const toggleService = useCallback((serviceId: string) => {
+    setSelectedServices((prev) => {
+      const next = new Set(prev);
+      if (next.has(serviceId)) {
+        next.delete(serviceId);
+      } else {
+        next.add(serviceId);
+      }
+      return next;
+    });
+  }, []);
+
+  /* ── Promo code validation ──────────────────────────────────────────── */
+
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+
+    setPromoError('');
+    setPromoLoading(true);
+    try {
+      const promoSnap = await getDocs(
+        query(
+          collection(db, 'barbershops', barbershopId, 'promos'),
+          where('code', '==', code),
+        ),
+      );
+
+      if (promoSnap.empty) {
+        setPromoError('Codigo no valido.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      const promoDoc = promoSnap.docs[0];
+      const data = promoDoc.data();
+
+      if (!data.active) {
+        setPromoError('Este codigo ya no esta activo.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      const expiry = data.expiryDate?.toDate?.();
+      if (expiry && expiry < new Date()) {
+        setPromoError('Este codigo ha expirado.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      if (data.maxUses > 0 && (data.currentUses ?? 0) >= data.maxUses) {
+        setPromoError('Este codigo ha alcanzado el limite de usos.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      setPromoApplied({
+        id: promoDoc.id,
+        code: data.code,
+        type: data.type,
+        value: data.value,
+      });
+      setPromoError('');
+    } catch (err) {
+      console.error('[BookScreen] Error validating promo:', err);
+      setPromoError('Error al validar el codigo.');
+      setPromoApplied(null);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoApplied(null);
+    setPromoInput('');
+    setPromoError('');
+  };
+
+  /* ── Submit booking ────────────────────────────────────────────────────── */
 
   const handleBook = async () => {
     if (!selectedBarber) {
       Alert.alert('Selecciona un barbero', 'Elige el barbero para tu cita.');
       return;
     }
+    if (selectedServices.size === 0) {
+      Alert.alert('Selecciona servicios', 'Elige al menos un servicio.');
+      return;
+    }
+    if (!selectedDate) {
+      Alert.alert('Selecciona una fecha', 'Elige el día de tu cita.');
+      return;
+    }
     if (!selectedSlot) {
-      Alert.alert('Selecciona un horario', 'Elige el horario de tu cita antes de continuar.');
+      Alert.alert('Selecciona un horario', 'Elige la hora de tu cita.');
       return;
     }
 
@@ -82,13 +596,20 @@ export function BookScreen({ route, navigation }: Props) {
     if (!user) return;
 
     try {
-      setLoading(true);
+      setSubmitting(true);
 
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(parseInt(selectedSlot.split(':')[0]), 0, 0, 0);
+      // Build the date+time for the appointment
+      const [hours, minutes] = selectedSlot.split(':').map(Number);
+      const appointmentDate = new Date(selectedDate);
+      appointmentDate.setHours(hours, minutes, 0, 0);
 
-      await addDoc(collection(db, 'appointments'), {
+      const servicesPayload = selectedServicesList.map((s) => ({
+        name: s.name,
+        price: s.price,
+        duration: s.duration,
+      }));
+
+      const appointmentData: Record<string, unknown> = {
         clientId: user.uid,
         clientEmail: user.email,
         clientName: user.displayName,
@@ -97,100 +618,467 @@ export function BookScreen({ route, navigation }: Props) {
         barbershopId,
         barbershopName,
         timeSlot: selectedSlot,
-        date: tomorrow,
+        date: Timestamp.fromDate(appointmentDate),
         status: 'pending',
-        services: [],
-        totalPrice: 0,
+        services: servicesPayload,
+        totalPrice: finalPrice,
+        originalPrice: totalPrice,
         createdAt: serverTimestamp(),
-      });
+      };
 
+      if (promoApplied) {
+        appointmentData.promoCode = promoApplied.code;
+        appointmentData.discount = discountAmount;
+        appointmentData.promoType = promoApplied.type;
+        appointmentData.promoValue = promoApplied.value;
+      }
+
+      await addDoc(collection(db, 'appointments'), appointmentData);
+
+      // Increment promo usage
+      if (promoApplied) {
+        await updateDoc(
+          doc(db, 'barbershops', barbershopId, 'promos', promoApplied.id),
+          { currentUses: increment(1) },
+        );
+      }
+
+      const dateLabel = `${selectedDate.getDate()} ${SPANISH_MONTHS[selectedDate.getMonth()]}`;
       Alert.alert(
-        '¡Cita reservada!',
-        `Tu cita para mañana a las ${selectedSlot} ha sido enviada. El barbero la confirmará pronto.`,
+        'Cita reservada',
+        `Tu cita el ${dateLabel} a las ${selectedSlot} ha sido enviada. El barbero la confirmará pronto.`,
         [{ text: 'OK', onPress: () => navigation.navigate('MyAppointments') }],
       );
     } catch (err) {
       console.error('[BookScreen] Error creating appointment:', err);
       Alert.alert('Error', 'No se pudo reservar la cita. Intenta de nuevo.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  /* ── Join waitlist ──────────────────────────────────────────────────── */
+
+  const handleJoinWaitlist = async () => {
+    if (!selectedBarber || selectedServices.size === 0 || !selectedDate) {
+      Alert.alert('Completa la selección', 'Elige barbero, servicios y fecha para unirte a la lista de espera.');
+      return;
+    }
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      setJoiningWaitlist(true);
+
+      const appointmentDate = new Date(selectedDate);
+      appointmentDate.setHours(12, 0, 0, 0);
+
+      const servicesPayload = selectedServicesList.map((s) => ({
+        name: s.name,
+        price: s.price,
+        duration: s.duration,
+      }));
+
+      await addDoc(collection(db, 'barbershops', barbershopId, 'waitlist'), {
+        clientId: user.uid,
+        clientName: user.displayName ?? 'Cliente',
+        clientEmail: user.email ?? '',
+        barberId: selectedBarber.uid,
+        barberName: selectedBarber.displayName,
+        date: Timestamp.fromDate(appointmentDate),
+        services: servicesPayload,
+        totalPrice: finalPrice,
+        createdAt: serverTimestamp(),
+        status: 'waiting',
+      });
+
+      const dateLabel = `${selectedDate.getDate()} ${SPANISH_MONTHS[selectedDate.getMonth()]}`;
+      Alert.alert(
+        'Lista de espera',
+        `Te has unido a la lista de espera para el ${dateLabel}. Te avisaremos si se libera un hueco.`,
+        [{ text: 'OK' }],
+      );
+    } catch (err) {
+      console.error('[BookScreen] Error joining waitlist:', err);
+      Alert.alert('Error', 'No se pudo unir a la lista de espera. Intenta de nuevo.');
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
+
+  /* ── Render helpers ────────────────────────────────────────────────────── */
+
+  const canConfirm =
+    !!selectedBarber &&
+    selectedServices.size > 0 &&
+    !!selectedDate &&
+    !!selectedSlot &&
+    !submitting;
+
+  if (loadingInit) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator color={GOLD} size="large" />
+        <Text style={styles.loadingText}>Cargando...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Reservar en {barbershopName}</Text>
 
-      {/* Barber selection */}
+      {/* ─── 1. Barber selection ──────────────────────────────────────── */}
       <Text style={styles.sectionLabel}>Elige tu barbero</Text>
-      {loadingBarbers ? (
-        <ActivityIndicator color={GOLD} style={{ marginVertical: 12 }} />
-      ) : barbers.length === 0 ? (
+      {barbers.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyText}>Esta barbería aún no tiene barberos registrados</Text>
+          <Text style={styles.emptyText}>
+            Esta barbería aún no tiene barberos registrados
+          </Text>
         </View>
       ) : (
-        <View style={styles.slotsGrid}>
-          {barbers.map((b) => (
-            <TouchableOpacity
-              key={b.uid}
-              style={[styles.barberChip, selectedBarber?.uid === b.uid && styles.chipSelected]}
-              onPress={() => setSelectedBarber(b)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.barberAvatar}>
-                <Text style={styles.barberAvatarText}>{b.displayName.charAt(0).toUpperCase()}</Text>
-              </View>
-              <Text
-                style={[styles.barberName, selectedBarber?.uid === b.uid && styles.chipTextSelected]}
-                numberOfLines={1}
+        <View style={styles.chipRow}>
+          {barbers.map((b) => {
+            const active = selectedBarber?.uid === b.uid;
+            return (
+              <TouchableOpacity
+                key={b.uid}
+                style={[styles.barberChip, active && styles.chipSelected]}
+                onPress={() => setSelectedBarber(b)}
+                activeOpacity={0.8}
               >
-                {b.displayName}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={[styles.barberAvatar, active && styles.avatarSelected]}>
+                  <Text style={[styles.barberAvatarText, active && styles.avatarTextSelected]}>
+                    {b.displayName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <Text
+                  style={[styles.barberName, active && styles.chipTextSelected]}
+                  numberOfLines={1}
+                >
+                  {b.displayName}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 
-      {/* Time slot selection */}
-      <Text style={styles.sectionLabel}>Horario para mañana</Text>
-      <View style={styles.slotsGrid}>
-        {TIME_SLOTS.map((slot) => (
-          <TouchableOpacity
-            key={slot}
-            style={[styles.slot, selectedSlot === slot && styles.slotSelected]}
-            onPress={() => setSelectedSlot(slot)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.slotText, selectedSlot === slot && styles.slotTextSelected]}>
-              {slot}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* ─── 2. Service selection ─────────────────────────────────────── */}
+      <Text style={styles.sectionLabel}>Servicios</Text>
+      {services.length === 0 ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyText}>No hay servicios disponibles</Text>
+        </View>
+      ) : (
+        <View style={styles.servicesList}>
+          {services.map((svc) => {
+            const checked = selectedServices.has(svc.id);
+            return (
+              <TouchableOpacity
+                key={svc.id}
+                style={[styles.serviceRow, checked && styles.serviceRowSelected]}
+                onPress={() => toggleService(svc.id)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                  {checked && <Text style={styles.checkmark}>{'✓'}</Text>}
+                </View>
+                <View style={styles.serviceInfo}>
+                  <Text style={[styles.serviceName, checked && styles.serviceNameSelected]}>
+                    {svc.name}
+                  </Text>
+                  <Text style={styles.serviceMeta}>
+                    {svc.duration} min
+                  </Text>
+                </View>
+                <Text style={[styles.servicePrice, checked && styles.servicePriceSelected]}>
+                  {svc.price.toFixed(2)} €
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
+      {/* ─── Duration + price summary ─────────────────────────────────── */}
+      {selectedServices.size > 0 && (
+        <View style={styles.summaryBar}>
+          <Text style={styles.summaryText}>
+            {totalDuration} min · {selectedServicesList.length}{' '}
+            {selectedServicesList.length === 1 ? 'servicio' : 'servicios'}
+          </Text>
+          <Text style={styles.summaryPrice}>{totalPrice.toFixed(2)} €</Text>
+        </View>
+      )}
+
+      {/* ─── 3. Date picker (horizontal scroll) ──────────────────────── */}
+      <Text style={styles.sectionLabel}>Fecha</Text>
+      {!openingHours ? (
+        <View style={styles.emptyBox}>
+          <Text style={styles.emptyText}>Horarios no disponibles</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={dates}
+          extraData={barberUnavailableDates}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.toISOString()}
+          contentContainerStyle={styles.dateListContent}
+          renderItem={({ item }) => {
+            const key = DAY_INDEX_TO_KEY[item.getDay()];
+            const shopHours = openingHours[key];
+            const shopClosed = !shopHours;
+            const barberOff = barberUnavailableDates.has(formatDateKey(item));
+            const closed = shopClosed || barberOff;
+            const active = selectedDate?.toDateString() === item.toDateString();
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.dateCard,
+                  active && styles.dateCardSelected,
+                  closed && styles.dateCardClosed,
+                ]}
+                onPress={() => {
+                  if (!closed) setSelectedDate(item);
+                }}
+                disabled={closed}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.dateDayName,
+                    active && styles.dateTextSelected,
+                    closed && styles.dateTextClosed,
+                  ]}
+                >
+                  {SPANISH_DAYS_SHORT[item.getDay()]}
+                </Text>
+                <Text
+                  style={[
+                    styles.dateDayNum,
+                    active && styles.dateTextSelected,
+                    closed && styles.dateTextClosed,
+                  ]}
+                >
+                  {item.getDate()}
+                </Text>
+                <Text
+                  style={[
+                    styles.dateMonth,
+                    active && styles.dateTextSelected,
+                    closed && styles.dateTextClosed,
+                  ]}
+                >
+                  {SPANISH_MONTHS[item.getMonth()]}
+                </Text>
+                {shopClosed && <Text style={styles.closedLabel}>Cerrado</Text>}
+                {!shopClosed && barberOff && (
+                  <Text style={styles.closedLabel}>No trabaja</Text>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
+
+      {/* ─── 4. Time slots ────────────────────────────────────────────── */}
+      {selectedDate && selectedServices.size > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>Horario</Text>
+          {loadingSlots ? (
+            <ActivityIndicator color={GOLD} style={{ marginVertical: 16 }} />
+          ) : barberDayOff ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>Este barbero no trabaja este día</Text>
+            </View>
+          ) : !todayHours ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>La barbería está cerrada este día</Text>
+            </View>
+          ) : slots.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>
+                No hay horarios disponibles para la duración seleccionada
+              </Text>
+            </View>
+          ) : allSlotsTaken ? (
+            <View style={styles.waitlistBox}>
+              <Text style={styles.waitlistTitle}>Sin disponibilidad</Text>
+              <Text style={styles.waitlistDesc}>
+                Todos los horarios estan ocupados para este dia y barbero.
+              </Text>
+              <TouchableOpacity
+                style={[styles.waitlistBtn, joiningWaitlist && { opacity: 0.6 }]}
+                onPress={handleJoinWaitlist}
+                disabled={joiningWaitlist}
+                activeOpacity={0.85}
+              >
+                {joiningWaitlist ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={styles.waitlistBtnText}>Unirse a lista de espera</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.slotsGrid}>
+              {slots.map((slot) => {
+                const active = selectedSlot === slot.time;
+                return (
+                  <TouchableOpacity
+                    key={slot.time}
+                    style={[
+                      styles.slot,
+                      active && styles.slotSelected,
+                      !slot.available && styles.slotDisabled,
+                    ]}
+                    onPress={() => {
+                      if (slot.available) setSelectedSlot(slot.time);
+                    }}
+                    disabled={!slot.available}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.slotText,
+                        active && styles.slotTextSelected,
+                        !slot.available && styles.slotTextDisabled,
+                      ]}
+                    >
+                      {slot.time}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </>
+      )}
+
+      {/* ─── 5. Promo code ─────────────────────────────────────────────── */}
       <TouchableOpacity
-        style={[styles.confirmBtn, (!selectedBarber || !selectedSlot || loading) && styles.btnDisabled]}
+        style={styles.promoToggle}
+        onPress={() => setPromoExpanded((v) => !v)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.promoToggleText}>
+          {promoExpanded ? '▾' : '▸'} Tienes un codigo promocional?
+        </Text>
+      </TouchableOpacity>
+
+      {promoExpanded && (
+        <View style={styles.promoSection}>
+          {promoApplied ? (
+            <View style={styles.promoApplied}>
+              <View style={styles.promoAppliedLeft}>
+                <Text style={styles.promoCheckmark}>{'✓'}</Text>
+                <View>
+                  <Text style={styles.promoAppliedCode}>{promoApplied.code}</Text>
+                  <Text style={styles.promoAppliedDiscount}>
+                    -{promoApplied.type === 'percentage'
+                      ? `${promoApplied.value}%`
+                      : `${promoApplied.value.toFixed(2)} EUR`}
+                    {' '}({discountAmount.toFixed(2)} EUR)
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={handleRemovePromo}>
+                <Text style={styles.promoRemove}>Quitar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.promoInputRow}>
+              <TextInput
+                style={styles.promoInput}
+                placeholder="Codigo"
+                placeholderTextColor={MUTED}
+                value={promoInput}
+                onChangeText={(t) => {
+                  setPromoInput(t.toUpperCase());
+                  setPromoError('');
+                }}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity
+                style={[styles.promoApplyBtn, promoLoading && { opacity: 0.6 }]}
+                onPress={handleApplyPromo}
+                disabled={promoLoading}
+              >
+                {promoLoading ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={styles.promoApplyBtnText}>Aplicar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+          {!!promoError && <Text style={styles.promoErrorText}>{promoError}</Text>}
+        </View>
+      )}
+
+      {/* ─── Discount summary ──────────────────────────────────────────── */}
+      {promoApplied && totalPrice > 0 && (
+        <View style={styles.discountSummary}>
+          <View style={styles.discountRow}>
+            <Text style={styles.discountLabel}>Subtotal</Text>
+            <Text style={styles.discountValue}>{totalPrice.toFixed(2)} EUR</Text>
+          </View>
+          <View style={styles.discountRow}>
+            <Text style={[styles.discountLabel, { color: '#10B981' }]}>Descuento ({promoApplied.code})</Text>
+            <Text style={[styles.discountValue, { color: '#10B981' }]}>-{discountAmount.toFixed(2)} EUR</Text>
+          </View>
+          <View style={[styles.discountRow, { borderTopWidth: 1, borderTopColor: BORDER, paddingTop: 8 }]}>
+            <Text style={[styles.discountLabel, { color: GOLD, fontWeight: '800' }]}>Total</Text>
+            <Text style={[styles.discountValue, { color: GOLD, fontSize: 18, fontWeight: '800' }]}>{finalPrice.toFixed(2)} EUR</Text>
+          </View>
+        </View>
+      )}
+
+      {/* ─── 6. Confirm button ────────────────────────────────────────── */}
+      <TouchableOpacity
+        style={[styles.confirmBtn, !canConfirm && styles.btnDisabled]}
         onPress={handleBook}
-        disabled={!selectedBarber || !selectedSlot || loading}
+        disabled={!canConfirm}
         activeOpacity={0.85}
       >
-        {loading ? (
+        {submitting ? (
           <ActivityIndicator color="#000" />
         ) : (
-          <Text style={styles.confirmBtnText}>Confirmar reserva</Text>
+          <Text style={styles.confirmBtnText}>
+            {finalPrice > 0
+              ? `Confirmar reserva · ${finalPrice.toFixed(2)} EUR`
+              : 'Confirmar reserva'}
+          </Text>
         )}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
+/* ── Styles ──────────────────────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  content: { padding: 24, gap: 20 },
+  centered: { justifyContent: 'center', alignItems: 'center' },
+  content: { padding: 24, paddingBottom: 48, gap: 16 },
+  loadingText: { color: MUTED, marginTop: 12, fontSize: 14 },
+
   title: { fontSize: 22, fontWeight: '800', color: TEXT },
-  sectionLabel: { fontSize: 14, fontWeight: '600', color: MUTED, textTransform: 'uppercase', letterSpacing: 0.5 },
-  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: MUTED,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 8,
+  },
+
+  /* Barber chips */
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   barberChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -211,18 +1099,85 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  avatarSelected: { backgroundColor: 'rgba(0,0,0,0.15)' },
   barberAvatarText: { color: GOLD, fontSize: 14, fontWeight: '800' },
+  avatarTextSelected: { color: '#000' },
   barberName: { fontSize: 14, fontWeight: '600', color: TEXT, maxWidth: 120 },
   chipTextSelected: { color: '#000' },
-  emptyBox: {
+
+  /* Services */
+  servicesList: { gap: 8 },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: SURFACE,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: BORDER,
-    padding: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  serviceRowSelected: { borderColor: GOLD },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: MUTED,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyText: { fontSize: 14, color: MUTED, textAlign: 'center' },
+  checkboxChecked: {
+    backgroundColor: GOLD,
+    borderColor: GOLD,
+  },
+  checkmark: { color: '#000', fontSize: 13, fontWeight: '800' },
+  serviceInfo: { flex: 1, gap: 2 },
+  serviceName: { fontSize: 15, fontWeight: '600', color: TEXT },
+  serviceNameSelected: { color: TEXT },
+  serviceMeta: { fontSize: 12, color: MUTED },
+  servicePrice: { fontSize: 15, fontWeight: '700', color: MUTED },
+  servicePriceSelected: { color: GOLD },
+
+  /* Summary bar */
+  summaryBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: GOLD + '15',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: GOLD + '30',
+  },
+  summaryText: { fontSize: 13, fontWeight: '600', color: GOLD },
+  summaryPrice: { fontSize: 16, fontWeight: '800', color: GOLD },
+
+  /* Date picker */
+  dateListContent: { gap: 10, paddingVertical: 4 },
+  dateCard: {
+    width: 64,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    backgroundColor: SURFACE,
+    alignItems: 'center',
+    gap: 2,
+  },
+  dateCardSelected: { borderColor: GOLD, backgroundColor: GOLD },
+  dateCardClosed: { opacity: 0.4 },
+  dateDayName: { fontSize: 12, fontWeight: '600', color: MUTED, textTransform: 'uppercase' },
+  dateDayNum: { fontSize: 20, fontWeight: '800', color: TEXT },
+  dateMonth: { fontSize: 11, fontWeight: '600', color: MUTED },
+  dateTextSelected: { color: '#000' },
+  dateTextClosed: { color: MUTED },
+  closedLabel: { fontSize: 9, fontWeight: '700', color: MUTED, marginTop: 2 },
+
+  /* Time slots */
+  slotsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   slot: {
     paddingVertical: 12,
     paddingHorizontal: 18,
@@ -232,8 +1187,12 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   slotSelected: { borderColor: GOLD, backgroundColor: GOLD },
+  slotDisabled: { opacity: 0.35 },
   slotText: { fontSize: 15, fontWeight: '600', color: TEXT },
   slotTextSelected: { color: '#000' },
+  slotTextDisabled: { color: MUTED },
+
+  /* Confirm */
   confirmBtn: {
     backgroundColor: GOLD,
     borderRadius: 14,
@@ -248,4 +1207,97 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.5 },
   confirmBtnText: { color: '#000', fontSize: 16, fontWeight: '700' },
+
+  /* Shared */
+  emptyBox: {
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: { fontSize: 14, color: MUTED, textAlign: 'center' },
+
+  /* Promo code */
+  promoToggle: { paddingVertical: 4 },
+  promoToggleText: { fontSize: 14, fontWeight: '600', color: GOLD },
+  promoSection: { gap: 8 },
+  promoInputRow: { flexDirection: 'row', gap: 10 },
+  promoInput: {
+    flex: 1,
+    backgroundColor: SURFACE,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT,
+    letterSpacing: 1,
+  },
+  promoApplyBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoApplyBtnText: { color: '#000', fontSize: 14, fontWeight: '700' },
+  promoErrorText: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
+  promoApplied: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#10B981' + '15',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#10B981' + '30',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  promoAppliedLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  promoCheckmark: { fontSize: 18, color: '#10B981', fontWeight: '800' },
+  promoAppliedCode: { fontSize: 15, fontWeight: '800', color: TEXT },
+  promoAppliedDiscount: { fontSize: 12, fontWeight: '600', color: '#10B981' },
+  promoRemove: { fontSize: 13, fontWeight: '700', color: '#EF4444' },
+
+  /* Discount summary */
+  discountSummary: {
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    gap: 6,
+  },
+  discountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  discountLabel: { fontSize: 13, fontWeight: '600', color: MUTED },
+  discountValue: { fontSize: 14, fontWeight: '700', color: TEXT },
+
+  /* Waitlist */
+  waitlistBox: {
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: GOLD + '30',
+    padding: 20,
+    alignItems: 'center',
+    gap: 10,
+  },
+  waitlistTitle: { fontSize: 16, fontWeight: '800', color: TEXT },
+  waitlistDesc: { fontSize: 13, color: MUTED, textAlign: 'center', lineHeight: 18 },
+  waitlistBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 4,
+  },
+  waitlistBtnText: { color: '#000', fontSize: 14, fontWeight: '700' },
 });

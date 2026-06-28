@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   FlatList,
+  TextInput,
 } from 'react-native';
 import {
   collection,
@@ -17,6 +18,8 @@ import {
   addDoc,
   doc,
   getDoc,
+  updateDoc,
+  increment,
   serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
@@ -48,6 +51,18 @@ export function SalesScreen() {
   const [tab, setTab] = useState<CatalogTab>('services');
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Promo code
+  const [promoExpanded, setPromoExpanded] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState<{
+    id: string;
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+  } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -90,6 +105,17 @@ export function SalesScreen() {
   // ── Cart helpers ──────────────────────────────────────────
 
   const addToCart = (type: 'service' | 'product', item: { id: string; name: string; price: number }) => {
+    // For products, check stock before adding
+    if (type === 'product') {
+      const product = products.find(p => p.id === item.id);
+      const currentInCart = cart.find(c => c.itemId === item.id && c.type === 'product');
+      const qtyInCart = currentInCart ? currentInCart.quantity : 0;
+      if (product && qtyInCart >= product.stock) {
+        Alert.alert('Stock insuficiente', `Solo quedan ${product.stock} unidades de "${item.name}".`);
+        return;
+      }
+    }
+
     setCart(prev => {
       const existing = prev.find(c => c.itemId === item.id && c.type === type);
       if (existing) {
@@ -108,6 +134,16 @@ export function SalesScreen() {
   };
 
   const changeQty = (itemId: string, type: 'service' | 'product', delta: number) => {
+    // For products, check stock before incrementing
+    if (type === 'product' && delta > 0) {
+      const product = products.find(p => p.id === itemId);
+      const currentInCart = cart.find(c => c.itemId === itemId && c.type === 'product');
+      if (product && currentInCart && currentInCart.quantity >= product.stock) {
+        Alert.alert('Stock insuficiente', `Solo quedan ${product.stock} unidades de "${product.name}".`);
+        return;
+      }
+    }
+
     setCart(prev =>
       prev.map(c =>
         c.itemId === itemId && c.type === type
@@ -119,6 +155,86 @@ export function SalesScreen() {
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
 
+  const discountAmount = (() => {
+    if (!promoApplied) return 0;
+    if (promoApplied.type === 'percentage') {
+      return Math.round(cartTotal * promoApplied.value) / 100;
+    }
+    return Math.min(promoApplied.value, cartTotal);
+  })();
+
+  const finalTotal = cartTotal - discountAmount;
+
+  // ── Promo code ──────────────────────────────────────────────
+
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code || !barbershopId) return;
+
+    setPromoError('');
+    setPromoLoading(true);
+    try {
+      const promoSnap = await getDocs(
+        query(
+          collection(db, 'barbershops', barbershopId, 'promos'),
+          where('code', '==', code),
+        ),
+      );
+
+      if (promoSnap.empty) {
+        setPromoError('Codigo no valido.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      const promoDoc = promoSnap.docs[0];
+      const data = promoDoc.data();
+
+      if (!data.active) {
+        setPromoError('Este codigo ya no esta activo.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      const expiry = data.expiryDate?.toDate?.();
+      if (expiry && expiry < new Date()) {
+        setPromoError('Este codigo ha expirado.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      if (data.maxUses > 0 && (data.currentUses ?? 0) >= data.maxUses) {
+        setPromoError('Este codigo ha alcanzado el limite de usos.');
+        setPromoApplied(null);
+        setPromoLoading(false);
+        return;
+      }
+
+      setPromoApplied({
+        id: promoDoc.id,
+        code: data.code,
+        type: data.type,
+        value: data.value,
+      });
+      setPromoError('');
+    } catch (err) {
+      console.error('SalesScreen promo error:', err);
+      setPromoError('Error al validar el codigo.');
+      setPromoApplied(null);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoApplied(null);
+    setPromoInput('');
+    setPromoError('');
+  };
+
   // ── Checkout ──────────────────────────────────────────────
 
   const handleCheckout = async () => {
@@ -127,16 +243,76 @@ export function SalesScreen() {
 
     setSaving(true);
     try {
-      await addDoc(collection(db, 'sales'), {
+      // Verify current stock levels from Firestore to prevent race conditions
+      const productItems = cart.filter(c => c.type === 'product');
+      for (const item of productItems) {
+        const productDoc = await getDoc(doc(db, 'products', item.itemId));
+        if (!productDoc.exists()) {
+          Alert.alert('Error', `El producto "${item.name}" ya no existe.`);
+          setSaving(false);
+          return;
+        }
+        const currentStock = productDoc.data().stock ?? 0;
+        if (currentStock < item.quantity) {
+          Alert.alert(
+            'Stock insuficiente',
+            `"${item.name}" solo tiene ${currentStock} unidades disponibles, pero intentas vender ${item.quantity}.`,
+          );
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Record the sale
+      const saleData: Record<string, unknown> = {
         barberId: user.uid,
         barbershopId,
         items: cart,
-        totalAmount: cartTotal,
+        totalAmount: finalTotal,
+        originalAmount: cartTotal,
         date: serverTimestamp(),
-      });
+      };
 
-      Alert.alert('Venta registrada', `Total: ${cartTotal.toFixed(2)}€`);
+      if (promoApplied) {
+        saleData.promoCode = promoApplied.code;
+        saleData.discount = discountAmount;
+        saleData.promoType = promoApplied.type;
+        saleData.promoValue = promoApplied.value;
+      }
+
+      await addDoc(collection(db, 'sales'), saleData);
+
+      // Increment promo usage
+      if (promoApplied) {
+        await updateDoc(
+          doc(db, 'barbershops', barbershopId, 'promos', promoApplied.id),
+          { currentUses: increment(1) },
+        );
+      }
+
+      // Decrement stock for each product sold
+      for (const item of productItems) {
+        await updateDoc(doc(db, 'products', item.itemId), {
+          stock: increment(-item.quantity),
+        });
+      }
+
+      // Update local product state to reflect new stock
+      if (productItems.length > 0) {
+        setProducts(prev =>
+          prev.map(p => {
+            const sold = productItems.find(c => c.itemId === p.id);
+            if (sold) {
+              return { ...p, stock: Math.max(0, p.stock - sold.quantity) };
+            }
+            return p;
+          }),
+        );
+      }
+
+      Alert.alert('Venta registrada', `Total: ${finalTotal.toFixed(2)}€`);
       setCart([]);
+      handleRemovePromo();
     } catch (err) {
       console.error('SalesScreen handleCheckout error:', err);
       Alert.alert('Error', 'No se pudo registrar la venta.');
@@ -265,10 +441,84 @@ export function SalesScreen() {
             ))}
           </ScrollView>
 
+          {/* Promo code section */}
+          <View style={styles.promoContainer}>
+            <TouchableOpacity
+              style={styles.promoToggle}
+              onPress={() => setPromoExpanded((v) => !v)}
+            >
+              <Text style={styles.promoToggleText}>
+                {promoExpanded ? '▾' : '▸'} Codigo promocional
+              </Text>
+            </TouchableOpacity>
+
+            {promoExpanded && (
+              <View style={styles.promoSection}>
+                {promoApplied ? (
+                  <View style={styles.promoApplied}>
+                    <View style={styles.promoAppliedLeft}>
+                      <Text style={styles.promoCheckmark}>{'✓'}</Text>
+                      <View>
+                        <Text style={styles.promoAppliedCode}>{promoApplied.code}</Text>
+                        <Text style={styles.promoAppliedDiscount}>
+                          -{promoApplied.type === 'percentage'
+                            ? `${promoApplied.value}%`
+                            : `${promoApplied.value.toFixed(2)}€`}
+                          {' '}(-{discountAmount.toFixed(2)}€)
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={handleRemovePromo}>
+                      <Text style={styles.promoRemove}>Quitar</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.promoInputRow}>
+                    <TextInput
+                      style={styles.promoInput}
+                      placeholder="Codigo"
+                      placeholderTextColor={MUTED}
+                      value={promoInput}
+                      onChangeText={(t) => {
+                        setPromoInput(t.toUpperCase());
+                        setPromoError('');
+                      }}
+                      autoCapitalize="characters"
+                    />
+                    <TouchableOpacity
+                      style={[styles.promoApplyBtn, promoLoading && { opacity: 0.6 }]}
+                      onPress={handleApplyPromo}
+                      disabled={promoLoading}
+                    >
+                      {promoLoading ? (
+                        <ActivityIndicator color="#000" size="small" />
+                      ) : (
+                        <Text style={styles.promoApplyBtnText}>Aplicar</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {!!promoError && <Text style={styles.promoErrorText}>{promoError}</Text>}
+              </View>
+            )}
+          </View>
+
           <View style={styles.cartFooter}>
+            {promoApplied && (
+              <>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>SUBTOTAL</Text>
+                  <Text style={[styles.totalAmount, { fontSize: 16, color: MUTED }]}>{cartTotal.toFixed(2)}{'€'}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={[styles.totalLabel, { color: '#10B981' }]}>DESCUENTO</Text>
+                  <Text style={[styles.totalAmount, { fontSize: 16, color: '#10B981' }]}>-{discountAmount.toFixed(2)}{'€'}</Text>
+                </View>
+              </>
+            )}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>TOTAL</Text>
-              <Text style={styles.totalAmount}>{cartTotal.toFixed(2)}{'€'}</Text>
+              <Text style={styles.totalAmount}>{finalTotal.toFixed(2)}{'€'}</Text>
             </View>
             <TouchableOpacity
               style={[styles.checkoutBtn, saving && styles.checkoutBtnDisabled]}
@@ -276,7 +526,7 @@ export function SalesScreen() {
               disabled={saving}
             >
               <Text style={styles.checkoutBtnText}>
-                {saving ? 'Registrando...' : `Cobrar ${cartTotal.toFixed(2)}€`}
+                {saving ? 'Registrando...' : `Cobrar ${finalTotal.toFixed(2)}€`}
               </Text>
             </TouchableOpacity>
           </View>
@@ -519,4 +769,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
+
+  // Promo code
+  promoContainer: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  promoToggle: { paddingVertical: 4 },
+  promoToggleText: { fontSize: 13, fontWeight: '600', color: GOLD },
+  promoSection: { gap: 8, marginTop: 8 },
+  promoInputRow: { flexDirection: 'row', gap: 8 },
+  promoInput: {
+    flex: 1,
+    backgroundColor: BG,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT,
+    letterSpacing: 1,
+  },
+  promoApplyBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoApplyBtnText: { color: '#000', fontSize: 13, fontWeight: '700' },
+  promoErrorText: { fontSize: 12, color: '#EF4444', fontWeight: '600' },
+  promoApplied: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#10B981' + '15',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981' + '30',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  promoAppliedLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  promoCheckmark: { fontSize: 16, color: '#10B981', fontWeight: '800' },
+  promoAppliedCode: { fontSize: 14, fontWeight: '800', color: TEXT },
+  promoAppliedDiscount: { fontSize: 11, fontWeight: '600', color: '#10B981' },
+  promoRemove: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
 });

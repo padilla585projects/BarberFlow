@@ -9,16 +9,31 @@ export interface User {
   barbershopId?: string; // para barber y owner
 }
 
+export interface BookingSettings {
+  minAdvanceHours: number;    // 1, 2, 4, 12, 24, 48
+  maxAdvanceDays: number;     // 7, 14, 30, 60, 90
+  autoConfirm: boolean;
+}
+
+export interface NotificationSettings {
+  emailNewBooking: boolean;
+  pushNewBooking: boolean;
+}
+
 export interface Barbershop {
   id: string;
   name: string;
   address: string;
   phone: string;
+  description?: string;
   photoURL?: string;
   ownerId: string;
   services: Service[];
   barbers: string[]; // array de UIDs
   openingHours: OpeningHours;
+  bookingSettings?: BookingSettings;
+  notificationSettings?: NotificationSettings;
+  gallery?: string[];
   createdAt: Date;
 }
 
@@ -53,9 +68,23 @@ export interface Appointment {
   services: Service[];
   date: Date;
   timeSlot: string; // "10:00"
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   totalPrice: number;
   createdAt: Date;
+}
+
+export interface WaitlistEntry {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientEmail: string;
+  barberId: string;
+  barberName: string;
+  date: Date;
+  services: { name: string; price: number; duration: number }[];
+  totalPrice: number;
+  createdAt: Date;
+  status: 'waiting' | 'notified' | 'removed';
 }
 
 export interface Product {
@@ -86,4 +115,25 @@ export interface SaleItem {
   name: string;
   price: number;
   quantity: number;
+}
+
+export interface PointTransaction {
+  id: string;
+  type: 'earned' | 'redeemed';
+  points: number;
+  description: string;
+  date: Date;
+  appointmentId?: string;
+}
+
+export interface LoyaltyReward {
+  pointsCost: number;
+  discountValue: number;
+  description: string;
+}
+
+export interface LoyaltyConfig {
+  enabled: boolean;
+  pointsPerEuro: number;
+  rewards: LoyaltyReward[];
 }

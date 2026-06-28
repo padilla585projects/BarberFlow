@@ -10,6 +10,8 @@ import {
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 
+const GREEN = '#10B981';
+
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
 const GOLD    = '#C9A84C';
@@ -26,12 +28,15 @@ interface Stats {
   completed: number;
   cancelled: number;
   revenue: number;
+  commissionRate: number;
+  commissionEarned: number;
 }
 
 export function BarberStatsScreen() {
   const [stats, setStats] = useState<Stats>({
     today: 0, thisWeek: 0, thisMonth: 0, total: 0,
     pending: 0, completed: 0, cancelled: 0, revenue: 0,
+    commissionRate: 0, commissionEarned: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,6 +46,16 @@ export function BarberStatsScreen() {
     if (!user) return;
 
     try {
+      // Fetch commission rate from user doc
+      let commissionRate = 0;
+      const userSnap = await getDocs(query(
+        collection(db, 'users'),
+        where('uid', '==', user.uid),
+      ));
+      if (!userSnap.empty) {
+        commissionRate = userSnap.docs[0].data().commissionRate ?? 0;
+      }
+
       const snap = await getDocs(query(
         collection(db, 'appointments'),
         where('barberId', '==', user.uid),
@@ -68,9 +83,12 @@ export function BarberStatsScreen() {
         else if (data.status === 'cancelled') cancelled++;
       });
 
+      const commissionEarned = revenue * (commissionRate / 100);
+
       setStats({
         today, thisWeek, thisMonth, total: snap.size,
         pending, completed, cancelled, revenue,
+        commissionRate, commissionEarned,
       });
     } catch (err) {
       console.error('[BarberStatsScreen] Error:', err);
@@ -104,6 +122,26 @@ export function BarberStatsScreen() {
         <Text style={styles.revenueLabel}>Ingresos totales</Text>
         <Text style={styles.revenueValue}>{stats.revenue.toFixed(2)} €</Text>
       </View>
+
+      {/* Commission section */}
+      {stats.commissionRate > 0 && (
+        <View style={styles.commissionCard}>
+          <Text style={styles.commissionTitle}>Mi comision</Text>
+          <View style={styles.commissionRow}>
+            <View style={styles.commissionItem}>
+              <Text style={styles.commissionRate}>{stats.commissionRate}%</Text>
+              <Text style={styles.commissionItemLabel}>Porcentaje</Text>
+            </View>
+            <View style={styles.commissionDivider} />
+            <View style={styles.commissionItem}>
+              <Text style={styles.commissionEarned}>
+                {stats.commissionEarned.toFixed(2)} €
+              </Text>
+              <Text style={styles.commissionItemLabel}>Ganancia</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Period stats */}
       <Text style={styles.sectionTitle}>Citas</Text>
@@ -164,6 +202,52 @@ const styles = StyleSheet.create({
   },
   revenueLabel: { fontSize: 13, color: MUTED, fontWeight: '600' },
   revenueValue: { fontSize: 34, fontWeight: '800', color: GOLD },
+  commissionCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 16,
+    gap: 12,
+  },
+  commissionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT,
+  },
+  commissionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: BG,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  commissionItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  commissionDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: BORDER,
+  },
+  commissionRate: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: TEXT,
+  },
+  commissionEarned: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: GREEN,
+  },
+  commissionItemLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: MUTED,
+  },
 });
 
 const cardStyles = StyleSheet.create({

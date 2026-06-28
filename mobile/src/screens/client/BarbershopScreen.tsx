@@ -6,6 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  FlatList,
+  Image,
+  Dimensions,
+  Modal,
 } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
@@ -42,10 +46,14 @@ const DAY_ORDER: (keyof OpeningHours)[] = [
   'sunday',
 ];
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const GALLERY_THUMB = 120;
+
 export function BarbershopScreen({ route, navigation }: Props) {
   const { barbershopId, name } = route.params;
   const [shop, setShop] = useState<Barbershop | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -127,6 +135,28 @@ export function BarbershopScreen({ route, navigation }: Props) {
         )}
       </View>
 
+      {/* Gallery */}
+      {shop?.gallery && shop.gallery.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Galería</Text>
+          <FlatList
+            data={shop.gallery as string[]}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item}
+            contentContainerStyle={styles.galleryList}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setSelectedPhoto(item)}
+              >
+                <Image source={{ uri: item }} style={styles.galleryThumb} />
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
+
       {/* Opening hours */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Horario</Text>
@@ -146,6 +176,24 @@ export function BarbershopScreen({ route, navigation }: Props) {
           <Text style={styles.placeholder}>Horario no disponible</Text>
         )}
       </View>
+      {/* Full-screen photo preview */}
+      <Modal visible={!!selectedPhoto} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalClose}
+            onPress={() => setSelectedPhoto(null)}
+          >
+            <Text style={styles.modalCloseText}>✕</Text>
+          </TouchableOpacity>
+          {selectedPhoto && (
+            <Image
+              source={{ uri: selectedPhoto }}
+              style={styles.modalImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -218,4 +266,33 @@ const styles = StyleSheet.create({
   },
   dayName: { fontSize: 14, fontWeight: '600', color: TEXT_C },
   dayHours: { fontSize: 14, color: MUTED },
+
+  galleryList: { gap: 8 },
+  galleryThumb: {
+    width: GALLERY_THUMB,
+    height: GALLERY_THUMB,
+    borderRadius: 10,
+    backgroundColor: SURFACE,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalClose: {
+    position: 'absolute',
+    top: 60,
+    right: 24,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: { color: TEXT_C, fontSize: 20, fontWeight: '700' },
+  modalImage: { width: SCREEN_WIDTH - 32, height: SCREEN_WIDTH - 32 },
 });

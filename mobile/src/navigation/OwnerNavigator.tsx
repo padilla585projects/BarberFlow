@@ -7,7 +7,15 @@ import { ShopBarbersScreen } from '../screens/owner/ShopBarbersScreen';
 import { SalesScreen } from '../screens/owner/SalesScreen';
 import { InventoryScreen } from '../screens/owner/InventoryScreen';
 import { ClientHistoryScreen } from '../screens/owner/ClientHistoryScreen';
+import { ClientDetailScreen } from '../screens/owner/ClientDetailScreen';
 import { ReportsScreen } from '../screens/owner/ReportsScreen';
+import { ReviewsScreen } from '../screens/owner/ReviewsScreen';
+import { GalleryScreen } from '../screens/owner/GalleryScreen';
+import { PromosScreen } from '../screens/owner/PromosScreen';
+import { BarberEarningsScreen } from '../screens/owner/BarberEarningsScreen';
+import { LoyaltySettingsScreen } from '../screens/owner/LoyaltySettingsScreen';
+import { WaitlistScreen } from '../screens/owner/WaitlistScreen';
+import { ShopSettingsScreen } from '../screens/owner/ShopSettingsScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
@@ -17,7 +25,15 @@ export type OwnerStackParamList = {
   Sales: undefined;
   Inventory: undefined;
   ClientHistory: undefined;
+  ClientDetail: { clientId: string; clientName: string };
   Reports: undefined;
+  Reviews: undefined;
+  Gallery: undefined;
+  Promos: undefined;
+  BarberEarnings: { barberId: string; barberName: string };
+  LoyaltySettings: undefined;
+  Waitlist: undefined;
+  ShopSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -72,9 +88,51 @@ export function OwnerNavigator() {
         options={{ title: 'Clientes' }}
       />
       <Stack.Screen
+        name="ClientDetail"
+        component={ClientDetailScreen}
+        options={{ title: 'Detalle de cliente' }}
+      />
+      <Stack.Screen
         name="Reports"
         component={ReportsScreen}
         options={{ title: 'Reportes' }}
+      />
+      <Stack.Screen
+        name="Reviews"
+        component={ReviewsScreen}
+        options={{ title: 'Valoraciones' }}
+      />
+      <Stack.Screen
+        name="Gallery"
+        component={GalleryScreen}
+        options={{ title: 'Galería' }}
+      />
+      <Stack.Screen
+        name="Promos"
+        component={PromosScreen}
+        options={{ title: 'Promociones' }}
+      />
+      <Stack.Screen
+        name="BarberEarnings"
+        component={BarberEarningsScreen}
+        options={({ route }) => ({
+          title: route.params.barberName,
+        })}
+      />
+      <Stack.Screen
+        name="LoyaltySettings"
+        component={LoyaltySettingsScreen}
+        options={{ title: 'Fidelidad' }}
+      />
+      <Stack.Screen
+        name="Waitlist"
+        component={WaitlistScreen}
+        options={{ title: 'Lista de espera' }}
+      />
+      <Stack.Screen
+        name="ShopSettings"
+        component={ShopSettingsScreen}
+        options={{ title: 'Configuración' }}
       />
     </Stack.Navigator>
   );

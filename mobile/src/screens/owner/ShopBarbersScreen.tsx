@@ -6,10 +6,14 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth, db } from '../../services/firebase';
 import type { User } from '../../types';
+import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -21,9 +25,12 @@ const BORDER  = '#282828';
 interface BarberWithStats extends User {
   appointmentCount: number;
   totalRevenue: number;
+  commissionRate?: number;
 }
 
 export function ShopBarbersScreen() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<OwnerStackParamList>>();
   const [barbers, setBarbers] = useState<BarberWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,6 +98,7 @@ export function ShopBarbersScreen() {
             ...userData,
             appointmentCount,
             totalRevenue,
+            commissionRate: userDoc.data().commissionRate,
           };
         }),
       );
@@ -142,7 +150,16 @@ export function ShopBarbersScreen() {
     const isOwner = item.role === 'owner';
 
     return (
-      <View style={styles.card}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() =>
+          navigation.navigate('BarberEarnings', {
+            barberId: item.uid,
+            barberName: item.displayName ?? 'Barbero',
+          })
+        }
+      >
         <View style={styles.cardHeader}>
           {/* Avatar */}
           <View style={[styles.avatar, isOwner && styles.avatarOwner]}>
@@ -176,8 +193,17 @@ export function ShopBarbersScreen() {
             </Text>
             <Text style={styles.statLabel}>Ingresos</Text>
           </View>
+          {item.commissionRate != null && (
+            <>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{item.commissionRate}%</Text>
+                <Text style={styles.statLabel}>Comision</Text>
+              </View>
+            </>
+          )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

@@ -19,6 +19,9 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 import type { Appointment } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -33,6 +36,7 @@ const STATUS_LABEL: Record<Appointment['status'], string> = {
   confirmed: 'Confirmada',
   completed: 'Completada',
   cancelled: 'Cancelada',
+  no_show: 'No presentado',
 };
 
 const STATUS_COLOR: Record<Appointment['status'], string> = {
@@ -40,9 +44,11 @@ const STATUS_COLOR: Record<Appointment['status'], string> = {
   confirmed: '#10B981',
   completed: '#6B7280',
   cancelled: '#EF4444',
+  no_show: '#DC2626',
 };
 
 export function MyAppointmentsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<ClientStackParamList>>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,6 +163,22 @@ export function MyAppointmentsScreen() {
                   <Text style={styles.cancelBtnText}>Cancelar cita</Text>
                 </TouchableOpacity>
               )}
+              {item.status === 'completed' && !(item as any).reviewed && (
+                <TouchableOpacity
+                  style={styles.reviewBtn}
+                  onPress={() =>
+                    navigation.navigate('Review', {
+                      appointmentId: item.id,
+                      barberName: (item as any).barberName ?? 'Barbero',
+                      barbershopId: item.barbershopId,
+                      barberId: item.barberId,
+                    })
+                  }
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.reviewBtnText}>⭐ Valorar</Text>
+                </TouchableOpacity>
+              )}
             </View>
           );
         }}
@@ -198,4 +220,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
+  reviewBtn: {
+    marginTop: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    alignItems: 'center',
+    backgroundColor: GOLD + '15',
+  },
+  reviewBtnText: { color: GOLD, fontSize: 13, fontWeight: '700' },
 });

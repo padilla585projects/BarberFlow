@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../../services/firebase';
 import type { Barbershop } from '../../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
@@ -29,6 +29,7 @@ export function HomeScreen({ navigation }: Props) {
   const [barbershops, setBarbershops] = useState<Barbershop[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
 
   const fetchBarbershops = async () => {
     try {
@@ -36,6 +37,13 @@ export function HomeScreen({ navigation }: Props) {
       const snap = await getDocs(q);
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Barbershop));
       setBarbershops(data);
+
+      // Fetch loyalty points
+      const user = auth.currentUser;
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        setLoyaltyPoints(userDoc.data()?.loyaltyPoints ?? 0);
+      }
     } catch (err) {
       console.error('[HomeScreen] Error fetching barbershops:', err);
     } finally {
@@ -75,6 +83,21 @@ export function HomeScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Barberías cerca</Text>
             <View style={styles.greetingAccent} />
             <Text style={styles.sub}>Elige tu barbería favorita</Text>
+            {/* Loyalty points banner */}
+            <TouchableOpacity
+              style={styles.loyaltyBanner}
+              onPress={() => navigation.navigate('Loyalty')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.loyaltyLeft}>
+                <Text style={styles.loyaltyEmoji}>{'\u{2B50}'}</Text>
+                <View>
+                  <Text style={styles.loyaltyLabel}>Mis puntos</Text>
+                  <Text style={styles.loyaltyValue}>{loyaltyPoints} pts</Text>
+                </View>
+              </View>
+              <Text style={styles.loyaltyArrow}>›</Text>
+            </TouchableOpacity>
           </View>
         }
         ListEmptyComponent={
@@ -230,4 +253,26 @@ const styles = StyleSheet.create({
     color: GOLD,
     opacity: 0.6,
   },
+
+  // Loyalty banner
+  loyaltyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: GOLD + '40',
+    padding: 14,
+    marginTop: 12,
+  },
+  loyaltyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  loyaltyEmoji: { fontSize: 24 },
+  loyaltyLabel: { fontSize: 12, color: MUTED, fontWeight: '600' },
+  loyaltyValue: { fontSize: 18, fontWeight: '800', color: GOLD },
+  loyaltyArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
 });

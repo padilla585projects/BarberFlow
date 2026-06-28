@@ -5,13 +5,18 @@ import { HomeScreen } from '../screens/client/HomeScreen';
 import { BarbershopScreen } from '../screens/client/BarbershopScreen';
 import { BookScreen } from '../screens/client/BookScreen';
 import { MyAppointmentsScreen } from '../screens/client/MyAppointmentsScreen';
-import { signOut } from '../services/auth';
+import { ReviewScreen } from '../screens/client/ReviewScreen';
+import { LoyaltyScreen } from '../screens/client/LoyaltyScreen';
+import { ProfileScreen } from '../screens/client/ProfileScreen';
 
 export type ClientStackParamList = {
   Home: undefined;
   Barbershop: { barbershopId: string; name: string };
   Book: { barbershopId: string; barbershopName: string };
   MyAppointments: undefined;
+  Review: { appointmentId: string; barberName: string; barbershopId: string; barberId: string };
+  Loyalty: undefined;
+  Profile: undefined;
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -42,15 +47,15 @@ export function ClientNavigator() {
               onPress={() => navigation.navigate('MyAppointments')}
               style={headerStyles.btn}
             >
-              <Text style={headerStyles.btnText}>📅 Mis citas</Text>
+              <Text style={headerStyles.btnText}>Mis citas</Text>
             </TouchableOpacity>
           ),
           headerLeft: () => (
             <TouchableOpacity
-              onPress={signOut}
+              onPress={() => navigation.navigate('Profile')}
               style={headerStyles.btn}
             >
-              <Text style={headerStyles.logoutText}>Salir</Text>
+              <Text style={headerStyles.profileIcon}>Mi perfil</Text>
             </TouchableOpacity>
           ),
         })}
@@ -70,6 +75,21 @@ export function ClientNavigator() {
         component={MyAppointmentsScreen}
         options={{ title: 'Mis citas' }}
       />
+      <Stack.Screen
+        name="Review"
+        component={ReviewScreen}
+        options={{ title: 'Valorar' }}
+      />
+      <Stack.Screen
+        name="Loyalty"
+        component={LoyaltyScreen}
+        options={{ title: 'Mis puntos' }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: 'Mi perfil' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -86,8 +106,8 @@ const headerStyles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  logoutText: {
-    color: '#EF4444',
+  profileIcon: {
+    color: GOLD,
     fontSize: 13,
     fontWeight: '600',
   },

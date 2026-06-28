@@ -147,6 +147,12 @@ export function DashboardScreen({ navigation }: Props) {
         <ActionCard emoji="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
         <ActionCard emoji="👤" label="Clientes" onPress={() => navigation.navigate('ClientHistory')} />
         <ActionCard emoji="📊" label="Reportes" onPress={() => navigation.navigate('Reports')} />
+        <ActionCard emoji="⭐" label="Valoraciones" onPress={() => navigation.navigate('Reviews')} />
+        <ActionCard emoji="📸" label="Galería" onPress={() => navigation.navigate('Gallery')} />
+        <ActionCard emoji="🏷️" label="Promos" onPress={() => navigation.navigate('Promos')} />
+        <ActionCard emoji="🎖️" label="Fidelidad" onPress={() => navigation.navigate('LoyaltySettings')} />
+        <ActionCard emoji="📝" label="Espera" onPress={() => navigation.navigate('Waitlist')} />
+        <ActionCard emoji="⚙️" label="Ajustes" onPress={() => navigation.navigate('ShopSettings')} />
       </View>
     </ScrollView>
   );

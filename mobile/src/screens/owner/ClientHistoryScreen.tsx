@@ -7,7 +7,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 import {
   collection,
   query,
@@ -55,6 +59,8 @@ const formatCurrency = (amount: number): string =>
 
 /* ── component ───────────────────────────────────────── */
 export function ClientHistoryScreen() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<OwnerStackParamList>>();
   const [clients, setClients] = useState<ClientStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -159,43 +165,53 @@ export function ClientHistoryScreen() {
     const initial = item.clientName.charAt(0).toUpperCase();
 
     return (
-      <View style={styles.card}>
-        {/* Avatar */}
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() =>
+          navigation.navigate('ClientDetail', {
+            clientId: item.clientId,
+            clientName: item.clientName,
+          })
+        }
+      >
+        <View style={styles.card}>
+          {/* Avatar */}
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </View>
 
-        {/* Info */}
-        <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>
-            {item.clientName}
-          </Text>
-          {item.clientEmail ? (
-            <Text style={styles.email} numberOfLines={1}>
-              {item.clientEmail}
+          {/* Info */}
+          <View style={styles.info}>
+            <Text style={styles.name} numberOfLines={1}>
+              {item.clientName}
             </Text>
-          ) : null}
+            {item.clientEmail ? (
+              <Text style={styles.email} numberOfLines={1}>
+                {item.clientEmail}
+              </Text>
+            ) : null}
 
-          <View style={styles.statsRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{item.totalVisits}</Text>
-              <Text style={styles.statLabel}>Visitas</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>
-                {formatCurrency(item.totalSpent)}
-              </Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>
-                {formatDate(item.lastVisitDate)}
-              </Text>
-              <Text style={styles.statLabel}>Última visita</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{item.totalVisits}</Text>
+                <Text style={styles.statLabel}>Visitas</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>
+                  {formatCurrency(item.totalSpent)}
+                </Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>
+                  {formatDate(item.lastVisitDate)}
+                </Text>
+                <Text style={styles.statLabel}>Última visita</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
