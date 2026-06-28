@@ -29,13 +29,14 @@ const barberNav: NavItem[] = [
 ]
 
 const developerNav: NavItem[] = [
-  { to: '/dashboard',   icon: '📊', label: 'Dashboard' },
-  { to: '/barbershops', icon: '🏪', label: 'Barberías' },
-  { to: '/users',       icon: '👥', label: 'Usuarios' },
-  { to: '/inventory',   icon: '📦', label: 'Inventario' },
-  { to: '/orders',      icon: '🛍️', label: 'Pedidos Shop' },
-  { to: '/reviews',     icon: '⭐', label: 'Reseñas' },
-  { to: '/reports',     icon: '📈', label: 'Reportes' },
+  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
+  { to: '/barbershops',  icon: '🏪', label: 'Barberías' },
+  { to: '/users',        icon: '👥', label: 'Usuarios' },
+  { to: '/appointments', icon: '📅', label: 'Citas' },
+  { to: '/inventory',    icon: '📦', label: 'Inventario' },
+  { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
+  { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
+  { to: '/reports',      icon: '📈', label: 'Reportes' },
 ]
 
 export default function Sidebar() {
