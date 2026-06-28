@@ -137,7 +137,7 @@ export function MyAppointmentsScreen() {
           return (
             <View style={styles.card}>
               <View style={styles.cardTop}>
-                <Text style={styles.cardShop}>{(item as any).barbershopName ?? 'Barbería'}</Text>
+                <Text style={styles.cardShop}>{item.barbershopName ?? 'Barbería'}</Text>
                 <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] + '20' }]}>
                   <Text style={[styles.badgeText, { color: STATUS_COLOR[item.status] }]}>
                     {STATUS_LABEL[item.status]}
@@ -145,8 +145,8 @@ export function MyAppointmentsScreen() {
                 </View>
               </View>
 
-              {(item as any).barberName && (
-                <Text style={styles.cardBarber}>Barbero: {(item as any).barberName}</Text>
+              {item.barberName && (
+                <Text style={styles.cardBarber}>Barbero: {item.barberName}</Text>
               )}
               <Text style={styles.cardDate}>
                 {dateStr} · {item.timeSlot}
@@ -163,13 +163,13 @@ export function MyAppointmentsScreen() {
                   <Text style={styles.cancelBtnText}>Cancelar cita</Text>
                 </TouchableOpacity>
               )}
-              {item.status === 'completed' && !(item as any).reviewed && (
+              {item.status === 'completed' && !item.reviewed && (
                 <TouchableOpacity
                   style={styles.reviewBtn}
                   onPress={() =>
                     navigation.navigate('Review', {
                       appointmentId: item.id,
-                      barberName: (item as any).barberName ?? 'Barbero',
+                      barberName: item.barberName ?? 'Barbero',
                       barbershopId: item.barbershopId,
                       barberId: item.barberId,
                     })

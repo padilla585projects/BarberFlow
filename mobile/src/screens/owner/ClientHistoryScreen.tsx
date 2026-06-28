@@ -55,7 +55,7 @@ const formatDate = (d: Date): string => {
 };
 
 const formatCurrency = (amount: number): string =>
-  `$${amount.toFixed(2)}`;
+  `${amount.toFixed(2)} €`;
 
 /* ── component ───────────────────────────────────────── */
 export function ClientHistoryScreen() {

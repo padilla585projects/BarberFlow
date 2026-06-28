@@ -101,7 +101,14 @@ export function GalleryScreen({ navigation }: Props) {
           if (!barbershopId) return;
           try {
             // Delete from Firebase Storage
-            const storageRef = ref(storage, url);
+            // Extract storage path from the download URL
+            // Download URLs look like: https://firebasestorage.googleapis.com/v0/b/BUCKET/o/ENCODED_PATH?alt=media&token=...
+            const pathMatch = decodeURIComponent(url).match(/\/o\/(.+?)(\?|$)/);
+            if (!pathMatch) {
+              throw new Error('Could not extract storage path from URL');
+            }
+            const storagePath = pathMatch[1];
+            const storageRef = ref(storage, storagePath);
             await deleteObject(storageRef);
 
             // Remove URL from Firestore array

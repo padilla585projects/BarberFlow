@@ -65,6 +65,9 @@ export interface Appointment {
   clientId: string;
   barberId: string;
   barbershopId: string;
+  barberName?: string;
+  barbershopName?: string;
+  reviewed?: boolean;
   services: Service[];
   date: Date;
   timeSlot: string; // "10:00"

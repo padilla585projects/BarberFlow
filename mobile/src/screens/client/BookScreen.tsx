@@ -341,18 +341,12 @@ export function BookScreen({ route, navigation }: Props) {
     const load = async () => {
       try {
         // Fetch barbers, services and shop data in parallel
-        const [barbersSnap, servicesSnap, shopSnap] = await Promise.all([
+        const [barbersSnap, shopSnap] = await Promise.all([
           getDocs(
             query(
               collection(db, 'users'),
               where('barbershopId', '==', barbershopId),
               where('role', 'in', ['barber', 'owner']),
-            ),
-          ),
-          getDocs(
-            query(
-              collection(db, 'barbershops', barbershopId, 'services'),
-              where('active', '==', true),
             ),
           ),
           getDoc(doc(db, 'barbershops', barbershopId)),
@@ -366,20 +360,22 @@ export function BookScreen({ route, navigation }: Props) {
         setBarbers(barberList);
         if (barberList.length === 1) setSelectedBarber(barberList[0]);
 
-        // Services
-        const serviceList = servicesSnap.docs.map((d) => ({
-          id: d.id,
-          name: d.data().name ?? '',
-          price: d.data().price ?? 0,
-          duration: d.data().duration ?? 30,
-        }));
-        setServices(serviceList);
-
-        // Opening hours
+        // Services and opening hours — both stored on the barbershop document
         if (shopSnap.exists()) {
-          const data = shopSnap.data();
-          if (data.openingHours) {
-            setOpeningHours(data.openingHours as OpeningHours);
+          const shopData = shopSnap.data();
+
+          // Services are stored as an array field on the barbershop doc
+          const rawServices = (shopData.services as any[]) ?? [];
+          const serviceList = rawServices.map((s: any) => ({
+            id: s.id ?? '',
+            name: s.name ?? '',
+            price: s.price ?? 0,
+            duration: s.duration ?? 30,
+          }));
+          setServices(serviceList);
+
+          if (shopData.openingHours) {
+            setOpeningHours(shopData.openingHours as OpeningHours);
           }
         }
       } catch (err) {

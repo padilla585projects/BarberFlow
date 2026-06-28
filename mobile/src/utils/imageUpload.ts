@@ -33,9 +33,16 @@ export async function pickAndUploadImage(storagePath: string): Promise<string | 
 
 /**
  * Delete a file from Firebase Storage by its full download URL.
+ * Extracts the storage path from the URL before creating the ref.
  */
 export async function deleteStorageFile(downloadUrl: string): Promise<void> {
-  // Extract the storage path from the download URL
-  const storageRef = ref(storage, downloadUrl);
+  // Download URLs look like:
+  // https://firebasestorage.googleapis.com/v0/b/BUCKET/o/ENCODED_PATH?alt=media&token=...
+  const pathMatch = decodeURIComponent(downloadUrl).match(/\/o\/(.+?)(\?|$)/);
+  if (!pathMatch) {
+    throw new Error('Could not extract storage path from download URL');
+  }
+  const storagePath = pathMatch[1];
+  const storageRef = ref(storage, storagePath);
   await deleteObject(storageRef);
 }

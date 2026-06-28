@@ -16,6 +16,7 @@ import {
   collection,
   query,
   orderBy,
+  limit,
   getDocs,
   addDoc,
   serverTimestamp,
@@ -105,11 +106,12 @@ export function LoyaltyScreen() {
         }
       }
 
-      // Get points history
+      // Get points history (limited to last 50 entries for performance)
       const historySnap = await getDocs(
         query(
           collection(db, 'users', user.uid, 'pointsHistory'),
           orderBy('date', 'desc'),
+          limit(50),
         ),
       );
       const historyData = historySnap.docs.map((d) => {
