@@ -7,10 +7,15 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
+
+type Props = NativeStackScreenProps<OwnerStackParamList, 'Dashboard'>;
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -23,53 +28,67 @@ interface Stats {
   today: number;
   pending: number;
   total: number;
+  revenue: number;
 }
 
-export function DashboardScreen() {
-  const [stats, setStats] = useState<Stats>({ today: 0, pending: 0, total: 0 });
+export function DashboardScreen({ navigation }: Props) {
+  const [stats, setStats] = useState<Stats>({ today: 0, pending: 0, total: 0, revenue: 0 });
+  const [shopName, setShopName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const user = auth.currentUser;
 
+  const fetchStats = async () => {
+    if (!user) return;
+
+    try {
+      // Get owner's barbershopId
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const barbershopId = userDoc.data()?.barbershopId;
+      if (!barbershopId) return;
+
+      // Get shop name
+      const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
+      if (shopDoc.exists()) setShopName(shopDoc.data()?.name ?? '');
+
+      // Get all appointments for this barbershop
+      const allSnap = await getDocs(query(
+        collection(db, 'appointments'),
+        where('barbershopId', '==', barbershopId),
+      ));
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      let todayCount = 0;
+      let pendingCount = 0;
+      let revenue = 0;
+
+      allSnap.docs.forEach((d) => {
+        const data = d.data();
+        const date = data.date?.toDate?.() ?? new Date(0);
+        if (date >= today && date < tomorrow) todayCount++;
+        if (data.status === 'pending') pendingCount++;
+        if (data.status === 'completed') revenue += (data.totalPrice ?? 0);
+      });
+
+      setStats({
+        today: todayCount,
+        pending: pendingCount,
+        total: allSnap.size,
+        revenue,
+      });
+    } catch (err) {
+      console.error('[DashboardScreen] Error:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
-
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const [todaySnap, pendingSnap, totalSnap] = await Promise.all([
-          getDocs(query(
-            collection(db, 'appointments'),
-            where('ownerId', '==', user.uid),
-            where('date', '>=', today),
-            where('date', '<', tomorrow),
-          )),
-          getDocs(query(
-            collection(db, 'appointments'),
-            where('ownerId', '==', user.uid),
-            where('status', '==', 'pending'),
-          )),
-          getDocs(query(
-            collection(db, 'appointments'),
-            where('ownerId', '==', user.uid),
-          )),
-        ]);
-
-        setStats({
-          today: todaySnap.size,
-          pending: pendingSnap.size,
-          total: totalSnap.size,
-        });
-      } catch (err) {
-        console.error('[DashboardScreen] Error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStats();
   }, []);
 
@@ -89,11 +108,15 @@ export function DashboardScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchStats(); }} tintColor={GOLD} />}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Panel de propietario</Text>
+          <Text style={styles.greeting}>{shopName || 'Mi barbería'}</Text>
           <Text style={styles.sub}>{user?.displayName ?? user?.email}</Text>
         </View>
         <TouchableOpacity onPress={handleSignOut}>
@@ -108,13 +131,19 @@ export function DashboardScreen() {
         <StatCard label="Total" value={stats.total} emoji="✂️" color="#10B981" />
       </View>
 
+      {/* Revenue */}
+      <View style={styles.revenueCard}>
+        <Text style={styles.revenueLabel}>Ingresos totales</Text>
+        <Text style={styles.revenueValue}>{stats.revenue.toFixed(2)} €</Text>
+      </View>
+
       {/* Quick actions */}
       <Text style={styles.sectionTitle}>Gestión</Text>
       <View style={styles.actionsGrid}>
-        <ActionCard emoji="👥" label="Barberos" onPress={() => Alert.alert('Próximamente', 'Gestión de barberos')} />
-        <ActionCard emoji="✂️" label="Servicios" onPress={() => Alert.alert('Próximamente', 'Gestión de servicios')} />
+        <ActionCard emoji="📋" label="Citas" onPress={() => navigation.navigate('ShopAppointments')} />
+        <ActionCard emoji="👥" label="Barberos" onPress={() => navigation.navigate('ShopBarbers')} />
+        <ActionCard emoji="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
         <ActionCard emoji="📊" label="Informes" onPress={() => Alert.alert('Próximamente', 'Informes de ventas')} />
-        <ActionCard emoji="⚙️" label="Configurar" onPress={() => Alert.alert('Próximamente', 'Configuración de la barbería')} />
       </View>
     </ScrollView>
   );
@@ -148,6 +177,17 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, color: MUTED, marginTop: 2 },
   logoutBtn: { fontSize: 14, color: '#EF4444', fontWeight: '600' },
   statsRow: { flexDirection: 'row', gap: 10 },
+  revenueCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 18,
+    alignItems: 'center',
+    gap: 4,
+  },
+  revenueLabel: { fontSize: 13, color: MUTED, fontWeight: '600' },
+  revenueValue: { fontSize: 32, fontWeight: '800', color: GOLD },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 });

@@ -20,6 +20,9 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { BarberStackParamList } from '../../navigation/BarberNavigator';
 import type { Appointment } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -30,6 +33,7 @@ const MUTED   = '#888888';
 const BORDER  = '#282828';
 
 export function AgendaScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<BarberStackParamList>>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,9 +112,14 @@ export function AgendaScreen() {
                 {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
             </View>
-            <TouchableOpacity onPress={signOut}>
-              <Text style={styles.logoutBtn}>Salir</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 16 }}>
+              <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
+                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={signOut}>
+                <Text style={styles.logoutBtn}>Salir</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         }
         ListEmptyComponent={

@@ -1,9 +1,15 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { DashboardScreen } from '../screens/owner/DashboardScreen';
+import { ShopAppointmentsScreen } from '../screens/owner/ShopAppointmentsScreen';
+import { ShopServicesScreen } from '../screens/owner/ShopServicesScreen';
+import { ShopBarbersScreen } from '../screens/owner/ShopBarbersScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
+  ShopAppointments: undefined;
+  ShopServices: undefined;
+  ShopBarbers: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -26,6 +32,21 @@ export function OwnerNavigator() {
         name="Dashboard"
         component={DashboardScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ShopAppointments"
+        component={ShopAppointmentsScreen}
+        options={{ title: 'Citas' }}
+      />
+      <Stack.Screen
+        name="ShopServices"
+        component={ShopServicesScreen}
+        options={{ title: 'Servicios' }}
+      />
+      <Stack.Screen
+        name="ShopBarbers"
+        component={ShopBarbersScreen}
+        options={{ title: 'Barberos' }}
       />
     </Stack.Navigator>
   );
