@@ -4,12 +4,20 @@ import { DashboardScreen } from '../screens/owner/DashboardScreen';
 import { ShopAppointmentsScreen } from '../screens/owner/ShopAppointmentsScreen';
 import { ShopServicesScreen } from '../screens/owner/ShopServicesScreen';
 import { ShopBarbersScreen } from '../screens/owner/ShopBarbersScreen';
+import { SalesScreen } from '../screens/owner/SalesScreen';
+import { InventoryScreen } from '../screens/owner/InventoryScreen';
+import { ClientHistoryScreen } from '../screens/owner/ClientHistoryScreen';
+import { ReportsScreen } from '../screens/owner/ReportsScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
   ShopAppointments: undefined;
   ShopServices: undefined;
   ShopBarbers: undefined;
+  Sales: undefined;
+  Inventory: undefined;
+  ClientHistory: undefined;
+  Reports: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -47,6 +55,26 @@ export function OwnerNavigator() {
         name="ShopBarbers"
         component={ShopBarbersScreen}
         options={{ title: 'Barberos' }}
+      />
+      <Stack.Screen
+        name="Sales"
+        component={SalesScreen}
+        options={{ title: 'Cobrar' }}
+      />
+      <Stack.Screen
+        name="Inventory"
+        component={InventoryScreen}
+        options={{ title: 'Inventario' }}
+      />
+      <Stack.Screen
+        name="ClientHistory"
+        component={ClientHistoryScreen}
+        options={{ title: 'Clientes' }}
+      />
+      <Stack.Screen
+        name="Reports"
+        component={ReportsScreen}
+        options={{ title: 'Reportes' }}
       />
     </Stack.Navigator>
   );
