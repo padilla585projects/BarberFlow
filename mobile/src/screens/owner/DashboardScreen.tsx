@@ -152,6 +152,7 @@ export function DashboardScreen({ navigation }: Props) {
         <ActionCard emoji="🏷️" label="Promos" onPress={() => navigation.navigate('Promos')} />
         <ActionCard emoji="🎖️" label="Fidelidad" onPress={() => navigation.navigate('LoyaltySettings')} />
         <ActionCard emoji="📝" label="Espera" onPress={() => navigation.navigate('Waitlist')} />
+        <ActionCard emoji="🛍️" label="Pedidos" onPress={() => navigation.navigate('ProductOrders')} />
         <ActionCard emoji="⚙️" label="Ajustes" onPress={() => navigation.navigate('ShopSettings')} />
       </View>
     </ScrollView>

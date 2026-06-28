@@ -108,14 +108,23 @@ export function BarbershopScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      {/* Book CTA */}
-      <TouchableOpacity
-        style={styles.bookBtn}
-        onPress={() => navigation.navigate('Book', { barbershopId, barbershopName: displayName })}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.bookBtnText}>Reservar cita</Text>
-      </TouchableOpacity>
+      {/* Action buttons */}
+      <View style={styles.ctaRow}>
+        <TouchableOpacity
+          style={[styles.bookBtn, { flex: 1 }]}
+          onPress={() => navigation.navigate('Book', { barbershopId, barbershopName: displayName })}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.bookBtnText}>Reservar cita</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.shopBtn}
+          onPress={() => navigation.navigate('Shop', { barbershopId, barbershopName: displayName })}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.shopBtnText}>Tienda</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Services */}
       <View style={styles.section}>
@@ -232,6 +241,10 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14, fontWeight: '600', color: MUTED },
   infoValue: { fontSize: 14, color: TEXT_C, flexShrink: 1, textAlign: 'right' },
 
+  ctaRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
   bookBtn: {
     backgroundColor: GOLD,
     borderRadius: 14,
@@ -244,6 +257,16 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bookBtnText: { color: '#000', fontSize: 16, fontWeight: '700' },
+  shopBtn: {
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shopBtnText: { color: GOLD, fontSize: 16, fontWeight: '700' },
 
   serviceRow: {
     flexDirection: 'row',

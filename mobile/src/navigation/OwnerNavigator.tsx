@@ -16,6 +16,7 @@ import { BarberEarningsScreen } from '../screens/owner/BarberEarningsScreen';
 import { LoyaltySettingsScreen } from '../screens/owner/LoyaltySettingsScreen';
 import { WaitlistScreen } from '../screens/owner/WaitlistScreen';
 import { ShopSettingsScreen } from '../screens/owner/ShopSettingsScreen';
+import { ProductOrdersScreen } from '../screens/owner/ProductOrdersScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
@@ -33,6 +34,7 @@ export type OwnerStackParamList = {
   BarberEarnings: { barberId: string; barberName: string };
   LoyaltySettings: undefined;
   Waitlist: undefined;
+  ProductOrders: undefined;
   ShopSettings: undefined;
 };
 
@@ -128,6 +130,11 @@ export function OwnerNavigator() {
         name="Waitlist"
         component={WaitlistScreen}
         options={{ title: 'Lista de espera' }}
+      />
+      <Stack.Screen
+        name="ProductOrders"
+        component={ProductOrdersScreen}
+        options={{ title: 'Pedidos' }}
       />
       <Stack.Screen
         name="ShopSettings"

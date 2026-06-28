@@ -8,6 +8,10 @@ import { MyAppointmentsScreen } from '../screens/client/MyAppointmentsScreen';
 import { ReviewScreen } from '../screens/client/ReviewScreen';
 import { LoyaltyScreen } from '../screens/client/LoyaltyScreen';
 import { ProfileScreen } from '../screens/client/ProfileScreen';
+import { ShopScreen } from '../screens/client/ShopScreen';
+import { ProductDetailScreen } from '../screens/client/ProductDetailScreen';
+import { CartScreen } from '../screens/client/CartScreen';
+import { CheckoutScreen } from '../screens/client/CheckoutScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -19,6 +23,10 @@ export type ClientStackParamList = {
   Review: { appointmentId: string; barberName: string; barbershopId: string; barberId: string };
   Loyalty: undefined;
   Profile: undefined;
+  Shop: { barbershopId: string; barbershopName: string };
+  ProductDetail: { barbershopId: string; product: string };
+  Cart: { barbershopId: string; barbershopName: string };
+  Checkout: { barbershopId: string; barbershopName: string };
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -140,6 +148,26 @@ export function ClientNavigator() {
         component={ProfileScreen}
         options={{ title: 'Mi perfil' }}
       />
+      <Stack.Screen
+        name="Shop"
+        component={ShopScreen}
+        options={({ route }) => ({ title: route.params.barbershopName })}
+      />
+      <Stack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+        options={{ title: 'Detalle' }}
+      />
+      <Stack.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{ title: 'Carrito' }}
+      />
+      <Stack.Screen
+        name="Checkout"
+        component={CheckoutScreen}
+        options={{ title: 'Reservar' }}
+      />
     </Stack.Navigator>
   );
 }
@@ -151,6 +179,7 @@ const avatarStyles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: GOLD,
+    marginRight: 8,
   },
   fallback: {
     width: 32,
@@ -161,6 +190,7 @@ const avatarStyles = StyleSheet.create({
     borderColor: GOLD,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
   },
   text: {
     color: GOLD,

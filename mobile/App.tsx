@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation';
+import { CartProvider } from './src/contexts/CartContext';
 
 // Keep native splash visible until auth state resolves
 SplashScreen.preventAutoHideAsync();
@@ -13,7 +14,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <RootNavigator onReady={onReady} />
+      <CartProvider>
+        <RootNavigator onReady={onReady} />
+      </CartProvider>
     </SafeAreaProvider>
   );
 }
