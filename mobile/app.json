@@ -38,6 +38,12 @@
           "color": "#C9A84C"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "951e84c1-e341-4623-87e2-0e50814df671"
+      }
+    },
+    "owner": "padilla585projecss-team"
   }
 }
