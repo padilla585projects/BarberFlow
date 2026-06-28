@@ -9,17 +9,21 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Image,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
-import { auth, db } from '../../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import * as ImagePicker from 'expo-image-picker';
+import { auth, db, storage } from '../../services/firebase';
 import { signOut } from '../../services/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'Profile'>;
 
-// ── Theme ────────────────────────────────────────────────────────────────────
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
 const GOLD    = '#C9A84C';
@@ -28,7 +32,6 @@ const MUTED   = '#888888';
 const BORDER  = '#282828';
 const RED     = '#EF4444';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -44,12 +47,13 @@ export function ProfileScreen({ navigation }: Props) {
 
   const [displayName, setDisplayName]     = useState(user?.displayName ?? '');
   const [phone, setPhone]                 = useState('');
+  const [photoURL, setPhotoURL]           = useState(user?.photoURL ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications]     = useState(true);
   const [saving, setSaving]               = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading]             = useState(true);
 
-  // ── Load user doc ────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
       if (!user) return;
@@ -61,6 +65,7 @@ export function ProfileScreen({ navigation }: Props) {
           setNotificationsEnabled(data.notificationsEnabled ?? true);
           setEmailNotifications(data.emailNotifications ?? true);
           if (data.displayName) setDisplayName(data.displayName);
+          if (data.photoURL) setPhotoURL(data.photoURL);
         }
       } catch (err) {
         console.error('[ProfileScreen] Error loading user doc:', err);
@@ -71,16 +76,90 @@ export function ProfileScreen({ navigation }: Props) {
     load();
   }, [user]);
 
-  // ── Save profile ─────────────────────────────────────────────────────────
+  // ── Photo upload ──────────────────────────────────────────────────────────
+  const uploadPhoto = async (uri: string) => {
+    if (!user) return;
+    setUploadingPhoto(true);
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const storagePath = `users/${user.uid}/profile.jpg`;
+      const storageRef = ref(storage, storagePath);
+      await uploadBytes(storageRef, blob);
+      const url = await getDownloadURL(storageRef);
+
+      await updateProfile(user, { photoURL: url });
+      await updateDoc(doc(db, 'users', user.uid), { photoURL: url });
+      setPhotoURL(url);
+    } catch (err) {
+      console.error('[ProfileScreen] Error uploading photo:', err);
+      Alert.alert('Error', 'No se pudo subir la foto. Intenta de nuevo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const pickFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permisos', 'Necesitamos acceso a tu galería para cambiar la foto.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      await uploadPhoto(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permisos', 'Necesitamos acceso a tu cámara para tomar la foto.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      await uploadPhoto(result.assets[0].uri);
+    }
+  };
+
+  const handleChangePhoto = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancelar', 'Tomar foto', 'Elegir de galería'],
+          cancelButtonIndex: 0,
+        },
+        (index) => {
+          if (index === 1) takePhoto();
+          if (index === 2) pickFromGallery();
+        },
+      );
+    } else {
+      Alert.alert('Cambiar foto de perfil', 'Elige una opción', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: '📷 Tomar foto', onPress: takePhoto },
+        { text: '🖼️ Elegir de galería', onPress: pickFromGallery },
+      ]);
+    }
+  };
+
+  // ── Save profile ──────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
       await updateProfile(user, { displayName });
-      await updateDoc(doc(db, 'users', user.uid), {
-        displayName,
-        phone,
-      });
+      await updateDoc(doc(db, 'users', user.uid), { displayName, phone });
       Alert.alert('Guardado', 'Tu perfil se ha actualizado correctamente.');
     } catch (err) {
       console.error('[ProfileScreen] Error saving profile:', err);
@@ -90,14 +169,13 @@ export function ProfileScreen({ navigation }: Props) {
     }
   };
 
-  // ── Toggle helpers ────────────────────────────────────────────────────────
+  // ── Toggles ───────────────────────────────────────────────────────────────
   const toggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
     if (!user) return;
     try {
       await updateDoc(doc(db, 'users', user.uid), { notificationsEnabled: value });
     } catch (err) {
-      console.error('[ProfileScreen] Error updating notifications:', err);
       setNotificationsEnabled(!value);
     }
   };
@@ -108,28 +186,23 @@ export function ProfileScreen({ navigation }: Props) {
     try {
       await updateDoc(doc(db, 'users', user.uid), { emailNotifications: value });
     } catch (err) {
-      console.error('[ProfileScreen] Error updating email notifications:', err);
       setEmailNotifications(!value);
     }
   };
 
   // ── Sign out ──────────────────────────────────────────────────────────────
   const handleSignOut = () => {
-    Alert.alert(
-      'Cerrar sesion',
-      'Estas seguro de que quieres cerrar sesion?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar sesion', style: 'destructive', onPress: signOut },
-      ],
-    );
+    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
+    ]);
   };
 
   // ── Delete account ────────────────────────────────────────────────────────
   const handleDeleteAccount = () => {
     Alert.alert(
       'Eliminar cuenta',
-      'Esta accion es irreversible. Se solicitara la eliminacion de tu cuenta y todos tus datos.',
+      'Esta acción es irreversible. Se solicitará la eliminación de tu cuenta y todos tus datos.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -137,12 +210,12 @@ export function ProfileScreen({ navigation }: Props) {
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Confirmar eliminacion',
-              'Escribe ELIMINAR para confirmar. Tu cuenta sera marcada para eliminacion y se cerrara la sesion.',
+              'Confirmar eliminación',
+              '¿Estás completamente seguro? Tu cuenta será marcada para eliminación.',
               [
                 { text: 'Cancelar', style: 'cancel' },
                 {
-                  text: 'Confirmo eliminar',
+                  text: 'Sí, eliminar mi cuenta',
                   style: 'destructive',
                   onPress: async () => {
                     if (!user) return;
@@ -152,7 +225,6 @@ export function ProfileScreen({ navigation }: Props) {
                       });
                       await signOut();
                     } catch (err) {
-                      console.error('[ProfileScreen] Error requesting deletion:', err);
                       Alert.alert('Error', 'No se pudo procesar la solicitud.');
                     }
                   },
@@ -165,7 +237,6 @@ export function ProfileScreen({ navigation }: Props) {
     );
   };
 
-  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -179,11 +250,26 @@ export function ProfileScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* ── Profile header ──────────────────────────────────────────────── */}
+      {/* ── Profile photo ────────────────────────────────────────────────── */}
       <View style={styles.profileHeader}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        <TouchableOpacity onPress={handleChangePhoto} activeOpacity={0.8} style={styles.avatarWrapper}>
+          {photoURL ? (
+            <Image source={{ uri: photoURL }} style={styles.avatarImage} />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          )}
+          {uploadingPhoto ? (
+            <View style={styles.avatarOverlay}>
+              <ActivityIndicator size="small" color="#fff" />
+            </View>
+          ) : (
+            <View style={styles.cameraBadge}>
+              <Text style={styles.cameraBadgeText}>📷</Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <Text style={styles.profileName}>{displayName || 'Sin nombre'}</Text>
         <Text style={styles.profileEmail}>{email}</Text>
       </View>
@@ -201,7 +287,7 @@ export function ProfileScreen({ navigation }: Props) {
           placeholderTextColor={MUTED}
         />
 
-        <Text style={styles.label}>Telefono</Text>
+        <Text style={styles.label}>Teléfono</Text>
         <TextInput
           style={styles.input}
           value={phone}
@@ -228,7 +314,6 @@ export function ProfileScreen({ navigation }: Props) {
       {/* ── Preferences ─────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferencias</Text>
-
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Notificaciones push</Text>
           <Switch
@@ -238,7 +323,6 @@ export function ProfileScreen({ navigation }: Props) {
             thumbColor={notificationsEnabled ? GOLD : MUTED}
           />
         </View>
-
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Notificaciones por email</Text>
           <Switch
@@ -252,102 +336,88 @@ export function ProfileScreen({ navigation }: Props) {
 
       {/* ── Quick links ─────────────────────────────────────────────────── */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Accesos rapidos</Text>
-
-        <TouchableOpacity
-          style={styles.linkRow}
-          onPress={() => navigation.navigate('Loyalty')}
-          activeOpacity={0.7}
-        >
+        <Text style={styles.sectionTitle}>Accesos rápidos</Text>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('Loyalty')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>⭐</Text>
           <Text style={styles.linkText}>Mis puntos</Text>
-          <Text style={styles.linkArrow}>{'›'}</Text>
+          <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.linkRow}
-          onPress={() => navigation.navigate('MyAppointments')}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('MyAppointments')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>📋</Text>
           <Text style={styles.linkText}>Mis citas</Text>
-          <Text style={styles.linkArrow}>{'›'}</Text>
+          <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
       </View>
 
       {/* ── Account ─────────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cuenta</Text>
-
-        <TouchableOpacity
-          style={styles.dangerBtn}
-          onPress={handleSignOut}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.dangerBtnText}>Cerrar sesion</Text>
+        <TouchableOpacity style={styles.dangerBtn} onPress={handleSignOut} activeOpacity={0.7}>
+          <Text style={styles.dangerBtnText}>Cerrar sesión</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.dangerOutlineBtn}
-          onPress={handleDeleteAccount}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.dangerOutlineBtn} onPress={handleDeleteAccount} activeOpacity={0.7}>
           <Text style={styles.dangerOutlineBtnText}>Eliminar cuenta</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── App info ────────────────────────────────────────────────────── */}
       <Text style={styles.version}>BarberFlow v1.0.0</Text>
     </ScrollView>
   );
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: BG,
-  },
+  container: { flex: 1, backgroundColor: BG },
+  content: { padding: 20, paddingBottom: 40 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
 
   // Profile header
-  profileHeader: {
-    alignItems: 'center',
-    marginBottom: 28,
-    gap: 6,
+  profileHeader: { alignItems: 'center', marginBottom: 28, gap: 6 },
+  avatarWrapper: { position: 'relative', marginBottom: 8 },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: GOLD,
   },
-  avatarCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  avatarFallback: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: SURFACE,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: GOLD,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  avatarText: {
-    color: GOLD,
-    fontSize: 28,
-    fontWeight: '800',
+  avatarText: { color: GOLD, fontSize: 34, fontWeight: '800' },
+  avatarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 50,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  profileName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: TEXT,
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: GOLD,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: BG,
   },
-  profileEmail: {
-    fontSize: 14,
-    color: MUTED,
-  },
+  cameraBadgeText: { fontSize: 14 },
+  profileName: { fontSize: 22, fontWeight: '700', color: TEXT },
+  profileEmail: { fontSize: 14, color: MUTED },
 
   // Sections
   section: {
@@ -369,11 +439,7 @@ const styles = StyleSheet.create({
   },
 
   // Form
-  label: {
-    fontSize: 13,
-    color: MUTED,
-    fontWeight: '600',
-  },
+  label: { fontSize: 13, color: MUTED, fontWeight: '600' },
   input: {
     backgroundColor: BG,
     borderRadius: 10,
@@ -391,42 +457,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
   },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    color: BG,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  saveBtnDisabled: { opacity: 0.6 },
+  saveBtnText: { color: BG, fontSize: 15, fontWeight: '700' },
 
   // Toggles
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  toggleLabel: {
-    fontSize: 15,
-    color: TEXT,
-  },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  toggleLabel: { fontSize: 15, color: TEXT },
 
   // Quick links
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingVertical: 8,
+    gap: 10,
   },
-  linkText: {
-    fontSize: 15,
-    color: TEXT,
-  },
-  linkArrow: {
-    fontSize: 22,
-    color: GOLD,
-    opacity: 0.6,
-  },
+  linkIcon: { fontSize: 18 },
+  linkText: { flex: 1, fontSize: 15, color: TEXT },
+  linkArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
 
   // Danger buttons
   dangerBtn: {
@@ -435,11 +482,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  dangerBtnText: {
-    color: TEXT,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  dangerBtnText: { color: TEXT, fontSize: 15, fontWeight: '700' },
   dangerOutlineBtn: {
     borderRadius: 10,
     borderWidth: 1.5,
@@ -447,18 +490,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  dangerOutlineBtnText: {
-    color: RED,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  dangerOutlineBtnText: { color: RED, fontSize: 15, fontWeight: '700' },
 
   // Version
-  version: {
-    textAlign: 'center',
-    color: MUTED,
-    fontSize: 12,
-    marginTop: 12,
-    opacity: 0.6,
-  },
+  version: { textAlign: 'center', color: MUTED, fontSize: 12, marginTop: 12, opacity: 0.6 },
 });
