@@ -18,6 +18,7 @@ import { updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../../services/firebase';
+import Constants from 'expo-constants';
 import { signOut } from '../../services/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
@@ -360,7 +361,8 @@ export function ProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.version}>BarberFlow v1.0.0</Text>
+      <Text style={styles.version}>BarberFlow v{Constants.expoConfig?.version ?? '1.1.0'}</Text>
+      <Text style={styles.signature}>Desarrollado por Adrian Padilla</Text>
     </ScrollView>
   );
 }
@@ -494,4 +496,5 @@ const styles = StyleSheet.create({
 
   // Version
   version: { textAlign: 'center', color: MUTED, fontSize: 12, marginTop: 12, opacity: 0.6 },
+  signature: { textAlign: 'center', color: MUTED, fontSize: 11, marginTop: 4, opacity: 0.4 },
 });

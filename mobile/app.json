@@ -2,7 +2,7 @@
   "expo": {
     "name": "BarberFlow",
     "slug": "barberflow",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -29,6 +29,15 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/951e84c1-e341-4623-87e2-0e50814df671",
+      "enabled": true,
+      "fallbackToCacheTimeout": 3000,
+      "checkAutomatically": "ON_LOAD"
+    },
     "plugins": [
       "@react-native-google-signin/google-signin",
       "expo-splash-screen",
@@ -39,7 +48,8 @@
           "color": "#C9A84C"
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-updates"
     ],
     "extra": {
       "eas": {
