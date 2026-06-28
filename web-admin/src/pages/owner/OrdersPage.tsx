@@ -65,7 +65,7 @@ export default function OrdersPage() {
     total:     orders.length,
     pending:   orders.filter(o => o.status === 'pending').length,
     delivered: orders.filter(o => o.status === 'delivered').length,
-    revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.totalAmount, 0),
+    revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount ?? 0), 0),
   }
 
   return (
@@ -166,7 +166,7 @@ export default function OrdersPage() {
                       <div key={i} className={styles.item}>
                         <span>{item.name}</span>
                         <span>{item.quantity}x</span>
-                        <span>{(item.price * item.quantity).toFixed(2)}€</span>
+                        <span>{((item.price ?? 0) * (item.quantity ?? 1)).toFixed(2)}€</span>
                       </div>
                     ))}
                   </div>

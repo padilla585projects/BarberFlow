@@ -12,6 +12,9 @@ function toOrder(d: any): Order {
   return {
     id: d.id,
     ...data,
+    totalAmount: data.totalAmount ?? data.totalPrice ?? 0,
+    clientName: data.clientName ?? 'Cliente',
+    clientEmail: data.clientEmail ?? '',
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
   } as Order
 }
