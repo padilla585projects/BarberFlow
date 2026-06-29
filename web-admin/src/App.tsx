@@ -21,11 +21,13 @@ import FinancePage from './pages/owner/FinancePage'
 import PaymentsPage from './pages/owner/PaymentsPage'
 import NotificationsPage from './pages/owner/NotificationsPage'
 import MessagesPage from './pages/owner/MessagesPage'
+import UnauthorizedPage from './pages/UnauthorizedPage'
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       {/* Rutas protegidas con layout */}
       <Route

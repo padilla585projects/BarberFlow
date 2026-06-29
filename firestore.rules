@@ -32,9 +32,10 @@ service cloud.firestore {
       allow update: if isAuth() && (request.auth.uid == userId || isDeveloper());
       allow delete: if isDeveloper();
 
-      // Points history subcollection — user reads/writes their own
+      // Points history subcollection — user reads their own; only Cloud Functions can write
       match /pointsHistory/{entryId} {
-        allow read, write: if isAuth() && request.auth.uid == userId;
+        allow read: if isAuth() && request.auth.uid == userId;
+        allow write: if false;
       }
 
       // Barber schedule (clients need to read barber availability for booking)
@@ -90,8 +91,15 @@ service cloud.firestore {
       // Reviews subcollection
       match /reviews/{reviewId} {
         allow read: if isAuth();
-        allow create: if isAuth();
-        allow update, delete: if isDeveloper() || isOwnerOf(barbershopId);
+        allow create: if isAuth() && request.resource.data.clientId == request.auth.uid;
+        allow update: if isAuth() && (
+          resource.data.clientId == request.auth.uid || isDeveloper()
+        );
+        allow delete: if isAuth() && (
+          resource.data.clientId == request.auth.uid ||
+          isOwnerOf(barbershopId) ||
+          isDeveloper()
+        );
       }
 
       // Barber schedules
@@ -105,8 +113,13 @@ service cloud.firestore {
 
     // Appointments
     match /appointments/{appointmentId} {
-      // Any authenticated user can read appointments (clients need slot availability, barbers/owners need their agenda)
-      allow read: if isAuth();
+      // Only the client who booked, barbers/owners of that barbershop, or developers can read
+      allow read: if isAuth() && (
+        resource.data.clientId == request.auth.uid ||
+        isBarberOf(resource.data.barbershopId) ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
       allow create: if isAuth();
       allow update: if isAuth() && (
         resource.data.clientId == request.auth.uid ||
@@ -171,18 +184,14 @@ service cloud.firestore {
       );
     }
 
-    // Loyalty points
+    // Loyalty points (only Cloud Functions / admin SDK can write; users read their own)
     match /loyalty/{docId} {
       allow read: if isAuth() && (
         resource.data.userId == request.auth.uid ||
         isOwnerOf(resource.data.barbershopId) ||
         isDeveloper()
       );
-      allow create, update: if isAuth() && (
-        request.resource.data.userId == request.auth.uid ||
-        isDeveloper()
-      );
-      allow delete: if isDeveloper();
+      allow create, update, delete: if false;
     }
 
     // Loyalty settings (owner configures, all authenticated can read)

@@ -68,6 +68,14 @@ async function getBarberName(barberId: string): Promise<string> {
 export const generateReport = onCall(
   { region: REGION },
   async (request) => {
+    // ── Auth check ─────────────────────────────────────────────────────
+    if (!request.auth) {
+      throw new HttpsError(
+        'unauthenticated',
+        'Debes iniciar sesión para generar reportes.',
+      )
+    }
+
     const { barbershopId, period } = request.data as {
       barbershopId?: string
       period?: string
@@ -77,6 +85,30 @@ export const generateReport = onCall(
       throw new HttpsError(
         'invalid-argument',
         'Se requiere barbershopId y period ("week" | "month").',
+      )
+    }
+
+    // ── Authorization: caller must be the shop owner or a developer ──
+    const callerUid = request.auth.uid
+    const userDoc = await db.collection('users').doc(callerUid).get()
+
+    if (!userDoc.exists) {
+      throw new HttpsError(
+        'permission-denied',
+        'No tienes permisos para generar este reporte.',
+      )
+    }
+
+    const userData = userDoc.data()!
+    const role = userData.role as string | undefined
+    const isDeveloper = role === 'developer'
+    const isOwner =
+      role === 'owner' && userData.barbershopId === barbershopId
+
+    if (!isDeveloper && !isOwner) {
+      throw new HttpsError(
+        'permission-denied',
+        'No tienes permisos para generar este reporte.',
       )
     }
 
