@@ -52,6 +52,11 @@ export function SalesScreen() {
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Tip
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTipActive, setCustomTipActive] = useState(false);
+  const [customTipInput, setCustomTipInput] = useState('');
+
   // Promo code
   const [promoExpanded, setPromoExpanded] = useState(false);
   const [promoInput, setPromoInput] = useState('');
@@ -163,7 +168,7 @@ export function SalesScreen() {
     return Math.min(promoApplied.value, cartTotal);
   })();
 
-  const finalTotal = cartTotal - discountAmount;
+  const finalTotal = cartTotal - discountAmount + tipAmount;
 
   // ── Promo code ──────────────────────────────────────────────
 
@@ -273,6 +278,10 @@ export function SalesScreen() {
         date: serverTimestamp(),
       };
 
+      if (tipAmount > 0) {
+        saleData.tipAmount = tipAmount;
+      }
+
       if (promoApplied) {
         saleData.promoCode = promoApplied.code;
         saleData.discount = discountAmount;
@@ -312,6 +321,9 @@ export function SalesScreen() {
 
       Alert.alert('Venta registrada', `Total: ${finalTotal.toFixed(2)}€`);
       setCart([]);
+      setTipAmount(0);
+      setCustomTipActive(false);
+      setCustomTipInput('');
       handleRemovePromo();
     } catch (err) {
       console.error('SalesScreen handleCheckout error:', err);
@@ -503,6 +515,65 @@ export function SalesScreen() {
             )}
           </View>
 
+          {/* Tip section */}
+          <View style={styles.tipContainer}>
+            <Text style={styles.tipLabel}>Propina</Text>
+            <View style={styles.tipRow}>
+              {[
+                { label: 'Sin propina', value: 0 },
+                { label: '1€', value: 1 },
+                { label: '2€', value: 2 },
+                { label: '5€', value: 5 },
+              ].map((opt) => {
+                const isActive = !customTipActive && tipAmount === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.tipPill, isActive && styles.tipPillActive]}
+                    onPress={() => {
+                      setTipAmount(opt.value);
+                      setCustomTipActive(false);
+                      setCustomTipInput('');
+                    }}
+                  >
+                    <Text style={[styles.tipPillText, isActive && styles.tipPillTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={[styles.tipPill, customTipActive && styles.tipPillActive]}
+                onPress={() => {
+                  setCustomTipActive(true);
+                  setTipAmount(0);
+                  setCustomTipInput('');
+                }}
+              >
+                <Text style={[styles.tipPillText, customTipActive && styles.tipPillTextActive]}>
+                  Personalizada
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {customTipActive && (
+              <View style={styles.tipCustomRow}>
+                <TextInput
+                  style={styles.tipCustomInput}
+                  placeholder="0.00"
+                  placeholderTextColor={MUTED}
+                  keyboardType="decimal-pad"
+                  value={customTipInput}
+                  onChangeText={(t) => {
+                    setCustomTipInput(t);
+                    const parsed = parseFloat(t.replace(',', '.'));
+                    setTipAmount(isNaN(parsed) || parsed < 0 ? 0 : Math.round(parsed * 100) / 100);
+                  }}
+                />
+                <Text style={styles.tipCustomCurrency}>{'€'}</Text>
+              </View>
+            )}
+          </View>
+
           <View style={styles.cartFooter}>
             {promoApplied && (
               <>
@@ -515,6 +586,12 @@ export function SalesScreen() {
                   <Text style={[styles.totalAmount, { fontSize: 16, color: '#10B981' }]}>-{discountAmount.toFixed(2)}{'€'}</Text>
                 </View>
               </>
+            )}
+            {tipAmount > 0 && (
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalLabel, { color: GOLD }]}>PROPINA</Text>
+                <Text style={[styles.totalAmount, { fontSize: 16, color: GOLD }]}>+{tipAmount.toFixed(2)}{'€'}</Text>
+              </View>
             )}
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>TOTAL</Text>
@@ -819,4 +896,67 @@ const styles = StyleSheet.create({
   promoAppliedCode: { fontSize: 14, fontWeight: '800', color: TEXT },
   promoAppliedDiscount: { fontSize: 11, fontWeight: '600', color: '#10B981' },
   promoRemove: { fontSize: 12, fontWeight: '700', color: '#EF4444' },
+
+  // Tip
+  tipContainer: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  tipLabel: {
+    color: MUTED,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  tipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  tipPill: {
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  tipPillActive: {
+    backgroundColor: GOLD,
+    borderColor: GOLD,
+  },
+  tipPillText: {
+    color: TEXT,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  tipPillTextActive: {
+    color: '#000',
+  },
+  tipCustomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+  },
+  tipCustomInput: {
+    width: 80,
+    backgroundColor: BG,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT,
+    textAlign: 'center',
+  },
+  tipCustomCurrency: {
+    color: MUTED,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

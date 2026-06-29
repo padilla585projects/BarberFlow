@@ -32,9 +32,12 @@ const developerNav: NavItem[] = [
   { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
   { to: '/barbershops',  icon: '🏪', label: 'Barberías' },
   { to: '/users',        icon: '👥', label: 'Usuarios' },
+  { to: '/services',     icon: '📋', label: 'Servicios' },
   { to: '/appointments', icon: '📅', label: 'Citas' },
   { to: '/inventory',    icon: '📦', label: 'Inventario' },
   { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
+  { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+  { to: '/promos',       icon: '🎟️', label: 'Promociones' },
   { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
   { to: '/reports',      icon: '📈', label: 'Reportes' },
 ]

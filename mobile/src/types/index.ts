@@ -109,6 +109,7 @@ export interface Sale {
   appointmentId?: string;
   items: SaleItem[];
   totalAmount: number;
+  tipAmount?: number;
   date: Date;
 }
 

@@ -7,3 +7,5 @@ export { onAppointmentCreatedPush, onAppointmentStatusChangedPush } from './func
 export { generateReport } from './functions/reports'
 export { sendAppointmentReminders } from './functions/reminders'
 export { onAppointmentCompletedLoyalty } from './functions/loyalty'
+export { onReviewCreatedPush } from './functions/reviews'
+export { sendDailySummary } from './functions/dailySummary'
