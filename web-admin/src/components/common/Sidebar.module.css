@@ -1,22 +1,24 @@
 .sidebar {
   width: 220px;
   min-height: 100vh;
+  max-height: 100vh;
   background: #000;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 28px 0;
+  padding: 16px 0;
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
+  overflow: hidden;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 20px 28px;
+  padding: 0 20px 16px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -34,7 +36,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -86,23 +88,40 @@
 
 .nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
 }
 
 .navItem {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 7px 12px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
   transition: all 0.15s;
   letter-spacing: 0.01em;
+  flex-shrink: 0;
 }
 
 .navItem:hover {

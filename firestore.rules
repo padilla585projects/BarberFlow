@@ -42,6 +42,24 @@ service cloud.firestore {
         allow read: if isAuth();
         allow write: if isAuth() && (request.auth.uid == userId || isDeveloper());
       }
+
+      // Notifications subcollection (user reads/updates their own)
+      match /notifications/{notifId} {
+        allow read, update: if isAuth() && request.auth.uid == userId;
+        allow create: if isAuth(); // Cloud Functions create via admin SDK, but allow for flexibility
+        allow delete: if isAuth() && request.auth.uid == userId;
+      }
+
+      // Portfolio subcollection (barber manages, all can read)
+      match /portfolio/{photoId} {
+        allow read: if isAuth();
+        allow create, delete: if isAuth() && request.auth.uid == userId;
+      }
+
+      // Schedule templates (barber manages their own)
+      match /scheduleTemplates/{templateId} {
+        allow read, write: if isAuth() && request.auth.uid == userId;
+      }
     }
 
     // Barbershops
@@ -50,6 +68,39 @@ service cloud.firestore {
       allow create: if isDeveloper();
       allow update: if isDeveloper() || isOwnerOf(barbershopId);
       allow delete: if isDeveloper();
+
+      // Payments subcollection (owner pays barbers)
+      match /payments/{paymentId} {
+        allow read: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
+        allow create, update: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
+        allow delete: if isDeveloper();
+      }
+
+      // Messages subcollection (internal messaging)
+      match /messages/{messageId} {
+        allow read: if isAuth() && (
+          isOwnerOf(barbershopId) || isBarberOf(barbershopId) || isDeveloper()
+        );
+        allow create: if isAuth() && (
+          isOwnerOf(barbershopId) || isBarberOf(barbershopId) || isDeveloper()
+        );
+        allow delete: if isDeveloper();
+      }
+
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        allow read: if isAuth();
+        allow create: if isAuth();
+        allow update, delete: if isDeveloper() || isOwnerOf(barbershopId);
+      }
+
+      // Barber schedules
+      match /barberSchedules/{barberId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && (
+          request.auth.uid == barberId || isOwnerOf(barbershopId) || isDeveloper()
+        );
+      }
     }
 
     // Appointments
