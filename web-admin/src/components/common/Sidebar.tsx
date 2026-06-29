@@ -75,8 +75,7 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
-        <span className={styles.brandIcon}>✂️</span>
-        <span className={styles.brandName}>BarberFlow</span>
+        <img src="/logo.png" alt="BarberFlow" className={styles.brandLogo} />
       </div>
 
       <div className={styles.userInfo}>

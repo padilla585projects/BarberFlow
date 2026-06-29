@@ -22,14 +22,12 @@
   border-bottom: 1px solid var(--border);
 }
 
-.brandIcon { font-size: 20px; }
-
-.brandName {
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #fff;
+.brandLogo {
+  width: 100%;
+  max-width: 160px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
 }
 
 .userInfo {

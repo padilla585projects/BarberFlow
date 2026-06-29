@@ -106,8 +106,7 @@ export default function LoginPage() {
       <div className={styles.brand}>
         <div className={styles.brandBg} />
         <div className={styles.brandTop}>
-          <span className={styles.brandScissors}>✂️</span>
-          <span className={styles.brandTopName}>BarberFlow</span>
+          <img src="/logo.png" alt="BarberFlow" style={{ width: 120, height: 120, borderRadius: '50%' }} />
         </div>
 
         <div className={styles.brandCenter}>
