@@ -13,10 +13,12 @@ import { ReviewsScreen } from '../screens/owner/ReviewsScreen';
 import { GalleryScreen } from '../screens/owner/GalleryScreen';
 import { PromosScreen } from '../screens/owner/PromosScreen';
 import { BarberEarningsScreen } from '../screens/owner/BarberEarningsScreen';
+import { FinanceDashboardScreen } from '../screens/owner/FinanceDashboardScreen';
 import { LoyaltySettingsScreen } from '../screens/owner/LoyaltySettingsScreen';
 import { WaitlistScreen } from '../screens/owner/WaitlistScreen';
 import { ShopSettingsScreen } from '../screens/owner/ShopSettingsScreen';
 import { ProductOrdersScreen } from '../screens/owner/ProductOrdersScreen';
+import { PaymentHistoryScreen } from '../screens/owner/PaymentHistoryScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
@@ -32,9 +34,11 @@ export type OwnerStackParamList = {
   Gallery: undefined;
   Promos: undefined;
   BarberEarnings: { barberId: string; barberName: string };
+  FinanceDashboard: undefined;
   LoyaltySettings: undefined;
   Waitlist: undefined;
   ProductOrders: undefined;
+  PaymentHistory: undefined;
   ShopSettings: undefined;
 };
 
@@ -122,6 +126,11 @@ export function OwnerNavigator() {
         })}
       />
       <Stack.Screen
+        name="FinanceDashboard"
+        component={FinanceDashboardScreen}
+        options={{ title: 'Finanzas' }}
+      />
+      <Stack.Screen
         name="LoyaltySettings"
         component={LoyaltySettingsScreen}
         options={{ title: 'Fidelidad' }}
@@ -135,6 +144,11 @@ export function OwnerNavigator() {
         name="ProductOrders"
         component={ProductOrdersScreen}
         options={{ title: 'Pedidos' }}
+      />
+      <Stack.Screen
+        name="PaymentHistory"
+        component={PaymentHistoryScreen}
+        options={{ title: 'Historial de Pagos' }}
       />
       <Stack.Screen
         name="ShopSettings"

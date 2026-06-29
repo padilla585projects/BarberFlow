@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,255 @@ interface AppointmentRow {
   commission: number;
   commissionPaid: boolean;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Revenue Chart (pure RN Views – no external chart library)         */
+/* ------------------------------------------------------------------ */
+
+interface ChartBucket {
+  label: string;
+  revenue: number;
+  commission: number;
+}
+
+function RevenueChart({ data }: { data: ChartBucket[] }) {
+  const maxValue = Math.max(...data.map((d) => d.revenue), 1);
+
+  return (
+    <View style={chartStyles.container}>
+      <Text style={chartStyles.title}>Ingresos por periodo</Text>
+
+      <View style={chartStyles.barsWrap}>
+        {data.map((bucket, idx) => {
+          const revWidth = (bucket.revenue / maxValue) * 100;
+          const comWidth = (bucket.commission / maxValue) * 100;
+
+          return (
+            <View key={idx} style={chartStyles.row}>
+              <Text style={chartStyles.label}>{bucket.label}</Text>
+
+              <View style={chartStyles.barTrack}>
+                {/* Revenue (background bar) */}
+                <View
+                  style={[
+                    chartStyles.barRevenue,
+                    { width: `${revWidth}%` },
+                  ]}
+                />
+                {/* Commission (overlaid) */}
+                <View
+                  style={[
+                    chartStyles.barCommission,
+                    { width: `${comWidth}%` },
+                  ]}
+                />
+              </View>
+
+              <Text style={chartStyles.amount}>
+                {bucket.revenue > 0
+                  ? bucket.revenue.toLocaleString('es-ES', {
+                      style: 'currency',
+                      currency: 'EUR',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })
+                  : '—'}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Legend */}
+      <View style={chartStyles.legend}>
+        <View style={chartStyles.legendItem}>
+          <View style={[chartStyles.legendDot, { backgroundColor: 'rgba(255,255,255,0.35)' }]} />
+          <Text style={chartStyles.legendText}>Ingresos</Text>
+        </View>
+        <View style={chartStyles.legendItem}>
+          <View style={[chartStyles.legendDot, { backgroundColor: GOLD }]} />
+          <Text style={chartStyles.legendText}>Comision</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const chartStyles = StyleSheet.create({
+  container: {
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    gap: 12,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT,
+  },
+  barsWrap: {
+    gap: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  label: {
+    width: 50,
+    fontSize: 11,
+    fontWeight: '600',
+    color: MUTED,
+  },
+  barTrack: {
+    flex: 1,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  barRevenue: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 6,
+  },
+  barCommission: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: GOLD,
+    borderRadius: 6,
+  },
+  amount: {
+    width: 56,
+    fontSize: 11,
+    fontWeight: '600',
+    color: MUTED,
+    textAlign: 'right',
+  },
+  legend: {
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'center',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: MUTED,
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/*  Data aggregation helper                                           */
+/* ------------------------------------------------------------------ */
+
+const DAY_LABELS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
+const MONTH_NAMES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+function buildChartData(
+  filtered: AppointmentRow[],
+  period: Period,
+  commissionRate: number,
+): ChartBucket[] {
+  switch (period) {
+    case 'today': {
+      // 2-hour blocks from 9:00 to 20:00
+      const blocks: ChartBucket[] = [];
+      for (let h = 9; h < 20; h += 2) {
+        blocks.push({ label: `${h}:00`, revenue: 0, commission: 0 });
+      }
+      filtered.forEach((a) => {
+        const hour = a.date.getHours();
+        const idx = Math.floor((hour - 9) / 2);
+        if (idx >= 0 && idx < blocks.length) {
+          blocks[idx].revenue += a.totalPrice;
+          blocks[idx].commission += a.commission;
+        }
+      });
+      return blocks;
+    }
+
+    case 'week': {
+      const buckets: ChartBucket[] = DAY_LABELS.map((l) => ({
+        label: l,
+        revenue: 0,
+        commission: 0,
+      }));
+      filtered.forEach((a) => {
+        // JS getDay(): 0=Sun … 6=Sat → map to Mon=0 … Sun=6
+        const jsDay = a.date.getDay();
+        const idx = jsDay === 0 ? 6 : jsDay - 1;
+        buckets[idx].revenue += a.totalPrice;
+        buckets[idx].commission += a.commission;
+      });
+      return buckets;
+    }
+
+    case 'month': {
+      const buckets: ChartBucket[] = [
+        { label: 'Sem 1', revenue: 0, commission: 0 },
+        { label: 'Sem 2', revenue: 0, commission: 0 },
+        { label: 'Sem 3', revenue: 0, commission: 0 },
+        { label: 'Sem 4', revenue: 0, commission: 0 },
+      ];
+      filtered.forEach((a) => {
+        const weekIdx = Math.min(Math.floor((a.date.getDate() - 1) / 7), 3);
+        buckets[weekIdx].revenue += a.totalPrice;
+        buckets[weekIdx].commission += a.commission;
+      });
+      return buckets;
+    }
+
+    case 'all':
+    default: {
+      // Last 6 months (most recent first, then reversed for chart order)
+      const now = new Date();
+      const buckets: ChartBucket[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({
+          label: MONTH_NAMES[d.getMonth()],
+          revenue: 0,
+          commission: 0,
+        });
+      }
+      // Build a set of year-month keys for the last 6 months
+      const monthKeys: string[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthKeys.push(`${d.getFullYear()}-${d.getMonth()}`);
+      }
+      filtered.forEach((a) => {
+        const key = `${a.date.getFullYear()}-${a.date.getMonth()}`;
+        const idx = monthKeys.indexOf(key);
+        if (idx !== -1) {
+          buckets[idx].revenue += a.totalPrice;
+          buckets[idx].commission += a.commission;
+        }
+      });
+      return buckets;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ */
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'BarberEarnings'>;
 
@@ -175,6 +424,12 @@ export function BarberEarningsScreen({ route }: Props) {
     .filter((a) => !a.commissionPaid)
     .reduce((sum, a) => sum + a.commission, 0);
   const unpaidAppointments = filtered.filter((a) => !a.commissionPaid);
+
+  const chartData = useMemo(
+    () => buildChartData(filtered, period, commissionRate),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered.length, period, commissionRate],
+  );
 
   // Save commission rate
   const handleSaveCommission = async () => {
@@ -337,6 +592,9 @@ export function BarberEarningsScreen({ route }: Props) {
           </View>
         </View>
       </View>
+
+      {/* Revenue chart */}
+      <RevenueChart data={chartData} />
 
       {/* Commission settings */}
       <View style={styles.commissionCard}>

@@ -132,10 +132,11 @@ export function DashboardScreen({ navigation }: Props) {
       </View>
 
       {/* Revenue */}
-      <View style={styles.revenueCard}>
+      <TouchableOpacity style={styles.revenueCard} onPress={() => navigation.navigate('FinanceDashboard')} activeOpacity={0.8}>
         <Text style={styles.revenueLabel}>Ingresos totales</Text>
         <Text style={styles.revenueValue}>{stats.revenue.toFixed(2)} €</Text>
-      </View>
+        <Text style={{fontSize: 12, color: MUTED, marginTop: 4}}>Toca para ver detalle →</Text>
+      </TouchableOpacity>
 
       {/* Quick actions */}
       <Text style={styles.sectionTitle}>Gestión</Text>
@@ -144,6 +145,7 @@ export function DashboardScreen({ navigation }: Props) {
         <ActionCard emoji="👥" label="Barberos" onPress={() => navigation.navigate('ShopBarbers')} />
         <ActionCard emoji="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
         <ActionCard emoji="💰" label="Cobrar" onPress={() => navigation.navigate('Sales')} />
+        <ActionCard emoji="💳" label="Pagos" onPress={() => navigation.navigate('PaymentHistory')} />
         <ActionCard emoji="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
         <ActionCard emoji="👤" label="Clientes" onPress={() => navigation.navigate('ClientHistory')} />
         <ActionCard emoji="📊" label="Reportes" onPress={() => navigation.navigate('Reports')} />
