@@ -6,7 +6,7 @@
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: 12px 0;
   position: fixed;
   top: 0;
   left: 0;
@@ -18,13 +18,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 20px 16px;
+  padding: 0 20px 12px;
   border-bottom: 1px solid var(--border);
 }
 
 .brandLogo {
   width: 100%;
-  max-width: 160px;
+  max-width: 120px;
   height: auto;
   margin: 0 auto;
   display: block;
@@ -34,13 +34,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 10px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 2px solid #fff;
   flex-shrink: 0;
@@ -48,8 +48,8 @@
 }
 
 .avatarFallback {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #fff;
   color: #000;
@@ -57,12 +57,12 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .userName {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
@@ -72,24 +72,24 @@
 }
 
 .role {
-  font-size: 10px;
+  font-size: 9px;
   background: #fff;
   color: #000;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   display: inline-block;
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 .nav {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
@@ -108,13 +108,35 @@
   border-radius: 2px;
 }
 
+.navSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.navSection + .navSection {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.sectionTitle {
+  font-size: 9px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 2px 10px 4px;
+  margin: 0;
+}
+
 .navItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
   transition: all 0.15s;
@@ -134,8 +156,8 @@
 }
 
 .navIcon {
-  font-size: 15px;
-  width: 20px;
+  font-size: 13px;
+  width: 18px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -143,19 +165,19 @@
 .separator {
   height: 1px;
   background: var(--border);
-  margin: 8px 12px;
+  margin: 6px 10px;
 }
 
 .logoutBtn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 12px;
-  padding: 10px 12px;
+  gap: 8px;
+  margin: 0 10px;
+  padding: 8px 10px;
   background: transparent;
   color: var(--text-muted);
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.15s;
   border: 1px solid var(--border);

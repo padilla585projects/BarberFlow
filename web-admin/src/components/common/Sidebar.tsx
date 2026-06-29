@@ -8,58 +8,140 @@ interface NavItem {
   label: string
 }
 
-const ownerNav: NavItem[] = [
-  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
-  { to: '/barbershop',   icon: '✂️',  label: 'Mi Barbería' },
-  { to: '/barbers',      icon: '👤', label: 'Barberos' },
-  { to: '/services',     icon: '📋', label: 'Servicios' },
-  { to: '/inventory',    icon: '📦', label: 'Inventario' },
-  { to: '/appointments', icon: '📅', label: 'Citas' },
-  { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
-  { to: '/sales',        icon: '💶', label: 'Ventas POS' },
-  { to: '/finances',     icon: '💰', label: 'Finanzas' },
-  { to: '/payments',     icon: '💳', label: 'Pagos' },
-  { to: '/promos',       icon: '🎟️', label: 'Promociones' },
-  { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
-  { to: '/reports',      icon: '📈', label: 'Reportes' },
-  { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
-  { to: '/messages',     icon: '💬', label: 'Mensajes' },
+interface NavSection {
+  title?: string
+  items: NavItem[]
+}
+
+const ownerSections: NavSection[] = [
+  {
+    items: [
+      { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+    ],
+  },
+  {
+    title: 'Mi Negocio',
+    items: [
+      { to: '/barbershop',   icon: '✂️',  label: 'Mi Barbería' },
+      { to: '/barbers',      icon: '👤', label: 'Barberos' },
+      { to: '/services',     icon: '📋', label: 'Servicios' },
+    ],
+  },
+  {
+    title: 'Operaciones',
+    items: [
+      { to: '/appointments', icon: '📅', label: 'Citas' },
+      { to: '/inventory',    icon: '📦', label: 'Inventario' },
+      { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
+      { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+    ],
+  },
+  {
+    title: 'Finanzas',
+    items: [
+      { to: '/finances', icon: '💰', label: 'Finanzas' },
+      { to: '/payments', icon: '💳', label: 'Pagos' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    items: [
+      { to: '/promos',  icon: '🎟️', label: 'Promociones' },
+      { to: '/reviews', icon: '⭐', label: 'Reseñas' },
+    ],
+  },
+  {
+    title: 'Análisis',
+    items: [
+      { to: '/reports', icon: '📈', label: 'Reportes' },
+    ],
+  },
+  {
+    title: 'Comunicación',
+    items: [
+      { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
+      { to: '/messages',      icon: '💬', label: 'Mensajes' },
+    ],
+  },
 ]
 
-const barberNav: NavItem[] = [
-  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
-  { to: '/appointments', icon: '📅', label: 'Mis Citas' },
-  { to: '/sales',        icon: '💶', label: 'Ventas' },
-  { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
-  { to: '/messages',     icon: '💬', label: 'Mensajes' },
+const barberSections: NavSection[] = [
+  {
+    items: [
+      { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
+      { to: '/appointments', icon: '📅', label: 'Mis Citas' },
+      { to: '/sales',        icon: '💶', label: 'Ventas' },
+    ],
+  },
+  {
+    title: 'Comunicación',
+    items: [
+      { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
+      { to: '/messages',      icon: '💬', label: 'Mensajes' },
+    ],
+  },
 ]
 
-const developerNav: NavItem[] = [
-  { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
-  { to: '/barbershops',  icon: '🏪', label: 'Barberías' },
-  { to: '/users',        icon: '👥', label: 'Usuarios' },
-  { to: '/services',     icon: '📋', label: 'Servicios' },
-  { to: '/appointments', icon: '📅', label: 'Citas' },
-  { to: '/inventory',    icon: '📦', label: 'Inventario' },
-  { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
-  { to: '/sales',        icon: '💶', label: 'Ventas POS' },
-  { to: '/finances',     icon: '💰', label: 'Finanzas' },
-  { to: '/payments',     icon: '💳', label: 'Pagos' },
-  { to: '/promos',       icon: '🎟️', label: 'Promociones' },
-  { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
-  { to: '/reports',      icon: '📈', label: 'Reportes' },
-  { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
-  { to: '/messages',     icon: '💬', label: 'Mensajes' },
+const developerSections: NavSection[] = [
+  {
+    items: [
+      { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+    ],
+  },
+  {
+    title: 'Gestión',
+    items: [
+      { to: '/barbershops', icon: '🏪', label: 'Barberías' },
+      { to: '/users',       icon: '👥', label: 'Usuarios' },
+      { to: '/services',    icon: '📋', label: 'Servicios' },
+    ],
+  },
+  {
+    title: 'Operaciones',
+    items: [
+      { to: '/appointments', icon: '📅', label: 'Citas' },
+      { to: '/inventory',    icon: '📦', label: 'Inventario' },
+      { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
+      { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+    ],
+  },
+  {
+    title: 'Finanzas',
+    items: [
+      { to: '/finances', icon: '💰', label: 'Finanzas' },
+      { to: '/payments', icon: '💳', label: 'Pagos' },
+    ],
+  },
+  {
+    title: 'Marketing',
+    items: [
+      { to: '/promos',  icon: '🎟️', label: 'Promociones' },
+      { to: '/reviews', icon: '⭐', label: 'Reseñas' },
+    ],
+  },
+  {
+    title: 'Análisis',
+    items: [
+      { to: '/reports', icon: '📈', label: 'Reportes' },
+    ],
+  },
+  {
+    title: 'Comunicación',
+    items: [
+      { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
+      { to: '/messages',      icon: '💬', label: 'Mensajes' },
+    ],
+  },
 ]
 
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  const navItems =
-    user?.role === 'developer' ? developerNav :
-    user?.role === 'owner' ? ownerNav :
-    barberNav
+  const sections =
+    user?.role === 'developer' ? developerSections :
+    user?.role === 'owner' ? ownerSections :
+    barberSections
 
   const roleLabel: Record<string, string> = {
     barber: 'Barbero',
@@ -90,17 +172,24 @@ export default function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {navItems.map(item => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.active : ''}`
-            }
-          >
-            <span className={styles.navIcon}>{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
+        {sections.map((section, i) => (
+          <div key={i} className={styles.navSection}>
+            {section.title && (
+              <p className={styles.sectionTitle}>{section.title}</p>
+            )}
+            {section.items.map(item => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `${styles.navItem} ${isActive ? styles.active : ''}`
+                }
+              >
+                <span className={styles.navIcon}>{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
 
