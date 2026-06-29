@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { storage } from '../../services/firebase'
 import { getAllBarbershops } from '../../services/barbershops'
 import { getProductsByBarbershop, createProduct, updateProduct, deleteProduct } from '../../services/inventory'
 import { useAuth } from '../../contexts/AuthContext'
@@ -20,7 +22,7 @@ const WIZARD_STEPS = [
   { num: 3, label: 'Revisar y crear', icon: '✅' },
 ]
 
-type ViewMode = 'grid' | 'table'
+type ViewMode = 'grid' | 'table' | 'catalog'
 type SortKey = 'name' | 'price' | 'stock' | 'value' | 'category'
 
 export default function InventoryPage() {
@@ -39,6 +41,38 @@ export default function InventoryPage() {
   const [sortBy, setSortBy] = useState<SortKey>('name')
   const [sortAsc, setSortAsc] = useState(true)
   const [wizardStep, setWizardStep] = useState(1)
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImageUpload = async (file: File) => {
+    if (!selectedShop) return
+    setUploading(true)
+    setUploadProgress(0)
+    const timestamp = Date.now()
+    const path = `products/${selectedShop}/${editingId || timestamp}.jpg`
+    const fileRef = storageRef(storage, path)
+    const uploadTask = uploadBytesResumable(fileRef, file)
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+        setUploadProgress(progress)
+      },
+      (error) => {
+        console.error('Upload error:', error)
+        setUploading(false)
+        setUploadProgress(null)
+      },
+      async () => {
+        const url = await getDownloadURL(uploadTask.snapshot.ref)
+        setForm(p => ({ ...p, photoURL: url }))
+        setUploading(false)
+        setUploadProgress(null)
+      }
+    )
+  }
 
   const load = async (shopId: string) => {
     if (!shopId) return
@@ -225,6 +259,8 @@ export default function InventoryPage() {
           <div className={styles.viewToggle}>
             <button className={`${styles.viewBtn} ${viewMode === 'grid' ? styles.viewActive : ''}`}
               onClick={() => setViewMode('grid')} title="Vista cuadrícula">▦</button>
+            <button className={`${styles.viewBtn} ${viewMode === 'catalog' ? styles.viewActive : ''}`}
+              onClick={() => setViewMode('catalog')} title="Vista catálogo">◫</button>
             <button className={`${styles.viewBtn} ${viewMode === 'table' ? styles.viewActive : ''}`}
               onClick={() => setViewMode('table')} title="Vista tabla">☰</button>
           </div>
@@ -267,7 +303,10 @@ export default function InventoryPage() {
             <div key={p.id} className={`${styles.card} ${p.stock === 0 ? styles.cardOut : p.stock <= 3 ? styles.cardLow : ''}`}>
               <div className={styles.cardTop}>
                 {p.photoURL ? (
-                  <img src={p.photoURL} alt={p.name} className={styles.cardImg} />
+                  <>
+                    <img src={p.photoURL} alt={p.name} className={styles.cardImg} />
+                    <div className={styles.cardImgOverlay} />
+                  </>
                 ) : (
                   <div className={styles.cardImgPlaceholder}>
                     <span>{CATEGORY_ICONS[p.category] ?? '📦'}</span>
@@ -298,6 +337,53 @@ export default function InventoryPage() {
                 <div className={styles.cardActions}>
                   <button className={styles.editBtn} onClick={() => openEdit(p)}>Editar</button>
                   <button className={styles.deleteBtn} onClick={() => handleDelete(p.id, p.name)}>Eliminar</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : viewMode === 'catalog' ? (
+        /* Catalog view - premium e-commerce */
+        <div className={styles.catalogGrid}>
+          {filtered.map(p => (
+            <div key={p.id} className={styles.catalogCard}>
+              <div className={styles.catalogPhoto}>
+                {p.photoURL ? (
+                  <img src={p.photoURL} alt={p.name} className={styles.catalogImg} />
+                ) : (
+                  <div className={styles.catalogImgPlaceholder}>
+                    <span>{CATEGORY_ICONS[p.category] ?? '📦'}</span>
+                  </div>
+                )}
+                <div className={styles.catalogOverlay} />
+                <span className={styles.catalogCategoryBadge}>{p.category}</span>
+                <div className={`${styles.catalogStockBadge} ${styles[`stock_${getStockLevel(p.stock)}`]}`}>
+                  {p.stock === 0 ? 'Agotado' : `${p.stock} uds`}
+                </div>
+                <h3 className={styles.catalogNameOverlay}>{p.name}</h3>
+              </div>
+              <div className={styles.catalogBody}>
+                <div className={styles.catalogPriceRow}>
+                  <span className={styles.catalogPrice}>{p.price.toFixed(2)}€</span>
+                  <span className={styles.catalogValue}>Valor: {(p.price * p.stock).toFixed(0)}€</span>
+                </div>
+                {p.description && <p className={styles.catalogDesc}>{p.description}</p>}
+                <div className={styles.catalogStockBar}>
+                  <div className={styles.catalogStockBarTrack}>
+                    <div className={styles.catalogStockBarFill} style={{
+                      width: `${Math.min(100, (p.stock / 30) * 100)}%`,
+                      background: p.stock === 0 ? 'var(--error)' : p.stock <= 3 ? 'var(--warning)' : p.stock <= 10 ? '#60a5fa' : 'var(--success)',
+                    }} />
+                  </div>
+                  <span className={styles.catalogStockText}>{p.stock} uds</span>
+                </div>
+                <div className={styles.catalogActions}>
+                  <div className={styles.catalogStockBtns}>
+                    <button className={styles.catalogStockBtn} onClick={() => handleStockChange(p.id, -1, p.stock)} disabled={p.stock === 0}>−</button>
+                    <button className={styles.catalogStockBtn} onClick={() => handleStockChange(p.id, +1, p.stock)}>+</button>
+                  </div>
+                  <button className={styles.catalogEditBtn} onClick={() => openEdit(p)}>Editar</button>
+                  <button className={styles.catalogDeleteBtn} onClick={() => handleDelete(p.id, p.name)}>Eliminar</button>
                 </div>
               </div>
             </div>
@@ -383,7 +469,34 @@ export default function InventoryPage() {
                   <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Descripción breve del producto" />
                 </div>
                 <div className={styles.field}>
-                  <label>URL de imagen</label>
+                  <label>Imagen del producto</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={editFileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className={styles.uploadBtn}
+                    onClick={() => editFileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? `Subiendo... ${uploadProgress}%` : 'Subir imagen'}
+                  </button>
+                  {uploading && (
+                    <div className={styles.uploadProgressBar}>
+                      <div className={styles.uploadProgressFill} style={{ width: `${uploadProgress}%` }} />
+                    </div>
+                  )}
+                  <div className={styles.uploadDivider}>
+                    <span>o pegar URL</span>
+                  </div>
                   <input value={form.photoURL} onChange={e => setForm(p => ({ ...p, photoURL: e.target.value }))} placeholder="https://ejemplo.com/imagen.jpg" />
                 </div>
                 <div className={styles.row3}>
@@ -495,11 +608,38 @@ export default function InventoryPage() {
                             <button className={styles.imageRemoveBtn} onClick={() => setForm(p => ({ ...p, photoURL: '' }))}>✕ Quitar</button>
                           </div>
                         ) : (
-                          <div className={styles.imageDropzone}>
+                          <div className={styles.imageDropzone} onClick={() => fileInputRef.current?.click()}>
                             <span className={styles.imageDropzoneIcon}>{CATEGORY_ICONS[form.category] ?? '📦'}</span>
-                            <p>Pega una URL de imagen abajo</p>
+                            <p>{uploading ? `Subiendo... ${uploadProgress}%` : 'Haz clic para subir una imagen'}</p>
+                            {uploading && (
+                              <div className={styles.uploadProgressBar}>
+                                <div className={styles.uploadProgressFill} style={{ width: `${uploadProgress}%` }} />
+                              </div>
+                            )}
                           </div>
                         )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImageUpload(file)
+                          e.target.value = ''
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className={styles.uploadBtn}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        {uploading ? `Subiendo... ${uploadProgress}%` : 'Subir imagen'}
+                      </button>
+                      <div className={styles.uploadDivider}>
+                        <span>o pegar URL</span>
                       </div>
                       <input
                         value={form.photoURL}
