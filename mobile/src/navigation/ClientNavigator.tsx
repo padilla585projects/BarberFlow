@@ -14,6 +14,7 @@ import { ProductDetailScreen } from '../screens/client/ProductDetailScreen';
 import { CartScreen } from '../screens/client/CartScreen';
 import { CheckoutScreen } from '../screens/client/CheckoutScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
+import { BarberPortfolioScreen } from '../screens/client/BarberPortfolioScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -29,6 +30,7 @@ export type ClientStackParamList = {
   ProductDetail: { barbershopId: string; product: string };
   Cart: { barbershopId: string; barbershopName: string };
   Checkout: { barbershopId: string; barbershopName: string };
+  BarberPortfolio: { barberId: string; barberName: string };
   Notifications: undefined;
   NotificationSettings: undefined;
 };
@@ -190,6 +192,11 @@ export function ClientNavigator() {
         name="Checkout"
         component={CheckoutScreen}
         options={{ title: 'Reservar' }}
+      />
+      <Stack.Screen
+        name="BarberPortfolio"
+        component={BarberPortfolioScreen}
+        options={({ route }) => ({ title: route.params.barberName })}
       />
       <Stack.Screen
         name="Notifications"

@@ -54,9 +54,13 @@ export const sendDailySummary = onSchedule(
         const cancelled = aptsSnap.docs.filter(d => d.data().status === 'cancelled').length
 
         // Calculate revenue from completed appointments
-        const appointmentRevenue = aptsSnap.docs
-          .filter(d => d.data().status === 'completed')
+        const completedDocs = aptsSnap.docs.filter(d => d.data().status === 'completed')
+        const appointmentRevenue = completedDocs
           .reduce((sum, d) => sum + (d.data().totalPrice || 0), 0)
+
+        // Calculate tips from completed appointments
+        const tips = completedDocs
+          .reduce((sum, d) => sum + (d.data().tipAmount || 0), 0)
 
         // Count today's POS sales
         const salesSnap = await db
@@ -67,7 +71,7 @@ export const sendDailySummary = onSchedule(
           .get()
 
         const salesRevenue = salesSnap.docs.reduce((sum, d) => sum + (d.data().totalAmount || 0), 0)
-        const totalRevenue = appointmentRevenue + salesRevenue
+        const totalRevenue = appointmentRevenue + salesRevenue + tips
 
         // Build the message
         const shopName = shopData.name || 'Tu barbería'
@@ -76,7 +80,8 @@ export const sendDailySummary = onSchedule(
         if (completed > 0) body += ` (${completed} completadas)`
         if (cancelled > 0) body += ` · ${cancelled} canceladas`
         body += `\n💰 ${totalRevenue.toFixed(2)}€ facturado`
-        if (salesSnap.size > 0) body += ` (${salesSnap.size} ventas POS)`
+        if (tips > 0) body += `\n💵 ${tips.toFixed(2)}€ en propinas`
+        if (salesSnap.size > 0) body += `\n🛒 ${salesSnap.size} ventas POS (${salesRevenue.toFixed(2)}€)`
 
         const title = 'Resumen del día'
         const pushData = { barbershopId: shopDoc.id, type: 'daily_summary' }

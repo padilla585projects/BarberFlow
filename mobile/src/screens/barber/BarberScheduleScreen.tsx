@@ -14,6 +14,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../../services/firebase';
 
 /* ─── design tokens ─── */
@@ -103,6 +104,7 @@ function toDateStr(date: Date): string {
 
 /* ─── component ─── */
 export function BarberScheduleScreen() {
+  const navigation = useNavigation();
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(buildDefaultWeekly());
   const [daysOff, setDaysOff] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -290,6 +292,14 @@ export function BarberScheduleScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* ── Templates button ── */}
+        <TouchableOpacity
+          style={styles.templatesBtn}
+          onPress={() => (navigation as any).navigate('ScheduleTemplates')}
+        >
+          <Text style={styles.templatesBtnText}>{'📋'} Plantillas</Text>
+        </TouchableOpacity>
+
         {/* ── Section: Weekly Hours ── */}
         <Text style={styles.sectionTitle}>Horario semanal</Text>
         <Text style={styles.sectionSub}>
@@ -501,6 +511,21 @@ const styles = StyleSheet.create({
     backgroundColor: BG,
   },
   content: { padding: 16, gap: 12 },
+
+  /* templates button */
+  templatesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: SURFACE,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: GOLD + '40',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  templatesBtnText: { fontSize: 14, fontWeight: '700', color: GOLD },
 
   /* section */
   sectionTitle: { fontSize: 20, fontWeight: '800', color: TEXT },

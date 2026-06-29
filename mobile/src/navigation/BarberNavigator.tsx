@@ -5,6 +5,8 @@ import { NotificationsScreen } from '../screens/common/NotificationsScreen';
 import { AgendaScreen } from '../screens/barber/AgendaScreen';
 import { BarberStatsScreen } from '../screens/barber/BarberStatsScreen';
 import { BarberScheduleScreen } from '../screens/barber/BarberScheduleScreen';
+import { ScheduleTemplatesScreen } from '../screens/barber/ScheduleTemplatesScreen';
+import { PortfolioScreen } from '../screens/barber/PortfolioScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 
@@ -12,6 +14,8 @@ export type BarberStackParamList = {
   Agenda: undefined;
   Stats: undefined;
   Schedule: undefined;
+  ScheduleTemplates: undefined;
+  Portfolio: undefined;
   Messages: undefined;
   Notifications: undefined;
   NotificationSettings: undefined;
@@ -52,6 +56,16 @@ export function BarberNavigator() {
         name="Schedule"
         component={BarberScheduleScreen}
         options={{ title: 'Mi horario' }}
+      />
+      <Stack.Screen
+        name="ScheduleTemplates"
+        component={ScheduleTemplatesScreen}
+        options={{ title: 'Plantillas de horario' }}
+      />
+      <Stack.Screen
+        name="Portfolio"
+        component={PortfolioScreen}
+        options={{ title: 'Mi Portfolio' }}
       />
       <Stack.Screen
         name="Messages"
