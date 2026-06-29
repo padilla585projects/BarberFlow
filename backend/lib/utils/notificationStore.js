@@ -33,40 +33,13 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getExpoPushToken = getExpoPushToken;
-exports.sendPushNotification = sendPushNotification;
+exports.storeNotification = storeNotification;
 const admin = __importStar(require("firebase-admin"));
-const db = admin.firestore();
-async function getExpoPushToken(uid) {
-    var _a, _b;
-    const snap = await db.collection('users').doc(uid).get();
-    return (_b = (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.expoPushToken) !== null && _b !== void 0 ? _b : null;
+async function storeNotification(uid, notification) {
+    await admin.firestore()
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .add(Object.assign(Object.assign({}, notification), { read: false, createdAt: admin.firestore.FieldValue.serverTimestamp() }));
 }
-async function sendPushNotification(token, title, body, data, uid, notificationType) {
-    var _a;
-    // If uid and notificationType provided, check user preferences
-    if (uid && notificationType) {
-        const userSnap = await db.collection('users').doc(uid).get();
-        const prefs = (_a = userSnap.data()) === null || _a === void 0 ? void 0 : _a.notificationPreferences;
-        if (prefs && prefs[notificationType] === false) {
-            console.log(`[Push] Skipped: user ${uid} has ${notificationType} disabled`);
-            return;
-        }
-    }
-    const message = {
-        to: token,
-        title,
-        body,
-        sound: 'default',
-        data,
-    };
-    const res = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(message),
-    });
-    if (!res.ok) {
-        console.error('[Push] Failed:', await res.text());
-    }
-}
-//# sourceMappingURL=push.js.map
+//# sourceMappingURL=notificationStore.js.map

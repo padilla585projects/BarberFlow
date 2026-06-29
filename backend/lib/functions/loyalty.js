@@ -37,6 +37,7 @@ exports.onAppointmentCompletedLoyalty = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
 const push_1 = require("../utils/push");
+const notificationStore_1 = require("../utils/notificationStore");
 if (!admin.apps.length)
     admin.initializeApp();
 const REGION = 'europe-west1';
@@ -90,9 +91,13 @@ exports.onAppointmentCompletedLoyalty = (0, firestore_1.onDocumentUpdated)({ doc
     batch.update(aptRef, { loyaltyPointsAwarded: true });
     await batch.commit();
     // Send push notification to the client
+    const title = 'Puntos de fidelidad';
+    const body = `🎉 Has ganado ${points} puntos de fidelidad`;
+    const pushData = { appointmentId, type: 'loyalty_points_earned' };
     const token = await (0, push_1.getExpoPushToken)(clientId);
     if (token) {
-        await (0, push_1.sendPushNotification)(token, 'Puntos de fidelidad', `🎉 Has ganado ${points} puntos de fidelidad`, { appointmentId, type: 'loyalty_points_earned' });
+        await (0, push_1.sendPushNotification)(token, title, body, pushData);
     }
+    await (0, notificationStore_1.storeNotification)(clientId, { title, body, type: 'loyalty', data: pushData });
 });
 //# sourceMappingURL=loyalty.js.map
