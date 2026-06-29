@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
@@ -30,8 +31,37 @@ function sameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString()
 }
 
+// Returns Monday-Sunday of the current week
+function currentWeekDays() {
+  const now = new Date()
+  const dayOfWeek = now.getDay() // 0=Sun, 1=Mon...
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+  monday.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return d
+  })
+}
+
+const DAY_LABELS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+
+function timeAgo(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'ahora'
+  if (mins < 60) return `hace ${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `hace ${hours}h`
+  const days = Math.floor(hours / 24)
+  return `hace ${days}d`
+}
+
 export default function DashboardPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [shopName, setShopName] = useState('')
   const [barbers, setBarbers] = useState<User[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -76,8 +106,46 @@ export default function DashboardPage() {
   const completedApps = appointments.filter(a => a.status === 'completed')
   const totalRevenue = completedApps.reduce((s, a) => s + a.totalPrice, 0)
     + sales.reduce((s, v) => s + v.totalAmount, 0)
+  const todaySales = sales.filter(s => sameDay(new Date(s.date), today))
   const todayRevenue = todayApps.filter(a => a.status === 'completed').reduce((s, a) => s + a.totalPrice, 0)
-    + sales.filter(s => sameDay(new Date(s.date), today)).reduce((s, v) => s + v.totalAmount, 0)
+    + todaySales.reduce((s, v) => s + v.totalAmount, 0)
+  const todayTips = todaySales.reduce((s, v) => s + (v.tipAmount ?? 0), 0)
+  const todaySalesCount = todaySales.length
+
+  // Resumen semanal
+  const weekDays = currentWeekDays()
+  const weeklyData = weekDays.map((day, i) => {
+    const dayApps = appointments.filter(a => sameDay(new Date(a.date), day) && a.status === 'completed')
+    const daySales = sales.filter(s => sameDay(new Date(s.date), day))
+    const revenue = dayApps.reduce((s, a) => s + a.totalPrice, 0) + daySales.reduce((s, v) => s + v.totalAmount, 0)
+    return { label: DAY_LABELS[i], revenue }
+  })
+  const maxWeekRevenue = Math.max(...weeklyData.map(d => d.revenue), 1)
+
+  // Actividad reciente (últimas 10)
+  type ActivityItem = { id: string; icon: string; text: string; time: Date }
+  const recentActivity: ActivityItem[] = []
+  const statusLabels: Record<string, string> = {
+    completed: 'completada', pending: 'pendiente', confirmed: 'confirmada', cancelled: 'cancelada',
+  }
+  for (const a of appointments.slice(-20)) {
+    recentActivity.push({
+      id: `app-${a.id}`,
+      icon: a.status === 'completed' ? '✅' : a.status === 'cancelled' ? '❌' : '📅',
+      text: `Cita ${statusLabels[a.status] ?? a.status} — ${a.services.map(s => s.name).join(', ')}`,
+      time: new Date(a.createdAt ?? a.date),
+    })
+  }
+  for (const s of sales.slice(-20)) {
+    recentActivity.push({
+      id: `sale-${s.id}`,
+      icon: '💰',
+      text: `Venta POS — ${s.totalAmount.toFixed(2)}€ (${s.items.length} art.)`,
+      time: new Date(s.date),
+    })
+  }
+  recentActivity.sort((a, b) => b.time.getTime() - a.time.getTime())
+  const recentFeed = recentActivity.slice(0, 10)
 
   // Gráfica de ingresos últimos 14 días
   const revenueData = last14Days().map(day => {
@@ -150,45 +218,99 @@ export default function DashboardPage() {
           {/* KPIs */}
           <div className={styles.kpis}>
             <div className={styles.kpi}>
-              <span className={styles.kpiIcon}>📅</span>
-              <div>
-                <span className={styles.kpiValue}>{todayApps.length}</span>
-                <span className={styles.kpiLabel}>Citas hoy</span>
-              </div>
-            </div>
-            <div className={styles.kpi}>
-              <span className={styles.kpiIcon}>⏳</span>
-              <div>
-                <span className={styles.kpiValue}>{pendingApps.length}</span>
-                <span className={styles.kpiLabel}>Pendientes</span>
-              </div>
-            </div>
-            <div className={styles.kpi}>
-              <span className={styles.kpiIcon}>💶</span>
+              <span className={styles.kpiIcon}>{'💶'}</span>
               <div>
                 <span className={styles.kpiValue}>{todayRevenue.toFixed(0)}€</span>
                 <span className={styles.kpiLabel}>Ingresos hoy</span>
               </div>
             </div>
             <div className={styles.kpi}>
-              <span className={styles.kpiIcon}>📊</span>
+              <span className={styles.kpiIcon}>{'💰'}</span>
+              <div>
+                <span className={styles.kpiValue}>{todayTips.toFixed(0)}€</span>
+                <span className={styles.kpiLabel}>Propinas hoy</span>
+              </div>
+            </div>
+            <div className={styles.kpi}>
+              <span className={styles.kpiIcon}>{'📅'}</span>
+              <div>
+                <span className={styles.kpiValue}>{todayApps.length}</span>
+                <span className={styles.kpiLabel}>Citas hoy</span>
+              </div>
+            </div>
+            <div className={styles.kpi}>
+              <span className={styles.kpiIcon}>{'🛒'}</span>
+              <div>
+                <span className={styles.kpiValue}>{todaySalesCount}</span>
+                <span className={styles.kpiLabel}>Ventas POS hoy</span>
+              </div>
+            </div>
+            <div className={styles.kpi}>
+              <span className={styles.kpiIcon}>{'⏳'}</span>
+              <div>
+                <span className={styles.kpiValue}>{pendingApps.length}</span>
+                <span className={styles.kpiLabel}>Pendientes</span>
+              </div>
+            </div>
+            <div className={styles.kpi}>
+              <span className={styles.kpiIcon}>{'📊'}</span>
               <div>
                 <span className={styles.kpiValue}>{totalRevenue.toFixed(0)}€</span>
                 <span className={styles.kpiLabel}>Total acumulado</span>
               </div>
             </div>
             <div className={`${styles.kpi} ${lowStock > 0 ? styles.kpiWarn : ''}`}>
-              <span className={styles.kpiIcon}>📦</span>
+              <span className={styles.kpiIcon}>{'📦'}</span>
               <div>
                 <span className={styles.kpiValue}>{lowStock}</span>
                 <span className={styles.kpiLabel}>Stock bajo</span>
               </div>
             </div>
             <div className={styles.kpi}>
-              <span className={styles.kpiIcon}>✂️</span>
+              <span className={styles.kpiIcon}>{'✂️'}</span>
               <div>
                 <span className={styles.kpiValue}>{barbers.length}</span>
                 <span className={styles.kpiLabel}>Barberos</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Resumen semanal + Acciones rápidas */}
+          <div className={styles.weekRow}>
+            <div className={styles.weekCard}>
+              <h3 className={styles.chartTitle}>Resumen semanal</h3>
+              <div className={styles.weekBars}>
+                {weeklyData.map((d, i) => (
+                  <div key={i} className={styles.weekBarCol}>
+                    <div className={styles.weekBarTrack}>
+                      <div
+                        className={styles.weekBar}
+                        style={{ height: `${Math.max((d.revenue / maxWeekRevenue) * 100, 4)}%` }}
+                        title={`${d.revenue.toFixed(0)}€`}
+                      />
+                    </div>
+                    <span className={styles.weekBarLabel}>{d.label}</span>
+                    <span className={styles.weekBarValue}>{d.revenue > 0 ? `${d.revenue.toFixed(0)}€` : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.quickActions}>
+              <h3 className={styles.chartTitle}>Acciones rápidas</h3>
+              <div className={styles.actionCards}>
+                <button className={styles.actionCard} onClick={() => navigate('/finances')}>
+                  <span className={styles.actionIcon}>{'💶'}</span>
+                  <span>Ver finanzas</span>
+                </button>
+                <button className={styles.actionCard} onClick={() => navigate('/messages')}>
+                  <span className={styles.actionIcon}>{'💬'}</span>
+                  <span>Mensajes</span>
+                </button>
+                <button className={styles.actionCard} onClick={() => navigate('/notifications')}>
+                  <span className={styles.actionIcon}>{'🔔'}</span>
+                  <span>Notificaciones</span>
+                </button>
               </div>
             </div>
           </div>
@@ -295,6 +417,24 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Actividad reciente */}
+          <div className={styles.activityCard}>
+            <h3 className={styles.rankTitle}>Actividad reciente</h3>
+            {recentFeed.length === 0 ? (
+              <p className={styles.empty}>Sin actividad reciente</p>
+            ) : (
+              <div className={styles.activityList}>
+                {recentFeed.map(item => (
+                  <div key={item.id} className={styles.activityRow}>
+                    <span className={styles.activityIcon}>{item.icon}</span>
+                    <span className={styles.activityText}>{item.text}</span>
+                    <span className={styles.activityTime}>{timeAgo(item.time)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}

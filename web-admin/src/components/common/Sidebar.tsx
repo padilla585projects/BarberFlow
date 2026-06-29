@@ -17,15 +17,21 @@ const ownerNav: NavItem[] = [
   { to: '/appointments', icon: '📅', label: 'Citas' },
   { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
   { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+  { to: '/finances',     icon: '💰', label: 'Finanzas' },
+  { to: '/payments',     icon: '💳', label: 'Pagos' },
   { to: '/promos',       icon: '🎟️', label: 'Promociones' },
   { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
   { to: '/reports',      icon: '📈', label: 'Reportes' },
+  { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
+  { to: '/messages',     icon: '💬', label: 'Mensajes' },
 ]
 
 const barberNav: NavItem[] = [
   { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
   { to: '/appointments', icon: '📅', label: 'Mis Citas' },
   { to: '/sales',        icon: '💶', label: 'Ventas' },
+  { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
+  { to: '/messages',     icon: '💬', label: 'Mensajes' },
 ]
 
 const developerNav: NavItem[] = [
@@ -37,9 +43,13 @@ const developerNav: NavItem[] = [
   { to: '/inventory',    icon: '📦', label: 'Inventario' },
   { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
   { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+  { to: '/finances',     icon: '💰', label: 'Finanzas' },
+  { to: '/payments',     icon: '💳', label: 'Pagos' },
   { to: '/promos',       icon: '🎟️', label: 'Promociones' },
   { to: '/reviews',      icon: '⭐', label: 'Reseñas' },
   { to: '/reports',      icon: '📈', label: 'Reportes' },
+  { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
+  { to: '/messages',     icon: '💬', label: 'Mensajes' },
 ]
 
 export default function Sidebar() {

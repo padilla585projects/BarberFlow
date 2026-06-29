@@ -17,6 +17,10 @@ import SalesPage from './pages/owner/SalesPage'
 import OrdersPage from './pages/owner/OrdersPage'
 import ReviewsPage from './pages/owner/ReviewsPage'
 import PromosPage from './pages/owner/PromosPage'
+import FinancePage from './pages/owner/FinancePage'
+import PaymentsPage from './pages/owner/PaymentsPage'
+import NotificationsPage from './pages/owner/NotificationsPage'
+import MessagesPage from './pages/owner/MessagesPage'
 
 function AppRoutes() {
   return (
@@ -45,6 +49,10 @@ function AppRoutes() {
                 <Route path="/orders" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><OrdersPage /></ProtectedRoute>} />
                 <Route path="/reviews" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ReviewsPage /></ProtectedRoute>} />
                 <Route path="/promos" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><PromosPage /></ProtectedRoute>} />
+                <Route path="/finances" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><FinancePage /></ProtectedRoute>} />
+                <Route path="/payments" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><PaymentsPage /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><NotificationsPage /></ProtectedRoute>} />
+                <Route path="/messages" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><MessagesPage /></ProtectedRoute>} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
