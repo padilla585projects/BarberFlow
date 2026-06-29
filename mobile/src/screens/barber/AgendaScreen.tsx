@@ -120,6 +120,9 @@ export function AgendaScreen() {
               <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
                 <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
               </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
+                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={signOut}>
                 <Text style={styles.logoutBtn}>Salir</Text>
               </TouchableOpacity>

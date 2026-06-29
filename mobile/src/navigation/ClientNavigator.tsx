@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Image, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NotificationsScreen, useUnreadCount } from '../screens/common/NotificationsScreen';
 import { HomeScreen } from '../screens/client/HomeScreen';
 import { BarbershopScreen } from '../screens/client/BarbershopScreen';
 import { BookScreen } from '../screens/client/BookScreen';
@@ -12,6 +13,7 @@ import { ShopScreen } from '../screens/client/ShopScreen';
 import { ProductDetailScreen } from '../screens/client/ProductDetailScreen';
 import { CartScreen } from '../screens/client/CartScreen';
 import { CheckoutScreen } from '../screens/client/CheckoutScreen';
+import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -27,6 +29,8 @@ export type ClientStackParamList = {
   ProductDetail: { barbershopId: string; product: string };
   Cart: { barbershopId: string; barbershopName: string };
   Checkout: { barbershopId: string; barbershopName: string };
+  Notifications: undefined;
+  NotificationSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -89,6 +93,22 @@ function ProfileAvatar({ onPress }: { onPress: () => void }) {
   );
 }
 
+function NotificationBell({ onPress }: { onPress: () => void }) {
+  const unread = useUnreadCount();
+  return (
+    <TouchableOpacity onPress={onPress} style={{ position: 'relative', paddingHorizontal: 4 }}>
+      <Text style={{ fontSize: 20 }}>{'🔔'}</Text>
+      {unread > 0 && (
+        <View style={{
+          position: 'absolute', top: -4, right: 0,
+          width: 10, height: 10, borderRadius: 5,
+          backgroundColor: GOLD,
+        }} />
+      )}
+    </TouchableOpacity>
+  );
+}
+
 export function ClientNavigator() {
   return (
     <Stack.Navigator
@@ -106,12 +126,15 @@ export function ClientNavigator() {
         options={({ navigation }) => ({
           title: 'BarberFlow',
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('MyAppointments')}
-              style={headerStyles.btn}
-            >
-              <Text style={headerStyles.btnText}>Mis citas</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <NotificationBell onPress={() => navigation.navigate('Notifications')} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate('MyAppointments')}
+                style={headerStyles.btn}
+              >
+                <Text style={headerStyles.btnText}>Mis citas</Text>
+              </TouchableOpacity>
+            </View>
           ),
           headerLeft: () => (
             <ProfileAvatar onPress={() => navigation.navigate('Profile')} />
@@ -167,6 +190,16 @@ export function ClientNavigator() {
         name="Checkout"
         component={CheckoutScreen}
         options={{ title: 'Reservar' }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Notificaciones' }}
+      />
+      <Stack.Screen
+        name="NotificationSettings"
+        component={NotificationSettingsScreen}
+        options={{ title: 'Preferencias de notificación' }}
       />
     </Stack.Navigator>
   );

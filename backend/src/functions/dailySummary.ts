@@ -1,6 +1,7 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler'
 import * as admin from 'firebase-admin'
 import { getExpoPushToken, sendPushNotification } from '../utils/push'
+import { storeNotification } from '../utils/notificationStore'
 
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
@@ -77,12 +78,11 @@ export const sendDailySummary = onSchedule(
         body += `\n💰 ${totalRevenue.toFixed(2)}€ facturado`
         if (salesSnap.size > 0) body += ` (${salesSnap.size} ventas POS)`
 
-        await sendPushNotification(
-          token,
-          'Resumen del día',
-          body,
-          { barbershopId: shopDoc.id, type: 'daily_summary' },
-        )
+        const title = 'Resumen del día'
+        const pushData = { barbershopId: shopDoc.id, type: 'daily_summary' }
+
+        await sendPushNotification(token, title, body, pushData)
+        await storeNotification(ownerId, { title, body, type: 'summary', data: pushData })
 
         console.log(`[DailySummary] Sent summary for shop ${shopDoc.id}`)
       } catch (err) {

@@ -20,7 +20,19 @@ export async function sendPushNotification(
   title: string,
   body: string,
   data?: Record<string, string>,
+  uid?: string,
+  notificationType?: string,
 ): Promise<void> {
+  // If uid and notificationType provided, check user preferences
+  if (uid && notificationType) {
+    const userSnap = await db.collection('users').doc(uid).get()
+    const prefs = userSnap.data()?.notificationPreferences
+    if (prefs && prefs[notificationType] === false) {
+      console.log(`[Push] Skipped: user ${uid} has ${notificationType} disabled`)
+      return
+    }
+  }
+
   const message: ExpoPushMessage = {
     to: token,
     title,

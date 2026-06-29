@@ -1,6 +1,7 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import * as admin from 'firebase-admin'
 import { getExpoPushToken, sendPushNotification } from '../utils/push'
+import { storeNotification } from '../utils/notificationStore'
 
 if (!admin.apps.length) admin.initializeApp()
 
@@ -29,12 +30,12 @@ export const onAppointmentCreatedPush = onDocumentCreated(
     const timeSlot = apt.timeSlot as string
     const date = fmtTime(apt.date as admin.firestore.Timestamp)
 
-    await sendPushNotification(
-      token,
-      'Nueva cita',
-      `${clientName} ha reservado para ${date} a las ${timeSlot}`,
-      { appointmentId: event.params.appointmentId, type: 'new_appointment' },
-    )
+    const title = 'Nueva cita'
+    const body = `${clientName} ha reservado para ${date} a las ${timeSlot}`
+    const pushData = { appointmentId: event.params.appointmentId, type: 'new_appointment' }
+
+    await sendPushNotification(token, title, body, pushData)
+    await storeNotification(barberId, { title, body, type: 'appointment', data: pushData })
   },
 )
 
@@ -57,49 +58,45 @@ export const onAppointmentStatusChangedPush = onDocumentUpdated(
     if (newStatus === 'confirmed') {
       // Barber confirmed → notify client
       const token = await getExpoPushToken(clientId)
+      const title = 'Cita confirmada'
+      const body = `Tu cita en ${barbershopName} el ${date} a las ${timeSlot} ha sido confirmada`
+      const pushData = { appointmentId: event.params.appointmentId, type: 'appointment_confirmed' }
       if (token) {
-        await sendPushNotification(
-          token,
-          'Cita confirmada',
-          `Tu cita en ${barbershopName} el ${date} a las ${timeSlot} ha sido confirmada`,
-          { appointmentId: event.params.appointmentId, type: 'appointment_confirmed' },
-        )
+        await sendPushNotification(token, title, body, pushData)
       }
+      await storeNotification(clientId, { title, body, type: 'appointment', data: pushData })
     } else if (newStatus === 'cancelled') {
       // Could be cancelled by client or barber — notify the other party
       // We notify both: the barber if client cancelled, the client if barber cancelled
       if (barberId) {
         const barberToken = await getExpoPushToken(barberId)
+        const clientName = (after.clientName as string) || 'Un cliente'
+        const barberTitle = 'Cita cancelada'
+        const barberBody = `${clientName} ha cancelado la cita del ${date} a las ${timeSlot}`
+        const barberPushData = { appointmentId: event.params.appointmentId, type: 'appointment_cancelled' }
         if (barberToken) {
-          const clientName = (after.clientName as string) || 'Un cliente'
-          await sendPushNotification(
-            barberToken,
-            'Cita cancelada',
-            `${clientName} ha cancelado la cita del ${date} a las ${timeSlot}`,
-            { appointmentId: event.params.appointmentId, type: 'appointment_cancelled' },
-          )
+          await sendPushNotification(barberToken, barberTitle, barberBody, barberPushData)
         }
+        await storeNotification(barberId, { title: barberTitle, body: barberBody, type: 'appointment', data: barberPushData })
       }
       const clientToken = await getExpoPushToken(clientId)
+      const clientTitle = 'Cita cancelada'
+      const clientBody = `Tu cita en ${barbershopName} el ${date} a las ${timeSlot} ha sido cancelada`
+      const clientPushData = { appointmentId: event.params.appointmentId, type: 'appointment_cancelled' }
       if (clientToken) {
-        await sendPushNotification(
-          clientToken,
-          'Cita cancelada',
-          `Tu cita en ${barbershopName} el ${date} a las ${timeSlot} ha sido cancelada`,
-          { appointmentId: event.params.appointmentId, type: 'appointment_cancelled' },
-        )
+        await sendPushNotification(clientToken, clientTitle, clientBody, clientPushData)
       }
+      await storeNotification(clientId, { title: clientTitle, body: clientBody, type: 'appointment', data: clientPushData })
     } else if (newStatus === 'completed') {
       // Notify client that the appointment is marked as completed
       const token = await getExpoPushToken(clientId)
+      const title = 'Cita completada'
+      const body = `Tu cita en ${barbershopName} ha sido marcada como completada. ¡Gracias!`
+      const pushData = { appointmentId: event.params.appointmentId, type: 'appointment_completed' }
       if (token) {
-        await sendPushNotification(
-          token,
-          'Cita completada',
-          `Tu cita en ${barbershopName} ha sido marcada como completada. ¡Gracias!`,
-          { appointmentId: event.params.appointmentId, type: 'appointment_completed' },
-        )
+        await sendPushNotification(token, title, body, pushData)
       }
+      await storeNotification(clientId, { title, body, type: 'appointment', data: pushData })
     }
   },
 )

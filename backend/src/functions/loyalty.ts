@@ -1,6 +1,7 @@
 import { onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import * as admin from 'firebase-admin'
 import { getExpoPushToken, sendPushNotification } from '../utils/push'
+import { storeNotification } from '../utils/notificationStore'
 
 if (!admin.apps.length) admin.initializeApp()
 
@@ -66,14 +67,13 @@ export const onAppointmentCompletedLoyalty = onDocumentUpdated(
     await batch.commit()
 
     // Send push notification to the client
+    const title = 'Puntos de fidelidad'
+    const body = `🎉 Has ganado ${points} puntos de fidelidad`
+    const pushData = { appointmentId, type: 'loyalty_points_earned' }
     const token = await getExpoPushToken(clientId)
     if (token) {
-      await sendPushNotification(
-        token,
-        'Puntos de fidelidad',
-        `🎉 Has ganado ${points} puntos de fidelidad`,
-        { appointmentId, type: 'loyalty_points_earned' },
-      )
+      await sendPushNotification(token, title, body, pushData)
     }
+    await storeNotification(clientId, { title, body, type: 'loyalty', data: pushData })
   },
 )

@@ -141,3 +141,13 @@ export interface LoyaltyConfig {
   pointsPerEuro: number;
   rewards: LoyaltyReward[];
 }
+
+export interface NotificationPreferences {
+  appointments: boolean;  // New/changed appointment notifications
+  reminders: boolean;     // 24h appointment reminders
+  reviews: boolean;       // New review notifications
+  loyalty: boolean;       // Points earned notifications
+  messages: boolean;      // Internal message notifications
+  dailySummary: boolean;  // Daily summary (owner only)
+  marketing: boolean;     // Promo/campaign notifications
+}

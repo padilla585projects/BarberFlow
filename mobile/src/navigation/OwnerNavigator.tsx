@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NotificationsScreen } from '../screens/common/NotificationsScreen';
 import { DashboardScreen } from '../screens/owner/DashboardScreen';
 import { ShopAppointmentsScreen } from '../screens/owner/ShopAppointmentsScreen';
 import { ShopServicesScreen } from '../screens/owner/ShopServicesScreen';
@@ -19,6 +20,8 @@ import { WaitlistScreen } from '../screens/owner/WaitlistScreen';
 import { ShopSettingsScreen } from '../screens/owner/ShopSettingsScreen';
 import { ProductOrdersScreen } from '../screens/owner/ProductOrdersScreen';
 import { PaymentHistoryScreen } from '../screens/owner/PaymentHistoryScreen';
+import { MessagesScreen } from '../screens/common/MessagesScreen';
+import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
@@ -40,6 +43,9 @@ export type OwnerStackParamList = {
   ProductOrders: undefined;
   PaymentHistory: undefined;
   ShopSettings: undefined;
+  Messages: undefined;
+  Notifications: undefined;
+  NotificationSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -154,6 +160,21 @@ export function OwnerNavigator() {
         name="ShopSettings"
         component={ShopSettingsScreen}
         options={{ title: 'Configuración' }}
+      />
+      <Stack.Screen
+        name="Messages"
+        component={MessagesScreen}
+        options={{ title: 'Mensajes' }}
+      />
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Notificaciones' }}
+      />
+      <Stack.Screen
+        name="NotificationSettings"
+        component={NotificationSettingsScreen}
+        options={{ title: 'Preferencias de notificación' }}
       />
     </Stack.Navigator>
   );

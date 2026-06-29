@@ -1,6 +1,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import * as admin from 'firebase-admin'
 import { getExpoPushToken, sendPushNotification } from '../utils/push'
+import { storeNotification } from '../utils/notificationStore'
 
 if (!admin.apps.length) admin.initializeApp()
 
@@ -23,26 +24,24 @@ export const onReviewCreatedPush = onDocumentCreated(
     const rating = review.rating as number
     const stars = '⭐'.repeat(rating)
 
-    await sendPushNotification(
-      token,
-      'Nueva reseña',
-      `${clientName} te ha dejado una reseña ${stars}`,
-      { barbershopId: event.params.barbershopId, reviewId: event.params.reviewId, type: 'new_review' },
-    )
+    const barberTitle = 'Nueva reseña'
+    const barberBody = `${clientName} te ha dejado una reseña ${stars}`
+    const pushData = { barbershopId: event.params.barbershopId, reviewId: event.params.reviewId, type: 'new_review' }
+
+    await sendPushNotification(token, barberTitle, barberBody, pushData)
+    await storeNotification(barberId, { title: barberTitle, body: barberBody, type: 'review', data: pushData })
 
     // Also notify the shop owner
     const shopSnap = await admin.firestore().collection('barbershops').doc(event.params.barbershopId).get()
     const ownerId = shopSnap.data()?.ownerId as string | undefined
     if (ownerId && ownerId !== barberId) {
       const ownerToken = await getExpoPushToken(ownerId)
+      const ownerTitle = 'Nueva reseña en tu barbería'
+      const ownerBody = `${clientName} ha dejado una reseña de ${rating} estrellas`
       if (ownerToken) {
-        await sendPushNotification(
-          ownerToken,
-          'Nueva reseña en tu barbería',
-          `${clientName} ha dejado una reseña de ${rating} estrellas`,
-          { barbershopId: event.params.barbershopId, reviewId: event.params.reviewId, type: 'new_review' },
-        )
+        await sendPushNotification(ownerToken, ownerTitle, ownerBody, pushData)
       }
+      await storeNotification(ownerId, { title: ownerTitle, body: ownerBody, type: 'review', data: pushData })
     }
   },
 )

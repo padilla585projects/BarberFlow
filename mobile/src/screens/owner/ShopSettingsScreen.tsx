@@ -441,6 +441,23 @@ export function ShopSettingsScreen({ navigation }: Props) {
         </View>
       </View>
 
+      {/* ── Notification Preferences ─────────────── */}
+      <Text style={styles.sectionTitle}>Personal</Text>
+      <View style={styles.card}>
+        <TouchableOpacity
+          style={npStyles.row}
+          onPress={() => (navigation as any).navigate('NotificationSettings')}
+          activeOpacity={0.7}
+        >
+          <Text style={npStyles.icon}>🔔</Text>
+          <View style={npStyles.textGroup}>
+            <Text style={npStyles.label}>Preferencias de notificación</Text>
+            <Text style={npStyles.desc}>Elige qué notificaciones recibir</Text>
+          </View>
+          <Text style={npStyles.arrow}>›</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* ── Save ──────────────────────────────────── */}
       <TouchableOpacity
         style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
@@ -735,5 +752,35 @@ const gridStyles = StyleSheet.create({
   cellTextActive: {
     color: BG,
     fontWeight: '700',
+  },
+});
+
+const npStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  icon: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+  textGroup: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: TEXT_C,
+  },
+  desc: {
+    fontSize: 12,
+    color: MUTED,
+    marginTop: 2,
+  },
+  arrow: {
+    fontSize: 22,
+    color: GOLD,
+    opacity: 0.6,
   },
 });

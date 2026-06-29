@@ -348,6 +348,11 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.linkText}>Mis citas</Text>
           <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('NotificationSettings')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>🔔</Text>
+          <Text style={styles.linkText}>Notificaciones</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Account ─────────────────────────────────────────────────────── */}

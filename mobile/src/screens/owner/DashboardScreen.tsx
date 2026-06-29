@@ -14,6 +14,7 @@ import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
+import { useUnreadCount } from '../common/NotificationsScreen';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'Dashboard'>;
 
@@ -36,6 +37,7 @@ export function DashboardScreen({ navigation }: Props) {
   const [shopName, setShopName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const unreadCount = useUnreadCount();
   const user = auth.currentUser;
 
   const fetchStats = async () => {
@@ -119,9 +121,21 @@ export function DashboardScreen({ navigation }: Props) {
           <Text style={styles.greeting}>{shopName || 'Mi barbería'}</Text>
           <Text style={styles.sub}>{user?.displayName ?? user?.email}</Text>
         </View>
-        <TouchableOpacity onPress={handleSignOut}>
-          <Text style={styles.logoutBtn}>Salir</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={{ position: 'relative' }}>
+            <Text style={{ fontSize: 20 }}>{'🔔'}</Text>
+            {unreadCount > 0 && (
+              <View style={{
+                position: 'absolute', top: -4, right: -4,
+                width: 10, height: 10, borderRadius: 5,
+                backgroundColor: GOLD,
+              }} />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSignOut}>
+            <Text style={styles.logoutBtn}>Salir</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Stats */}
@@ -146,6 +160,7 @@ export function DashboardScreen({ navigation }: Props) {
         <ActionCard emoji="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
         <ActionCard emoji="💰" label="Cobrar" onPress={() => navigation.navigate('Sales')} />
         <ActionCard emoji="💳" label="Pagos" onPress={() => navigation.navigate('PaymentHistory')} />
+        <ActionCard emoji="💬" label="Mensajes" onPress={() => navigation.navigate('Messages')} />
         <ActionCard emoji="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
         <ActionCard emoji="👤" label="Clientes" onPress={() => navigation.navigate('ClientHistory')} />
         <ActionCard emoji="📊" label="Reportes" onPress={() => navigation.navigate('Reports')} />
