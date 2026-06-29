@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.barberflow.app"
@@ -31,7 +30,6 @@
     "updates": {
       "url": "https://u.expo.dev/951e84c1-e341-4623-87e2-0e50814df671",
       "enabled": true,
-      "fallbackToCacheTimeout": 3000,
       "checkAutomatically": "ON_LOAD"
     },
     "plugins": [
