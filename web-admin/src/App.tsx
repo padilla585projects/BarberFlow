@@ -24,12 +24,14 @@ import PaymentsPage from './pages/owner/PaymentsPage'
 import NotificationsPage from './pages/owner/NotificationsPage'
 import MessagesPage from './pages/owner/MessagesPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
+import PrivacyPage from './pages/PrivacyPage'
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
 
       {/* Rutas protegidas con layout */}
       <Route
