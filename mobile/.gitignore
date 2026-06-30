@@ -41,5 +41,5 @@ yarn-error.*
 /ios
 /android
 
-# Firebase config (contains API keys)
-google-services.json
+# Firebase config — google-services.json is safe to commit
+# (it only contains public project IDs, not secrets)
