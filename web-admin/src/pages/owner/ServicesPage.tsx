@@ -46,7 +46,10 @@ export default function ServicesPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const shops = await getAllBarbershops()
+        const allShops = await getAllBarbershops()
+        const shops = user?.role === 'developer'
+          ? allShops
+          : allShops.filter(s => s.ownerId === user?.uid)
         setBarbershops(shops)
         const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
         setSelectedShop(shopId)

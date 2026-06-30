@@ -75,7 +75,10 @@ export default function DashboardPage() {
       try {
         let shopId = user?.barbershopId ?? ''
         if (!shopId) {
-          const shops = await getAllBarbershops()
+          const allShops = await getAllBarbershops()
+          const shops = user?.role === 'developer'
+            ? allShops
+            : allShops.filter(s => s.ownerId === user?.uid)
           shopId = shops[0]?.id ?? ''
         }
         if (!shopId) { setLoading(false); return }

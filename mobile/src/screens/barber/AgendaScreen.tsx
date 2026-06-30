@@ -22,6 +22,7 @@ import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { BarberStackParamList } from '../../navigation/BarberNavigator';
 import type { Appointment } from '../../types';
 
@@ -34,6 +35,7 @@ const BORDER  = '#282828';
 
 export function AgendaScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<BarberStackParamList>>();
+  const { activeBarbershopId } = useAuthContext();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,12 +45,13 @@ export function AgendaScreen() {
 
   const fetchAgenda = async () => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user || !activeBarbershopId) return;
 
     try {
       const q = query(
         collection(db, 'appointments'),
         where('barberId', '==', user.uid),
+        where('barbershopId', '==', activeBarbershopId),
         where('date', '>=', today),
         orderBy('date'),
       );
@@ -64,7 +67,7 @@ export function AgendaScreen() {
 
   useEffect(() => {
     fetchAgenda();
-  }, []);
+  }, [activeBarbershopId]);
 
   const updateStatus = async (id: string, status: Appointment['status']) => {
     try {

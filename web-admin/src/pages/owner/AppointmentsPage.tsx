@@ -12,6 +12,7 @@ const STATUS_LABELS = {
   confirmed: 'Confirmada',
   completed: 'Completada',
   cancelled: 'Cancelada',
+  no_show: 'No presentado',
 }
 
 const STATUS_COLORS = {
@@ -19,6 +20,7 @@ const STATUS_COLORS = {
   confirmed: '#60a5fa',
   completed: '#4ade80',
   cancelled: '#f87171',
+  no_show: '#DC2626',
 }
 
 type FilterStatus = 'all' | Appointment['status']
@@ -55,7 +57,10 @@ export default function AppointmentsPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const shops = await getAllBarbershops()
+        const allShops = await getAllBarbershops()
+        const shops = user?.role === 'developer'
+          ? allShops
+          : allShops.filter(s => s.ownerId === user?.uid)
         setBarbershops(shops)
         const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
         setSelectedShop(shopId)
@@ -132,7 +137,7 @@ export default function AppointmentsPage() {
       {/* Filtros */}
       <div className={styles.filters}>
         <div className={styles.statusTabs}>
-          {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as FilterStatus[]).map(s => (
+          {(['all', 'pending', 'confirmed', 'completed', 'cancelled', 'no_show'] as FilterStatus[]).map(s => (
             <button
               key={s}
               className={`${styles.tab} ${statusFilter === s ? styles.tabActive : ''}`}

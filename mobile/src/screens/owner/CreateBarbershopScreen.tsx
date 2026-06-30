@@ -27,13 +27,13 @@ const BORDER  = '#282828';
 const ERROR   = '#EF4444';
 
 const DEFAULT_OPENING_HOURS = {
-  monday:    { open: '09:00', close: '20:00', closed: false },
-  tuesday:   { open: '09:00', close: '20:00', closed: false },
-  wednesday: { open: '09:00', close: '20:00', closed: false },
-  thursday:  { open: '09:00', close: '20:00', closed: false },
-  friday:    { open: '09:00', close: '20:00', closed: false },
-  saturday:  { open: '09:00', close: '14:00', closed: false },
-  sunday:    { open: '09:00', close: '14:00', closed: true  },
+  monday:    { open: true,  from: '09:00', to: '20:00' },
+  tuesday:   { open: true,  from: '09:00', to: '20:00' },
+  wednesday: { open: true,  from: '09:00', to: '20:00' },
+  thursday:  { open: true,  from: '09:00', to: '20:00' },
+  friday:    { open: true,  from: '09:00', to: '20:00' },
+  saturday:  { open: true,  from: '09:00', to: '14:00' },
+  sunday:    { open: false, from: '09:00', to: '14:00' },
 };
 
 export function CreateBarbershopScreen({ navigation }: Props) {
@@ -97,6 +97,8 @@ export function CreateBarbershopScreen({ navigation }: Props) {
         description:  descripcion.trim(),
         ownerId:      user.uid,
         openingHours: DEFAULT_OPENING_HOURS,
+        barbers:      [],
+        services:     [],
         createdAt:    serverTimestamp(),
         rating:       0,
         reviewCount:  0,

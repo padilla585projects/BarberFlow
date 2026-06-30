@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 const GREEN = '#10B981';
 
@@ -41,9 +42,10 @@ export function BarberStatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const user = auth.currentUser;
+  const { activeBarbershopId } = useAuthContext();
 
   const fetchStats = async () => {
-    if (!user) return;
+    if (!user || !activeBarbershopId) return;
 
     try {
       // Fetch commission rate from user doc
@@ -59,6 +61,7 @@ export function BarberStatsScreen() {
       const snap = await getDocs(query(
         collection(db, 'appointments'),
         where('barberId', '==', user.uid),
+        where('barbershopId', '==', activeBarbershopId),
       ));
 
       const now = new Date();
@@ -98,7 +101,7 @@ export function BarberStatsScreen() {
     }
   };
 
-  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { fetchStats(); }, [activeBarbershopId]);
 
   if (loading) {
     return (

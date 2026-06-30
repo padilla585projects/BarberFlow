@@ -7,6 +7,8 @@ export interface User {
   photoURL?: string;
   role: UserRole;
   barbershopId?: string;
+  activeBarbershopId?: string;
+  memberships?: { barbershopId: string; barbershopName: string; role: 'barber' | 'owner'; joinedAt: Date }[];
   /** Citas que puede atender por hora. Slot = 60 / appointmentsPerHour minutos */
   appointmentsPerHour?: number;
   phone?: string;
@@ -58,7 +60,7 @@ export interface Appointment {
   services: Service[];
   date: Date;
   timeSlot: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   totalPrice: number;
   createdAt: Date;
 }
@@ -146,7 +148,7 @@ export interface Promo {
   value: number;
   barbershopId: string;
   maxUses: number;
-  usedCount: number;
+  currentUses: number;
   active: boolean;
   expiresAt?: Date;
   createdAt: Date;

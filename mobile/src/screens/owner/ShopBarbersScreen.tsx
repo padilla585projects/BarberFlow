@@ -114,6 +114,7 @@ export function ShopBarbersScreen() {
             const apptQuery = query(
               collection(db, 'appointments'),
               where('barberId', '==', userData.uid),
+              where('barbershopId', '==', activeBarbershopId),
               where('status', '==', 'completed'),
             );
             const apptSnap = await getDocs(apptQuery);

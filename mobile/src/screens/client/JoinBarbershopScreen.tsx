@@ -147,6 +147,11 @@ export function JoinBarbershopScreen({ navigation }: Props) {
         }),
       });
 
+      // Add barber to the barbershop's barbers array
+      await updateDoc(doc(db, 'barbershops', invitation.barbershopId), {
+        barbers: arrayUnion(user.uid),
+      });
+
       setSuccess(true);
     } catch (err) {
       console.error('[JoinBarbershopScreen] Error joining barbershop:', err);

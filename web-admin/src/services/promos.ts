@@ -23,10 +23,10 @@ export async function getPromosByBarbershop(barbershopId: string): Promise<Promo
   return snap.docs.map(toPromo)
 }
 
-export async function createPromo(data: Omit<Promo, 'id' | 'usedCount' | 'createdAt'>): Promise<string> {
+export async function createPromo(data: Omit<Promo, 'id' | 'currentUses' | 'createdAt'>): Promise<string> {
   const ref = await addDoc(collection(db, COL), {
     ...data,
-    usedCount: 0,
+    currentUses: 0,
     createdAt: serverTimestamp(),
   })
   return ref.id

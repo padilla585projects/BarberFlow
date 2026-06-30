@@ -69,6 +69,7 @@ export interface Service {
   name: string;
   duration: number; // minutos
   price: number;
+  description?: string;
 }
 
 export interface Appointment {

@@ -38,7 +38,10 @@ export default function PromosPage() {
 
   useEffect(() => {
     const init = async () => {
-      const shops = await getAllBarbershops()
+      const allShops = await getAllBarbershops()
+      const shops = user?.role === 'developer'
+        ? allShops
+        : allShops.filter(s => s.ownerId === user?.uid)
       setBarbershops(shops)
       const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
       setSelectedShop(shopId)
@@ -143,7 +146,7 @@ export default function PromosPage() {
               <span className={styles.value}>
                 {p.type === 'percentage' ? `${p.value}%` : `${p.value}€`}
               </span>
-              <span className={styles.uses}>{p.usedCount} / {p.maxUses}</span>
+              <span className={styles.uses}>{p.currentUses} / {p.maxUses}</span>
               <span className={styles.expires}>
                 {p.expiresAt
                   ? (p.expiresAt instanceof Date ? p.expiresAt : new Date((p.expiresAt as any).seconds * 1000))
