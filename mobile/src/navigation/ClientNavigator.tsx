@@ -15,6 +15,7 @@ import { CartScreen } from '../screens/client/CartScreen';
 import { CheckoutScreen } from '../screens/client/CheckoutScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 import { BarberPortfolioScreen } from '../screens/client/BarberPortfolioScreen';
+import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -33,6 +34,7 @@ export type ClientStackParamList = {
   BarberPortfolio: { barberId: string; barberName: string };
   Notifications: undefined;
   NotificationSettings: undefined;
+  CreateBarbershop: undefined;
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -207,6 +209,11 @@ export function ClientNavigator() {
         name="NotificationSettings"
         component={NotificationSettingsScreen}
         options={{ title: 'Preferencias de notificación' }}
+      />
+      <Stack.Screen
+        name="CreateBarbershop"
+        component={CreateBarbershopScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

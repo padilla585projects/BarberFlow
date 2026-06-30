@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import type { User, UserRole } from '../types';
 
@@ -20,7 +20,12 @@ export function useAuth(): AuthState {
   });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubProfile: (() => void) | null = null;
+
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous profile listener
+      if (unsubProfile) { unsubProfile(); unsubProfile = null; }
+
       if (!firebaseUser) {
         setState({ firebaseUser: null, profile: null, role: null, loading: false });
         return;
@@ -30,10 +35,7 @@ export function useAuth(): AuthState {
         const userRef = doc(db, 'users', firebaseUser.uid);
         const snap = await getDoc(userRef);
 
-        if (snap.exists()) {
-          const profile = snap.data() as User;
-          setState({ firebaseUser, profile, role: profile.role, loading: false });
-        } else {
+        if (!snap.exists()) {
           // First sign-in: create profile with default 'client' role
           const newProfile: User = {
             uid: firebaseUser.uid,
@@ -43,16 +45,25 @@ export function useAuth(): AuthState {
             role: 'client',
           };
           await setDoc(userRef, { ...newProfile, createdAt: serverTimestamp() });
-          setState({ firebaseUser, profile: newProfile, role: 'client', loading: false });
         }
+
+        // Listen for realtime changes (role upgrades, profile edits)
+        unsubProfile = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const profile = docSnap.data() as User;
+            setState({ firebaseUser, profile, role: profile.role, loading: false });
+          }
+        });
       } catch (err) {
         console.error('[useAuth] Error fetching profile:', err);
-        // Fail safe: treat as client so the user is not stuck on the loading screen
         setState({ firebaseUser, profile: null, role: 'client', loading: false });
       }
     });
 
-    return unsubscribe;
+    return () => {
+      unsubAuth();
+      if (unsubProfile) unsubProfile();
+    };
   }, []);
 
   return state;

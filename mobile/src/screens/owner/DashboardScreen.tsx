@@ -37,6 +37,7 @@ export function DashboardScreen({ navigation }: Props) {
   const [shopName, setShopName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [noBarbershop, setNoBarbershop] = useState(false);
   const unreadCount = useUnreadCount();
   const user = auth.currentUser;
 
@@ -47,7 +48,13 @@ export function DashboardScreen({ navigation }: Props) {
       // Get owner's barbershopId
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) return;
+      if (!barbershopId) {
+        setNoBarbershop(true);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      setNoBarbershop(false);
 
       // Get shop name
       const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
@@ -109,6 +116,30 @@ export function DashboardScreen({ navigation }: Props) {
     );
   }
 
+  if (noBarbershop) {
+    return (
+      <View style={styles.centered}>
+        <View style={styles.ctaCard}>
+          <Text style={styles.ctaEmoji}>✂️</Text>
+          <Text style={styles.ctaTitle}>Sin barbería registrada</Text>
+          <Text style={styles.ctaSub}>
+            Aún no tienes una barbería asociada a tu cuenta. Crea la tuya para empezar a gestionar citas, servicios y más.
+          </Text>
+          <TouchableOpacity
+            style={styles.ctaBtn}
+            onPress={() => navigation.navigate('CreateBarbershop')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.ctaBtnText}>Crear mi barbería</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSignOut} style={{ marginTop: 8 }}>
+            <Text style={styles.logoutBtn}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -152,26 +183,41 @@ export function DashboardScreen({ navigation }: Props) {
         <Text style={{fontSize: 12, color: MUTED, marginTop: 4}}>Toca para ver detalle →</Text>
       </TouchableOpacity>
 
-      {/* Quick actions */}
-      <Text style={styles.sectionTitle}>Gestión</Text>
-      <View style={styles.actionsGrid}>
-        <ActionCard emoji="📋" label="Citas" onPress={() => navigation.navigate('ShopAppointments')} />
-        <ActionCard emoji="👥" label="Barberos" onPress={() => navigation.navigate('ShopBarbers')} />
+      {/* Section: Mi Negocio */}
+      <ActionSection title="Mi Negocio">
+        <ActionCard emoji="📋" label="Citas"     onPress={() => navigation.navigate('ShopAppointments')} />
+        <ActionCard emoji="👥" label="Barberos"  onPress={() => navigation.navigate('ShopBarbers')} />
         <ActionCard emoji="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
-        <ActionCard emoji="💰" label="Cobrar" onPress={() => navigation.navigate('Sales')} />
-        <ActionCard emoji="💳" label="Pagos" onPress={() => navigation.navigate('PaymentHistory')} />
-        <ActionCard emoji="💬" label="Mensajes" onPress={() => navigation.navigate('Messages')} />
+        <ActionCard emoji="⚙️" label="Ajustes"   onPress={() => navigation.navigate('ShopSettings')} />
+      </ActionSection>
+
+      {/* Section: Ventas */}
+      <ActionSection title="Ventas">
+        <ActionCard emoji="💰" label="Cobrar"     onPress={() => navigation.navigate('Sales')} />
+        <ActionCard emoji="💳" label="Pagos"      onPress={() => navigation.navigate('PaymentHistory')} />
         <ActionCard emoji="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
-        <ActionCard emoji="👤" label="Clientes" onPress={() => navigation.navigate('ClientHistory')} />
+        <ActionCard emoji="🛍️" label="Pedidos"    onPress={() => navigation.navigate('ProductOrders')} />
+      </ActionSection>
+
+      {/* Section: Clientes */}
+      <ActionSection title="Clientes">
+        <ActionCard emoji="👤" label="Clientes"        onPress={() => navigation.navigate('ClientHistory')} />
+        <ActionCard emoji="⭐" label="Valoraciones"     onPress={() => navigation.navigate('Reviews')} />
+        <ActionCard emoji="📝" label="Lista de espera"  onPress={() => navigation.navigate('Waitlist')} />
+        <ActionCard emoji="🎖️" label="Fidelidad"        onPress={() => navigation.navigate('LoyaltySettings')} />
+      </ActionSection>
+
+      {/* Section: Marketing */}
+      <ActionSection title="Marketing">
+        <ActionCard emoji="🏷️" label="Promos"   onPress={() => navigation.navigate('Promos')} />
+        <ActionCard emoji="📸" label="Galería"   onPress={() => navigation.navigate('Gallery')} />
+        <ActionCard emoji="💬" label="Mensajes"  onPress={() => navigation.navigate('Messages')} />
+      </ActionSection>
+
+      {/* Section: Análisis */}
+      <ActionSection title="Análisis">
         <ActionCard emoji="📊" label="Reportes" onPress={() => navigation.navigate('Reports')} />
-        <ActionCard emoji="⭐" label="Valoraciones" onPress={() => navigation.navigate('Reviews')} />
-        <ActionCard emoji="📸" label="Galería" onPress={() => navigation.navigate('Gallery')} />
-        <ActionCard emoji="🏷️" label="Promos" onPress={() => navigation.navigate('Promos')} />
-        <ActionCard emoji="🎖️" label="Fidelidad" onPress={() => navigation.navigate('LoyaltySettings')} />
-        <ActionCard emoji="📝" label="Espera" onPress={() => navigation.navigate('Waitlist')} />
-        <ActionCard emoji="🛍️" label="Pedidos" onPress={() => navigation.navigate('ProductOrders')} />
-        <ActionCard emoji="⚙️" label="Ajustes" onPress={() => navigation.navigate('ShopSettings')} />
-      </View>
+      </ActionSection>
     </ScrollView>
   );
 }
@@ -186,10 +232,25 @@ function StatCard({ label, value, emoji, color }: { label: string; value: number
   );
 }
 
+function ActionSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={sectionStyles.wrapper}>
+      <View style={sectionStyles.headerRow}>
+        <View style={sectionStyles.dividerLeft} />
+        <Text style={sectionStyles.title}>{title.toUpperCase()}</Text>
+        <View style={sectionStyles.dividerRight} />
+      </View>
+      <View style={sectionStyles.grid}>{children}</View>
+    </View>
+  );
+}
+
 function ActionCard({ emoji, label, onPress }: { emoji: string; label: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={actionStyles.card} onPress={onPress} activeOpacity={0.8}>
-      <Text style={actionStyles.emoji}>{emoji}</Text>
+    <TouchableOpacity style={actionStyles.card} onPress={onPress} activeOpacity={0.75}>
+      <View style={actionStyles.emojiWrapper}>
+        <Text style={actionStyles.emoji}>{emoji}</Text>
+      </View>
       <Text style={actionStyles.label}>{label}</Text>
     </TouchableOpacity>
   );
@@ -197,12 +258,34 @@ function ActionCard({ emoji, label, onPress }: { emoji: string; label: string; o
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG, padding: 24 },
   content: { padding: 20, gap: 20 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   greeting: { fontSize: 22, fontWeight: '800', color: TEXT },
   sub: { fontSize: 13, color: MUTED, marginTop: 2 },
   logoutBtn: { fontSize: 14, color: '#EF4444', fontWeight: '600' },
+  // No-barbershop CTA
+  ctaCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  ctaEmoji: { fontSize: 52, marginBottom: 4 },
+  ctaTitle: { fontSize: 20, fontWeight: '800', color: TEXT, textAlign: 'center' },
+  ctaSub: { fontSize: 14, color: MUTED, textAlign: 'center', lineHeight: 20 },
+  ctaBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    marginTop: 8,
+  },
+  ctaBtnText: { fontSize: 15, fontWeight: '800', color: BG },
   statsRow: { flexDirection: 'row', gap: 10 },
   revenueCard: {
     backgroundColor: SURFACE,
@@ -215,8 +298,6 @@ const styles = StyleSheet.create({
   },
   revenueLabel: { fontSize: 13, color: MUTED, fontWeight: '600' },
   revenueValue: { fontSize: 32, fontWeight: '800', color: GOLD },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: TEXT },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 });
 
 const statStyles = StyleSheet.create({
@@ -236,6 +317,36 @@ const statStyles = StyleSheet.create({
   label: { fontSize: 11, color: MUTED, fontWeight: '600' },
 });
 
+const sectionStyles = StyleSheet.create({
+  wrapper: { gap: 12 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dividerLeft: {
+    width: 18,
+    height: 1,
+    backgroundColor: BORDER,
+  },
+  dividerRight: {
+    flex: 1,
+    height: 1,
+    backgroundColor: BORDER,
+  },
+  title: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: MUTED,
+    letterSpacing: 1.2,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+});
+
 const actionStyles = StyleSheet.create({
   card: {
     width: '47%',
@@ -243,10 +354,19 @@ const actionStyles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  emoji: { fontSize: 28 },
-  label: { fontSize: 14, fontWeight: '700', color: TEXT },
+  emojiWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(201,168,76,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: { fontSize: 24 },
+  label: { fontSize: 13, fontWeight: '700', color: TEXT, textAlign: 'center' },
 });

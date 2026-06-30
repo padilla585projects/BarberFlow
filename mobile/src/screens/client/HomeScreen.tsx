@@ -100,6 +100,22 @@ export function HomeScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         }
+        ListFooterComponent={
+          <TouchableOpacity
+            style={styles.proBanner}
+            onPress={() => navigation.navigate('CreateBarbershop')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.proBannerLeft}>
+              <Text style={styles.proBannerEmoji}>💼</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.proBannerTitle}>¿Eres profesional?</Text>
+                <Text style={styles.proBannerSub}>Registra tu barbería y gestiona todo desde aquí</Text>
+              </View>
+            </View>
+            <Text style={styles.proBannerArrow}>›</Text>
+          </TouchableOpacity>
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>✂</Text>
@@ -275,4 +291,27 @@ const styles = StyleSheet.create({
   loyaltyLabel: { fontSize: 12, color: MUTED, fontWeight: '600' },
   loyaltyValue: { fontSize: 18, fontWeight: '800', color: GOLD },
   loyaltyArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
+
+  // Pro banner
+  proBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: GOLD + '30',
+    padding: 14,
+    marginTop: 20,
+  },
+  proBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  proBannerEmoji: { fontSize: 24 },
+  proBannerTitle: { fontSize: 14, fontWeight: '700', color: GOLD },
+  proBannerSub: { fontSize: 12, color: MUTED, marginTop: 2 },
+  proBannerArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
 });

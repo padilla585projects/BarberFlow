@@ -20,11 +20,13 @@ import { WaitlistScreen } from '../screens/owner/WaitlistScreen';
 import { ShopSettingsScreen } from '../screens/owner/ShopSettingsScreen';
 import { ProductOrdersScreen } from '../screens/owner/ProductOrdersScreen';
 import { PaymentHistoryScreen } from '../screens/owner/PaymentHistoryScreen';
+import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
+  CreateBarbershop: undefined;
   ShopAppointments: undefined;
   ShopServices: undefined;
   ShopBarbers: undefined;
@@ -67,6 +69,11 @@ export function OwnerNavigator() {
       <Stack.Screen
         name="Dashboard"
         component={DashboardScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateBarbershop"
+        component={CreateBarbershopScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
