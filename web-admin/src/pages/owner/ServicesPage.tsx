@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getAllBarbershops, getBarbershopById, updateBarbershop } from '../../services/barbershops'
 import { getAppointmentsByBarbershop } from '../../services/appointments'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/common/Toast'
 import { Barbershop, Service, Appointment } from '../../types'
 import styles from './ServicesPage.module.css'
 
@@ -13,6 +14,7 @@ function genId() { return crypto.randomUUID() }
 
 export default function ServicesPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [barbershops, setBarbershops] = useState<Barbershop[]>([])
   const [selectedShop, setSelectedShop] = useState('')
   const [services, setServices] = useState<Service[]>([])
@@ -27,22 +29,31 @@ export default function ServicesPage() {
   const load = async (shopId: string) => {
     if (!shopId) return
     setLoading(true)
-    const [shop, apps] = await Promise.all([
-      getBarbershopById(shopId),
-      getAppointmentsByBarbershop(shopId),
-    ])
-    setServices(shop?.services ?? [])
-    setAppointments(apps)
-    setLoading(false)
+    try {
+      const [shop, apps] = await Promise.all([
+        getBarbershopById(shopId),
+        getAppointmentsByBarbershop(shopId),
+      ])
+      setServices(shop?.services ?? [])
+      setAppointments(apps)
+    } catch {
+      showToast('Error al cargar los servicios', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     const init = async () => {
-      const shops = await getAllBarbershops()
-      setBarbershops(shops)
-      const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
-      setSelectedShop(shopId)
-      await load(shopId)
+      try {
+        const shops = await getAllBarbershops()
+        setBarbershops(shops)
+        const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
+        setSelectedShop(shopId)
+        await load(shopId)
+      } catch {
+        showToast('Error al inicializar los servicios', 'error')
+      }
     }
     init()
   }, [])
@@ -65,10 +76,15 @@ export default function ServicesPage() {
 
   const saveServices = async (updated: Service[]) => {
     setSaving(true)
-    await updateBarbershop(selectedShop, { services: updated })
-    setServices(updated)
-    setSaving(false)
-    closeModal()
+    try {
+      await updateBarbershop(selectedShop, { services: updated })
+      setServices(updated)
+      closeModal()
+    } catch {
+      showToast('Error al guardar los servicios', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleSave = async () => {
@@ -84,11 +100,17 @@ export default function ServicesPage() {
       ? services.map(s => s.id === svc.id ? svc : s)
       : [...services, svc]
     await saveServices(updated)
+    showToast(modal === 'edit' ? 'Servicio actualizado' : 'Servicio creado correctamente', 'success')
   }
 
   const handleDelete = async (id: string) => {
-    await saveServices(services.filter(s => s.id !== id))
-    setDeleteConfirm(null)
+    try {
+      await saveServices(services.filter(s => s.id !== id))
+      setDeleteConfirm(null)
+      showToast('Servicio eliminado', 'success')
+    } catch {
+      showToast('Error al eliminar el servicio', 'error')
+    }
   }
 
   const timesBooked = (id: string) =>

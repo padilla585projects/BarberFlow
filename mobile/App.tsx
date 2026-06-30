@@ -4,11 +4,15 @@ import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation';
 import { CartProvider } from './src/contexts/CartContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { initSentry, Sentry } from './src/services/sentry';
+
+// Initialize Sentry crash reporting
+initSentry();
 
 // Keep native splash visible until auth state resolves
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function App() {
   const onReady = useCallback(async () => {
     await SplashScreen.hideAsync();
   }, []);
@@ -23,3 +27,5 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(App);

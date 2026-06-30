@@ -3,6 +3,7 @@ import { getAllBarbershops } from '../../services/barbershops'
 import { getUsersByBarbershop, getUserByEmail, addBarberToShop, removeBarberFromShop, updateBarberSettings } from '../../services/users'
 import { getAppointmentsByBarbershop } from '../../services/appointments'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/common/Toast'
 import { Barbershop, User, Appointment } from '../../types'
 import styles from './BarbersPage.module.css'
 
@@ -12,6 +13,7 @@ type SearchState = 'idle' | 'searching' | 'found' | 'not-found' | 'already-here'
 
 export default function BarbersPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [barbershops, setBarbershops] = useState<Barbershop[]>([])
   const [selectedShop, setSelectedShop] = useState('')
   const [barbers, setBarbers] = useState<User[]>([])
@@ -32,26 +34,35 @@ export default function BarbersPage() {
   const load = async (shopId: string) => {
     if (!shopId) return
     setLoading(true)
-    const [users, apps] = await Promise.all([
-      getUsersByBarbershop(shopId),
-      getAppointmentsByBarbershop(shopId),
-    ])
-    const bs = users.filter(u => u.role === 'barber' || u.role === 'owner')
-    setBarbers(bs)
-    setAppointments(apps)
-    const caps: Record<string, number> = {}
-    bs.forEach(b => { caps[b.uid] = b.appointmentsPerHour ?? 1 })
-    setCapacity(caps)
-    setLoading(false)
+    try {
+      const [users, apps] = await Promise.all([
+        getUsersByBarbershop(shopId),
+        getAppointmentsByBarbershop(shopId),
+      ])
+      const bs = users.filter(u => u.role === 'barber' || u.role === 'owner')
+      setBarbers(bs)
+      setAppointments(apps)
+      const caps: Record<string, number> = {}
+      bs.forEach(b => { caps[b.uid] = b.appointmentsPerHour ?? 1 })
+      setCapacity(caps)
+    } catch {
+      showToast('Error al cargar los barberos', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     const init = async () => {
-      const shops = await getAllBarbershops()
-      setBarbershops(shops)
-      const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
-      setSelectedShop(shopId)
-      await load(shopId)
+      try {
+        const shops = await getAllBarbershops()
+        setBarbershops(shops)
+        const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
+        setSelectedShop(shopId)
+        await load(shopId)
+      } catch {
+        showToast('Error al inicializar la pagina de barberos', 'error')
+      }
     }
     init()
   }, [])
@@ -62,18 +73,30 @@ export default function BarbersPage() {
 
   const saveCapacity = async (uid: string) => {
     setSaving(uid)
-    await updateBarberSettings(uid, { appointmentsPerHour: capacity[uid] })
-    setBarbers(prev => prev.map(b => b.uid === uid ? { ...b, appointmentsPerHour: capacity[uid] } : b))
-    setSaving(null)
+    try {
+      await updateBarberSettings(uid, { appointmentsPerHour: capacity[uid] })
+      setBarbers(prev => prev.map(b => b.uid === uid ? { ...b, appointmentsPerHour: capacity[uid] } : b))
+      showToast('Capacidad actualizada correctamente', 'success')
+    } catch {
+      showToast('Error al guardar la capacidad', 'error')
+    } finally {
+      setSaving(null)
+    }
   }
 
   // ── Quitar barbero ─────────────────────────────────────
   const handleRemove = async (uid: string) => {
     setRemoving(uid)
-    await removeBarberFromShop(uid)
-    setBarbers(prev => prev.filter(b => b.uid !== uid))
-    setRemoveConfirm(null)
-    setRemoving(null)
+    try {
+      await removeBarberFromShop(uid)
+      setBarbers(prev => prev.filter(b => b.uid !== uid))
+      setRemoveConfirm(null)
+      showToast('Barbero eliminado de la barberia', 'success')
+    } catch {
+      showToast('Error al quitar el barbero', 'error')
+    } finally {
+      setRemoving(null)
+    }
   }
 
   // ── Buscar por email ───────────────────────────────────
@@ -95,15 +118,21 @@ export default function BarbersPage() {
   const handleAdd = async () => {
     if (!foundUser) return
     setAdding(true)
-    await addBarberToShop(foundUser.uid, selectedShop)
-    const newBarber: User = { ...foundUser, role: 'barber', barbershopId: selectedShop }
-    setBarbers(prev => [...prev, newBarber])
-    setCapacity(prev => ({ ...prev, [foundUser.uid]: 1 }))
-    setAddModal(false)
-    setSearchEmail('')
-    setSearchState('idle')
-    setFoundUser(null)
-    setAdding(false)
+    try {
+      await addBarberToShop(foundUser.uid, selectedShop)
+      const newBarber: User = { ...foundUser, role: 'barber', barbershopId: selectedShop }
+      setBarbers(prev => [...prev, newBarber])
+      setCapacity(prev => ({ ...prev, [foundUser.uid]: 1 }))
+      setAddModal(false)
+      setSearchEmail('')
+      setSearchState('idle')
+      setFoundUser(null)
+      showToast('Barbero agregado correctamente', 'success')
+    } catch {
+      showToast('Error al agregar el barbero', 'error')
+    } finally {
+      setAdding(false)
+    }
   }
 
   const closeAddModal = () => {

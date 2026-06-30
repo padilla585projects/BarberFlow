@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, ReactNativeAsyncStorage } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -25,7 +25,13 @@ export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage) as any,
 });
 
-export const db = getFirestore(app);
+// Firestore con long-polling para mejor conectividad en React Native.
+// El JS SDK incluye caché en memoria por defecto.
+// NOTA: Para persistencia offline completa (caché en disco), se requiere
+// migrar a @react-native-firebase/firestore (módulo nativo).
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 export const storage = getStorage(app);
 
 export default app;

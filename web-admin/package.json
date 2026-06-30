@@ -16,6 +16,7 @@
     "vite": "^8.1.0"
   },
   "dependencies": {
+    "@sentry/react": "^10.62.0",
     "@tanstack/react-query": "^5.101.1",
     "axios": "^1.18.1",
     "exceljs": "^4.4.0",

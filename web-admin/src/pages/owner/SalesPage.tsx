@@ -4,6 +4,7 @@ import { getUsersByBarbershop } from '../../services/users'
 import { getProductsByBarbershop } from '../../services/inventory'
 import { getSalesByBarbershop, createSale } from '../../services/sales'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/common/Toast'
 import { Barbershop, User, Product, Service, Sale, SaleItem } from '../../types'
 import styles from './SalesPage.module.css'
 
@@ -11,6 +12,7 @@ type CartItem = SaleItem & { _key: string }
 
 export default function SalesPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [barbershops, setBarbershops] = useState<Barbershop[]>([])
   const [selectedShop, setSelectedShop] = useState('')
   const [barbers, setBarbers] = useState<User[]>([])
@@ -33,27 +35,36 @@ export default function SalesPage() {
   const load = async (shopId: string) => {
     if (!shopId) return
     setLoading(true)
-    const [shop, users, prods, salesData] = await Promise.all([
-      getBarbershopById(shopId),
-      getUsersByBarbershop(shopId),
-      getProductsByBarbershop(shopId),
-      getSalesByBarbershop(shopId),
-    ])
-    const bs = users.filter(u => u.role === 'barber' || u.role === 'owner')
-    setBarbers(bs)
-    setServices(shop?.services ?? [])
-    setProducts(prods)
-    setSales(salesData)
-    setLoading(false)
+    try {
+      const [shop, users, prods, salesData] = await Promise.all([
+        getBarbershopById(shopId),
+        getUsersByBarbershop(shopId),
+        getProductsByBarbershop(shopId),
+        getSalesByBarbershop(shopId),
+      ])
+      const bs = users.filter(u => u.role === 'barber' || u.role === 'owner')
+      setBarbers(bs)
+      setServices(shop?.services ?? [])
+      setProducts(prods)
+      setSales(salesData)
+    } catch {
+      showToast('Error al cargar las ventas', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     const init = async () => {
-      const shops = await getAllBarbershops()
-      setBarbershops(shops)
-      const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
-      setSelectedShop(shopId)
-      await load(shopId)
+      try {
+        const shops = await getAllBarbershops()
+        setBarbershops(shops)
+        const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
+        setSelectedShop(shopId)
+        await load(shopId)
+      } catch {
+        showToast('Error al inicializar la pagina de ventas', 'error')
+      }
     }
     init()
   }, [])
@@ -88,17 +99,23 @@ export default function SalesPage() {
   const handleSave = async () => {
     if (!selectedBarber || cart.length === 0) return
     setSaving(true)
-    const sale: Omit<Sale, 'id'> = {
-      barberId: selectedBarber,
-      barbershopId: selectedShop,
-      items: cart.map(({ _key, ...rest }) => rest),
-      totalAmount: cartTotal,
-      date: new Date(),
+    try {
+      const sale: Omit<Sale, 'id'> = {
+        barberId: selectedBarber,
+        barbershopId: selectedShop,
+        items: cart.map(({ _key, ...rest }) => rest),
+        totalAmount: cartTotal,
+        date: new Date(),
+      }
+      const id = await createSale(sale)
+      setSales(prev => [{ ...sale, id, date: new Date() }, ...prev])
+      setModal(false)
+      showToast('Venta registrada correctamente', 'success')
+    } catch {
+      showToast('Error al registrar la venta', 'error')
+    } finally {
+      setSaving(false)
     }
-    const id = await createSale(sale)
-    setSales(prev => [{ ...sale, id, date: new Date() }, ...prev])
-    setModal(false)
-    setSaving(false)
   }
 
   // Filtered sales

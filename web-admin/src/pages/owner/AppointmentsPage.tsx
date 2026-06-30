@@ -3,6 +3,7 @@ import { getAppointmentsByBarbershop, updateAppointmentStatus } from '../../serv
 import { getAllBarbershops } from '../../services/barbershops'
 import { getUsersByBarbershop } from '../../services/users'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/common/Toast'
 import { Appointment, Barbershop, User } from '../../types'
 import styles from './AppointmentsPage.module.css'
 
@@ -24,6 +25,7 @@ type FilterStatus = 'all' | Appointment['status']
 
 export default function AppointmentsPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [barbershops, setBarbershops] = useState<Barbershop[]>([])
   const [barbers, setBarbers] = useState<User[]>([])
@@ -36,29 +38,43 @@ export default function AppointmentsPage() {
   const load = async (shopId: string) => {
     if (!shopId) return
     setLoading(true)
-    const [apps, barberList] = await Promise.all([
-      getAppointmentsByBarbershop(shopId),
-      getUsersByBarbershop(shopId),
-    ])
-    setAppointments(apps)
-    setBarbers(barberList.filter(u => u.role === 'barber' || u.role === 'owner'))
-    setLoading(false)
+    try {
+      const [apps, barberList] = await Promise.all([
+        getAppointmentsByBarbershop(shopId),
+        getUsersByBarbershop(shopId),
+      ])
+      setAppointments(apps)
+      setBarbers(barberList.filter(u => u.role === 'barber' || u.role === 'owner'))
+    } catch {
+      showToast('Error al cargar las citas', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     const init = async () => {
-      const shops = await getAllBarbershops()
-      setBarbershops(shops)
-      const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
-      setSelectedShop(shopId)
-      await load(shopId)
+      try {
+        const shops = await getAllBarbershops()
+        setBarbershops(shops)
+        const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
+        setSelectedShop(shopId)
+        await load(shopId)
+      } catch {
+        showToast('Error al inicializar la pagina de citas', 'error')
+      }
     }
     init()
   }, [])
 
   const handleStatus = async (id: string, status: Appointment['status']) => {
-    await updateAppointmentStatus(id, status)
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+    try {
+      await updateAppointmentStatus(id, status)
+      setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a))
+      showToast('Estado actualizado correctamente', 'success')
+    } catch {
+      showToast('Error al actualizar el estado de la cita', 'error')
+    }
   }
 
   const filtered = appointments

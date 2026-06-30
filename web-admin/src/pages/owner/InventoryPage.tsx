@@ -4,6 +4,7 @@ import { storage } from '../../services/firebase'
 import { getAllBarbershops } from '../../services/barbershops'
 import { getProductsByBarbershop, createProduct, updateProduct, deleteProduct } from '../../services/inventory'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../components/common/Toast'
 import { Product, Barbershop } from '../../types'
 import styles from './InventoryPage.module.css'
 
@@ -27,6 +28,7 @@ type SortKey = 'name' | 'price' | 'stock' | 'value' | 'category'
 
 export default function InventoryPage() {
   const { user } = useAuth()
+  const { showToast } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [barbershops, setBarbershops] = useState<Barbershop[]>([])
   const [selectedShop, setSelectedShop] = useState<string>('')
@@ -77,18 +79,27 @@ export default function InventoryPage() {
   const load = async (shopId: string) => {
     if (!shopId) return
     setLoading(true)
-    const data = await getProductsByBarbershop(shopId)
-    setProducts(data)
-    setLoading(false)
+    try {
+      const data = await getProductsByBarbershop(shopId)
+      setProducts(data)
+    } catch {
+      showToast('Error al cargar el inventario', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     const init = async () => {
-      const shops = await getAllBarbershops()
-      setBarbershops(shops)
-      const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
-      setSelectedShop(shopId)
-      await load(shopId)
+      try {
+        const shops = await getAllBarbershops()
+        setBarbershops(shops)
+        const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
+        setSelectedShop(shopId)
+        await load(shopId)
+      } catch {
+        showToast('Error al inicializar el inventario', 'error')
+      }
     }
     init()
   }, [])
@@ -103,27 +114,43 @@ export default function InventoryPage() {
   const handleSave = async () => {
     if (!form.name.trim() || !selectedShop) return
     setSaving(true)
-    const data = { ...form, photoURL: form.photoURL || undefined }
-    if (editingId) {
-      await updateProduct(editingId, data)
-    } else {
-      await createProduct({ ...data, barbershopId: selectedShop } as any)
+    try {
+      const data = { ...form, photoURL: form.photoURL || undefined }
+      if (editingId) {
+        await updateProduct(editingId, data)
+        showToast('Producto actualizado correctamente', 'success')
+      } else {
+        await createProduct({ ...data, barbershopId: selectedShop } as any)
+        showToast('Producto creado correctamente', 'success')
+      }
+      await load(selectedShop)
+      setShowForm(false)
+    } catch {
+      showToast('Error al guardar el producto', 'error')
+    } finally {
+      setSaving(false)
     }
-    await load(selectedShop)
-    setShowForm(false)
-    setSaving(false)
   }
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return
-    await deleteProduct(id)
-    await load(selectedShop)
+    try {
+      await deleteProduct(id)
+      await load(selectedShop)
+      showToast('Producto eliminado', 'success')
+    } catch {
+      showToast('Error al eliminar el producto', 'error')
+    }
   }
 
   const handleStockChange = async (id: string, delta: number, current: number) => {
     const newStock = Math.max(0, current + delta)
-    await updateProduct(id, { stock: newStock })
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: newStock } : p))
+    try {
+      await updateProduct(id, { stock: newStock })
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: newStock } : p))
+    } catch {
+      showToast('Error al actualizar el stock', 'error')
+    }
   }
 
   const handleSort = (key: SortKey) => {

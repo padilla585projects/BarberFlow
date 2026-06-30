@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import ErrorBoundary from './components/common/ErrorBoundary'
+import { ToastProvider } from './components/common/Toast'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import Layout from './components/common/Layout'
 import LoginPage from './pages/auth/LoginPage'
@@ -68,10 +70,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
