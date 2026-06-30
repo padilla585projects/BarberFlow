@@ -16,6 +16,7 @@ import { CheckoutScreen } from '../screens/client/CheckoutScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 import { BarberPortfolioScreen } from '../screens/client/BarberPortfolioScreen';
 import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
+import { JoinBarbershopScreen } from '../screens/client/JoinBarbershopScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -35,6 +36,7 @@ export type ClientStackParamList = {
   Notifications: undefined;
   NotificationSettings: undefined;
   CreateBarbershop: undefined;
+  JoinBarbershop: undefined;
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -214,6 +216,11 @@ export function ClientNavigator() {
         name="CreateBarbershop"
         component={CreateBarbershopScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="JoinBarbershop"
+        component={JoinBarbershopScreen}
+        options={{ title: 'Unirse como barbero' }}
       />
     </Stack.Navigator>
   );

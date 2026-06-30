@@ -7,8 +7,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Modal,
+  Alert,
+  Share,
 } from 'react-native';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth, db } from '../../services/firebase';
@@ -35,6 +38,9 @@ export function ShopBarbersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   const fetchBarbershopId = async (): Promise<string | null> => {
     const user = auth.currentUser;
@@ -54,6 +60,52 @@ export function ShopBarbersScreen() {
       console.error('[ShopBarbersScreen] Error fetching barbershopId:', err);
     }
     return null;
+  };
+
+  const generateInviteCode = async () => {
+    const user = auth.currentUser;
+    if (!user || !barbershopId) return;
+
+    setGeneratingCode(true);
+    try {
+      // Fetch barbershop name
+      const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
+      const barbershopName = shopDoc.data()?.name ?? 'Barbería';
+
+      // Generate random 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h
+
+      await setDoc(doc(db, 'invitations', code), {
+        barbershopId,
+        barbershopName,
+        createdBy: user.uid,
+        createdAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        used: false,
+      });
+
+      setInviteCode(code);
+      setInviteModalVisible(true);
+    } catch (err) {
+      console.error('[ShopBarbersScreen] Error generating invite code:', err);
+      Alert.alert('Error', 'No se pudo generar el código. Inténtalo de nuevo.');
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await Share.share({
+        message: `Tu código de invitación para unirte como barbero es: ${inviteCode}. Válido durante 24 horas. Descarga BarberFlow e introdúcelo en "Unirse como barbero".`,
+        title: 'Código de invitación',
+      });
+    } catch {
+      Alert.alert('Código', inviteCode, [{ text: 'OK' }]);
+    }
   };
 
   const fetchBarbers = useCallback(async (shopId?: string | null) => {
@@ -227,11 +279,64 @@ export function ShopBarbersScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Equipo</Text>
-        <Text style={styles.subtitle}>
-          {barbers.length} {barbers.length === 1 ? 'miembro' : 'miembros'}
-        </Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>Equipo</Text>
+            <Text style={styles.subtitle}>
+              {barbers.length} {barbers.length === 1 ? 'miembro' : 'miembros'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.inviteBtn, generatingCode && { opacity: 0.6 }]}
+            onPress={generateInviteCode}
+            disabled={generatingCode}
+            activeOpacity={0.8}
+          >
+            {generatingCode ? (
+              <ActivityIndicator size="small" color={BG} />
+            ) : (
+              <Text style={styles.inviteBtnText}>+ Invitar</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Invite code modal */}
+      <Modal
+        visible={inviteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInviteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Código de invitación</Text>
+            <Text style={styles.modalSub}>
+              Comparte este código con tu barbero.{'\n'}Expira en 24 horas.
+            </Text>
+
+            <View style={styles.codeBox}>
+              <Text style={styles.codeText}>{inviteCode}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.copyBtn}
+              onPress={handleCopyCode}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.copyBtnText}>Compartir código</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.closeModalBtn}
+              onPress={() => setInviteModalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.closeModalText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <FlatList
         data={barbers}
@@ -273,6 +378,11 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 12,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   title: {
     fontSize: 22,
     fontWeight: '800',
@@ -282,6 +392,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: MUTED,
     marginTop: 2,
+  },
+  inviteBtn: {
+    backgroundColor: GOLD,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteBtnText: {
+    color: BG,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 28,
+    width: '100%',
+    alignItems: 'center',
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: TEXT,
+  },
+  modalSub: {
+    fontSize: 13,
+    color: MUTED,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  codeBox: {
+    backgroundColor: BG,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    paddingHorizontal: 32,
+    paddingVertical: 18,
+    marginVertical: 4,
+  },
+  codeText: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: GOLD,
+    letterSpacing: 8,
+  },
+  copyBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  copyBtnText: {
+    color: BG,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  closeModalBtn: {
+    paddingVertical: 8,
+  },
+  closeModalText: {
+    color: MUTED,
+    fontSize: 14,
+    fontWeight: '600',
   },
   list: {
     paddingHorizontal: 20,

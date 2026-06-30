@@ -101,20 +101,32 @@ export function HomeScreen({ navigation }: Props) {
           </View>
         }
         ListFooterComponent={
-          <TouchableOpacity
-            style={styles.proBanner}
-            onPress={() => navigation.navigate('CreateBarbershop')}
-            activeOpacity={0.8}
-          >
-            <View style={styles.proBannerLeft}>
-              <Text style={styles.proBannerEmoji}>💼</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.proBannerTitle}>¿Eres profesional?</Text>
-                <Text style={styles.proBannerSub}>Registra tu barbería y gestiona todo desde aquí</Text>
+          <View style={styles.footerBanners}>
+            <TouchableOpacity
+              style={styles.proBanner}
+              onPress={() => navigation.navigate('CreateBarbershop')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.proBannerLeft}>
+                <Text style={styles.proBannerEmoji}>💼</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.proBannerTitle}>¿Eres profesional?</Text>
+                  <Text style={styles.proBannerSub}>Registra tu barbería y gestiona todo desde aquí</Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.proBannerArrow}>›</Text>
-          </TouchableOpacity>
+              <Text style={styles.proBannerArrow}>›</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.joinBanner}
+              onPress={() => navigation.navigate('JoinBarbershop')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.joinBannerIcon}>🔑</Text>
+              <Text style={styles.joinBannerText}>¿Tienes un código de invitación?</Text>
+              <Text style={styles.joinBannerArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -292,6 +304,12 @@ const styles = StyleSheet.create({
   loyaltyValue: { fontSize: 18, fontWeight: '800', color: GOLD },
   loyaltyArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
 
+  // Footer banners wrapper
+  footerBanners: {
+    gap: 10,
+    marginTop: 20,
+  },
+
   // Pro banner
   proBanner: {
     flexDirection: 'row',
@@ -302,7 +320,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: GOLD + '30',
     padding: 14,
-    marginTop: 20,
   },
   proBannerLeft: {
     flexDirection: 'row',
@@ -314,4 +331,29 @@ const styles = StyleSheet.create({
   proBannerTitle: { fontSize: 14, fontWeight: '700', color: GOLD },
   proBannerSub: { fontSize: 12, color: MUTED, marginTop: 2 },
   proBannerArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
+
+  // Join as barber banner (subtle)
+  joinBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  joinBannerIcon: { fontSize: 16 },
+  joinBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: SUBTLE,
+    fontWeight: '500',
+  },
+  joinBannerArrow: {
+    fontSize: 18,
+    color: MUTED,
+    opacity: 0.6,
+  },
 });
