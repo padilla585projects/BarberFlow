@@ -364,3 +364,249 @@ export const generateReport = onCall(
     return { base64, filename }
   },
 )
+
+// ─── Barber-specific Report ──────────────────────────────────────────────────
+
+export const generateBarberReport = onCall(
+  { region: REGION },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError(
+        'unauthenticated',
+        'Debes iniciar sesión para generar reportes.',
+      )
+    }
+
+    const { barbershopId, period, barberId } = request.data as {
+      barbershopId?: string
+      period?: string
+      barberId?: string
+    }
+
+    if (!barbershopId || !period || !['week', 'month'].includes(period) || !barberId) {
+      throw new HttpsError(
+        'invalid-argument',
+        'Se requiere barbershopId, barberId y period ("week" | "month").',
+      )
+    }
+
+    // Authorization: caller must be the barber themselves, the shop owner, or a developer
+    const callerUid = request.auth.uid
+    const callerDoc = await db.collection('users').doc(callerUid).get()
+
+    if (!callerDoc.exists) {
+      throw new HttpsError('permission-denied', 'No tienes permisos.')
+    }
+
+    const callerData = callerDoc.data()!
+    const callerRole = callerData.role as string | undefined
+    const isSelf = callerUid === barberId
+    const isDeveloper = callerRole === 'developer'
+    const isOwner = callerRole === 'owner' && callerData.barbershopId === barbershopId
+
+    if (!isSelf && !isDeveloper && !isOwner) {
+      throw new HttpsError('permission-denied', 'No tienes permisos para este reporte.')
+    }
+
+    const validPeriod = period as 'week' | 'month'
+    const periodStart = getPeriodStart(validPeriod)
+    const barberName = await getBarberName(barberId)
+
+    // Fetch appointments for this barber
+    const appointmentsSnap = await db
+      .collection('appointments')
+      .where('barberId', '==', barberId)
+      .where('barbershopId', '==', barbershopId)
+      .where('date', '>=', admin.firestore.Timestamp.fromDate(periodStart))
+      .orderBy('date', 'asc')
+      .get()
+
+    // Fetch sales for this barber
+    const salesSnap = await db
+      .collection('sales')
+      .where('barberId', '==', barberId)
+      .where('barbershopId', '==', barbershopId)
+      .where('date', '>=', admin.firestore.Timestamp.fromDate(periodStart))
+      .orderBy('date', 'asc')
+      .get()
+
+    // Aggregate services
+    interface SvcAgg { count: number; revenue: number }
+    interface ProdAgg { quantity: number; revenue: number }
+    const servicesMap: Record<string, SvcAgg> = {}
+    const productsMap: Record<string, ProdAgg> = {}
+
+    let completedCount = 0
+    let cancelledCount = 0
+    let noShowCount = 0
+    let serviceRevenue = 0
+    let productRevenue = 0
+
+    appointmentsSnap.docs.forEach((doc) => {
+      const d = doc.data()
+      if (d.status === 'completed') {
+        completedCount++
+        serviceRevenue += d.totalPrice ?? 0
+        if (Array.isArray(d.services)) {
+          d.services.forEach((s: { name: string; price: number }) => {
+            if (!servicesMap[s.name]) servicesMap[s.name] = { count: 0, revenue: 0 }
+            servicesMap[s.name].count++
+            servicesMap[s.name].revenue += s.price ?? 0
+          })
+        }
+      } else if (d.status === 'cancelled') {
+        cancelledCount++
+      } else if (d.status === 'no_show') {
+        noShowCount++
+      }
+    })
+
+    salesSnap.docs.forEach((doc) => {
+      const d = doc.data()
+      if (Array.isArray(d.items)) {
+        d.items.forEach((item: { type: string; name: string; price: number; quantity: number }) => {
+          if (item.type === 'product') {
+            const qty = item.quantity ?? 1
+            const total = (item.price ?? 0) * qty
+            productRevenue += total
+            if (!productsMap[item.name]) productsMap[item.name] = { quantity: 0, revenue: 0 }
+            productsMap[item.name].quantity += qty
+            productsMap[item.name].revenue += total
+          }
+        })
+      }
+    })
+
+    const totalRevenue = serviceRevenue + productRevenue
+    const avgTicket = completedCount > 0 ? serviceRevenue / completedCount : 0
+
+    // Build workbook
+    const workbook = new ExcelJS.Workbook()
+    workbook.creator = 'BarberFlow'
+    workbook.created = new Date()
+
+    const periodLabel = validPeriod === 'week' ? 'Semanal' : 'Mensual'
+
+    const addSheetTitle = (ws: ExcelJS.Worksheet, text: string, colCount: number) => {
+      const lastCol = String.fromCharCode(64 + colCount)
+      ws.mergeCells(`A1:${lastCol}1`)
+      const cell = ws.getCell('A1')
+      cell.value = text
+      cell.font = { bold: true, size: 14, color: { argb: 'FFC9A84C' } }
+      cell.alignment = { horizontal: 'center' }
+      ws.addRow([])
+    }
+
+    const applyZebraRow = (row: ExcelJS.Row, idx: number) => {
+      if (idx % 2 === 1) {
+        row.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
+        })
+      }
+    }
+
+    // ── Sheet 1: Resumen ─────────────────────────────────────────────────
+    const ws1 = workbook.addWorksheet('Resumen')
+    addSheetTitle(ws1, `Reporte ${periodLabel} — ${barberName}`, 2)
+
+    const summaryData: [string, string | number][] = [
+      ['Barbero', barberName],
+      ['Periodo', validPeriod === 'week' ? 'Última semana' : 'Último mes'],
+      ['', ''],
+      ['Total de citas', appointmentsSnap.size],
+      ['Completadas', completedCount],
+      ['Canceladas', cancelledCount],
+      ['No asistió', noShowCount],
+      ['', ''],
+      ['Ingresos por servicios', `${serviceRevenue.toFixed(2)} €`],
+      ['Ingresos por productos', `${productRevenue.toFixed(2)} €`],
+      ['Ingresos totales', `${totalRevenue.toFixed(2)} €`],
+      ['Ticket medio', `${avgTicket.toFixed(2)} €`],
+    ]
+
+    summaryData.forEach(([label, value]) => {
+      const row = ws1.addRow([label, value])
+      if (label) {
+        row.getCell(1).font = { bold: true }
+      }
+    })
+    autoWidthColumns(ws1)
+
+    // ── Sheet 2: Servicios ───────────────────────────────────────────────
+    const ws2 = workbook.addWorksheet('Servicios')
+    addSheetTitle(ws2, 'Servicios Realizados', 3)
+
+    const h2 = ws2.addRow(['Servicio', 'Cantidad', 'Ingresos (€)'])
+    applyHeaderStyle(h2)
+
+    const sortedServices = Object.entries(servicesMap).sort((a, b) => b[1].count - a[1].count)
+    let idx2 = 0
+    sortedServices.forEach(([name, svc]) => {
+      const row = ws2.addRow([name, svc.count, svc.revenue])
+      row.getCell(3).numFmt = '#,##0.00 "€"'
+      applyZebraRow(row, idx2++)
+    })
+    if (sortedServices.length === 0) {
+      ws2.addRow(['Sin servicios en este periodo', '', ''])
+    }
+    autoWidthColumns(ws2)
+
+    // ── Sheet 3: Productos ───────────────────────────────────────────────
+    const ws3 = workbook.addWorksheet('Productos')
+    addSheetTitle(ws3, 'Productos Vendidos', 3)
+
+    const h3 = ws3.addRow(['Producto', 'Cantidad', 'Ingresos (€)'])
+    applyHeaderStyle(h3)
+
+    const sortedProducts = Object.entries(productsMap).sort((a, b) => b[1].revenue - a[1].revenue)
+    let idx3 = 0
+    sortedProducts.forEach(([name, prod]) => {
+      const row = ws3.addRow([name, prod.quantity, prod.revenue])
+      row.getCell(3).numFmt = '#,##0.00 "€"'
+      applyZebraRow(row, idx3++)
+    })
+    if (sortedProducts.length === 0) {
+      ws3.addRow(['Sin ventas de productos en este periodo', '', ''])
+    }
+    autoWidthColumns(ws3)
+
+    // ── Sheet 4: Citas Detalladas ────────────────────────────────────────
+    const ws4 = workbook.addWorksheet('Citas Detalladas')
+    addSheetTitle(ws4, 'Detalle de Citas', 5)
+
+    const h4 = ws4.addRow(['Fecha', 'Cliente', 'Servicios', 'Total (€)', 'Estado'])
+    applyHeaderStyle(h4)
+
+    const statusLabelsBarber: Record<string, string> = {
+      pending: 'Pendiente', confirmed: 'Confirmada', completed: 'Completada',
+      cancelled: 'Cancelada', no_show: 'No asistió',
+    }
+
+    let idx4 = 0
+    appointmentsSnap.docs.forEach((doc) => {
+      const d = doc.data()
+      const services = Array.isArray(d.services)
+        ? d.services.map((s: { name: string }) => s.name).join(', ')
+        : ''
+
+      const row = ws4.addRow([
+        fmtDate(d.date),
+        d.clientName ?? '',
+        services,
+        d.totalPrice ?? 0,
+        statusLabelsBarber[d.status] ?? d.status ?? '',
+      ])
+      row.getCell(4).numFmt = '#,##0.00 "€"'
+      applyZebraRow(row, idx4++)
+    })
+    autoWidthColumns(ws4)
+
+    // Serialize
+    const buffer = await workbook.xlsx.writeBuffer()
+    const base64 = Buffer.from(buffer as ArrayBuffer).toString('base64')
+    const today = new Date().toISOString().slice(0, 10)
+    const filename = `BarberFlow_MiReporte_${periodLabel}_${today}.xlsx`
+
+    return { base64, filename }
+  },
+)

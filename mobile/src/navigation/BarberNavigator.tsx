@@ -9,12 +9,14 @@ import { BarberStatsScreen } from '../screens/barber/BarberStatsScreen';
 import { BarberScheduleScreen } from '../screens/barber/BarberScheduleScreen';
 import { ScheduleTemplatesScreen } from '../screens/barber/ScheduleTemplatesScreen';
 import { PortfolioScreen } from '../screens/barber/PortfolioScreen';
+import { BarberReportsScreen } from '../screens/barber/BarberReportsScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 
 export type BarberStackParamList = {
   Agenda: undefined;
   Stats: undefined;
+  Reports: undefined;
   Schedule: undefined;
   ScheduleTemplates: undefined;
   Portfolio: undefined;
@@ -101,6 +103,11 @@ export function BarberNavigator() {
         name="Stats"
         component={BarberStatsScreen}
         options={{ title: 'Estadísticas' }}
+      />
+      <Stack.Screen
+        name="Reports"
+        component={BarberReportsScreen}
+        options={{ title: 'Mis reportes' }}
       />
       <Stack.Screen
         name="Schedule"

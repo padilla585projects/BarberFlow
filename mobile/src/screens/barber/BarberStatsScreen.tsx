@@ -6,7 +6,11 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { BarberStackParamList } from '../../navigation/BarberNavigator';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -33,7 +37,10 @@ interface Stats {
   commissionEarned: number;
 }
 
+type Nav = NativeStackNavigationProp<BarberStackParamList>;
+
 export function BarberStatsScreen() {
+  const navigation = useNavigation<Nav>();
   const [stats, setStats] = useState<Stats>({
     today: 0, thisWeek: 0, thisMonth: 0, total: 0,
     pending: 0, completed: 0, cancelled: 0, revenue: 0,
@@ -162,6 +169,20 @@ export function BarberStatsScreen() {
         <BreakdownRow label="Completadas" value={stats.completed} color="#10B981" />
         <BreakdownRow label="Canceladas" value={stats.cancelled} color="#EF4444" />
       </View>
+
+      {/* Reports button */}
+      <TouchableOpacity
+        style={styles.reportsBtn}
+        onPress={() => navigation.navigate('Reports')}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.reportsBtnIcon}>📊</Text>
+        <View style={styles.reportsBtnContent}>
+          <Text style={styles.reportsBtnTitle}>Ver reportes detallados</Text>
+          <Text style={styles.reportsBtnSub}>Desglose de servicios, productos y descarga Excel</Text>
+        </View>
+        <Text style={styles.reportsBtnArrow}>›</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -251,6 +272,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: MUTED,
   },
+  reportsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: GOLD + '40',
+    padding: 16,
+    gap: 12,
+    marginTop: 4,
+  },
+  reportsBtnIcon: { fontSize: 28 },
+  reportsBtnContent: { flex: 1, gap: 2 },
+  reportsBtnTitle: { fontSize: 15, fontWeight: '700', color: TEXT },
+  reportsBtnSub: { fontSize: 12, color: MUTED },
+  reportsBtnArrow: { fontSize: 24, fontWeight: '300', color: GOLD },
 });
 
 const cardStyles = StyleSheet.create({
