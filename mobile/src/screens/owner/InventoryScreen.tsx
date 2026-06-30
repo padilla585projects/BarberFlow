@@ -22,9 +22,9 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  getDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -57,8 +57,8 @@ interface Product {
 }
 
 export function InventoryScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const [products, setProducts] = useState<Product[]>([]);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -74,22 +74,13 @@ export function InventoryScreen() {
   const [priceFocused, setPriceFocused] = useState(false);
   const [stockFocused, setStockFocused] = useState(false);
 
-  const user = auth.currentUser;
-
   const fetchProducts = useCallback(async () => {
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (!userDoc.exists()) return;
-
-      const shopId = userDoc.data().barbershopId;
-      if (!shopId) return;
-      setBarbershopId(shopId);
-
       const q = query(
         collection(db, 'products'),
-        where('barbershopId', '==', shopId),
+        where('barbershopId', '==', activeBarbershopId),
       );
       const snapshot = await getDocs(q);
       const items: Product[] = snapshot.docs.map((d) => ({
@@ -106,7 +97,7 @@ export function InventoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     fetchProducts();
@@ -141,7 +132,7 @@ export function InventoryScreen() {
   };
 
   const handleSave = async () => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -181,7 +172,7 @@ export function InventoryScreen() {
         );
       } else {
         const docRef = await addDoc(collection(db, 'products'), {
-          barbershopId,
+          barbershopId: activeBarbershopId,
           name: trimmedName,
           price: parsedPrice,
           stock: parsedStock,
@@ -190,7 +181,7 @@ export function InventoryScreen() {
 
         const newProduct: Product = {
           id: docRef.id,
-          barbershopId,
+          barbershopId: activeBarbershopId,
           name: trimmedName,
           price: parsedPrice,
           stock: parsedStock,

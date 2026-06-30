@@ -13,8 +13,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';
 import app from '../../services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -26,23 +25,18 @@ const BORDER  = '#282828';
 type Period = 'week' | 'month';
 
 export function ReportsScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('week');
 
   const handleExport = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activeBarbershopId) {
+      Alert.alert('Error', 'No se encontró tu barbería');
+      return;
+    }
 
     try {
       setLoading(true);
-
-      // Get barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) {
-        Alert.alert('Error', 'No se encontró tu barbería');
-        return;
-      }
 
       // Call Cloud Function
       const functions = getFunctions(app, 'europe-west1');
@@ -51,7 +45,7 @@ export function ReportsScreen() {
         { base64: string; filename: string }
       >(functions, 'generateReport');
 
-      const result = await generate({ barbershopId, period: selectedPeriod });
+      const result = await generate({ barbershopId: activeBarbershopId, period: selectedPeriod });
       const { base64, filename } = result.data;
 
       // Save to device

@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../hooks/useAuth';
+import { AuthProvider, useAuthContext } from '../contexts/AuthContext';
 import { registerForPushNotifications } from '../services/notifications';
 import { LoginScreen } from '../screens/auth/LoginScreen';
+import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { ClientNavigator } from './ClientNavigator';
 import { BarberNavigator } from './BarberNavigator';
 import { OwnerNavigator } from './OwnerNavigator';
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   Client: undefined;
   Barber: undefined;
   Owner: undefined;
+  ShopSelector: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -22,8 +24,8 @@ interface RootNavigatorProps {
   onReady?: () => void;
 }
 
-export function RootNavigator({ onReady }: RootNavigatorProps) {
-  const { firebaseUser, role, loading } = useAuth();
+function RootNavigatorInner({ onReady }: RootNavigatorProps) {
+  const { firebaseUser, role, activeBarbershopId, memberships, loading } = useAuthContext();
 
   // Once auth resolves → hide the native splash screen
   useEffect(() => {
@@ -44,20 +46,63 @@ export function RootNavigator({ onReady }: RootNavigatorProps) {
     return <View style={styles.placeholder} />;
   }
 
+  // Determine which navigator to show based on active membership
+  const activeMembership = memberships.find(
+    (m) => m.barbershopId === activeBarbershopId,
+  );
+
+  const getInitialScreen = (): keyof RootStackParamList => {
+    if (!firebaseUser) return 'Login';
+
+    // Developer always goes to Owner panel
+    if (role === 'developer') return 'Owner';
+
+    // User has memberships but none is selected → show shop selector
+    if (memberships.length > 0 && !activeBarbershopId) return 'ShopSelector';
+
+    // Route based on active membership's role
+    if (activeMembership?.role === 'owner') return 'Owner';
+    if (activeMembership?.role === 'barber') return 'Barber';
+
+    // No memberships or active membership not found → client
+    return 'Client';
+  };
+
+  const initialScreen = getInitialScreen();
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-        {!firebaseUser ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : role === 'barber' ? (
-          <Stack.Screen name="Barber" component={BarberNavigator} />
-        ) : role === 'owner' || role === 'developer' ? (
-          <Stack.Screen name="Owner" component={OwnerNavigator} />
-        ) : (
-          <Stack.Screen name="Client" component={ClientNavigator} />
-        )}
+      <Stack.Navigator
+        screenOptions={{ headerShown: false, animation: 'fade' }}
+        initialRouteName={initialScreen}
+      >
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Client" component={ClientNavigator} />
+        <Stack.Screen name="Barber" component={BarberNavigator} />
+        <Stack.Screen name="Owner" component={OwnerNavigator} />
+        <Stack.Screen
+          name="ShopSelector"
+          component={ShopSelectorScreen}
+          options={{
+            headerShown: true,
+            headerStyle: { backgroundColor: '#0A0A0A' },
+            headerShadowVisible: false,
+            headerTintColor: '#FFFFFF',
+            headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
+            title: 'Cambiar barbería',
+            animation: 'slide_from_bottom',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+export function RootNavigator({ onReady }: RootNavigatorProps) {
+  return (
+    <AuthProvider>
+      <RootNavigatorInner onReady={onReady} />
+    </AuthProvider>
   );
 }
 

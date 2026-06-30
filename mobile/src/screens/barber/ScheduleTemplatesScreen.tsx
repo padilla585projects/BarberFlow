@@ -13,13 +13,13 @@ import {
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   setDoc,
   deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 /* ─── design tokens ─── */
 const BG      = '#0A0A0A';
@@ -124,6 +124,7 @@ function buildSummary(schedule: ScheduleMap): string {
 
 /* ─── component ─── */
 export function ScheduleTemplatesScreen({ navigation }: any) {
+  const { activeBarbershopId } = useAuthContext();
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<string | null>(null);
@@ -247,11 +248,7 @@ export function ScheduleTemplatesScreen({ navigation }: any) {
 
             setApplying(tpl.id);
             try {
-              // Get the user's barbershopId
-              const userDoc = await getDoc(doc(db, 'users', user.uid));
-              const barbershopId = userDoc.data()?.barbershopId;
-
-              if (!barbershopId) {
+              if (!activeBarbershopId) {
                 Alert.alert('Error', 'No se encontró tu barbería asociada.');
                 setApplying(null);
                 return;
@@ -274,7 +271,7 @@ export function ScheduleTemplatesScreen({ navigation }: any) {
               const schedRef = doc(
                 db,
                 'barbershops',
-                barbershopId,
+                activeBarbershopId,
                 'barberSchedules',
                 user.uid
               );

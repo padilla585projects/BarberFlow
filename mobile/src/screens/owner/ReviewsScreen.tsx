@@ -17,7 +17,8 @@ import {
   doc,
   getDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -37,6 +38,7 @@ interface Review {
 }
 
 export function ReviewsScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,16 +48,11 @@ export function ReviewsScreen() {
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
 
   const fetchReviews = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) return;
-
       // Get barbershop aggregate data
-      const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (shopDoc.exists()) {
         const shopData = shopDoc.data();
         const total = shopData?.totalRatings ?? 0;
@@ -66,7 +63,7 @@ export function ReviewsScreen() {
 
       // Fetch all reviews
       const q = query(
-        collection(db, 'barbershops', barbershopId, 'reviews'),
+        collection(db, 'barbershops', activeBarbershopId, 'reviews'),
         orderBy('createdAt', 'desc'),
       );
       const snap = await getDocs(q);
@@ -91,7 +88,7 @@ export function ReviewsScreen() {
 
   useEffect(() => {
     fetchReviews();
-  }, []);
+  }, [activeBarbershopId]);
 
   const onRefresh = () => {
     setRefreshing(true);

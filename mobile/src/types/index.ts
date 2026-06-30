@@ -1,12 +1,23 @@
 export type UserRole = 'client' | 'barber' | 'owner' | 'developer';
 
+export type MembershipRole = 'barber' | 'owner';
+
+export interface Membership {
+  barbershopId: string;
+  barbershopName: string;
+  role: MembershipRole;
+  joinedAt: Date;
+}
+
 export interface User {
   uid: string;
   email: string;
   displayName: string;
   photoURL?: string;
   role: UserRole;
-  barbershopId?: string; // para barber y owner
+  barbershopId?: string;        // barbería activa (backward compat)
+  activeBarbershopId?: string;  // barbería seleccionada actualmente
+  memberships?: Membership[];   // todas las barberías donde trabaja
 }
 
 export interface BookingSettings {

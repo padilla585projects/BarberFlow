@@ -13,7 +13,8 @@ import {
   Platform,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { Service } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -31,7 +32,6 @@ function generateId(): string {
 
 export function ShopServicesScreen() {
   const [services, setServices] = useState<Service[]>([]);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -44,22 +44,14 @@ export function ShopServicesScreen() {
   const [nameFocused, setNameFocused] = useState(false);
   const [priceFocused, setPriceFocused] = useState(false);
 
-  const user = auth.currentUser;
+  const { activeBarbershopId } = useAuthContext();
 
   const fetchServices = async () => {
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      // Get user doc to find barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (!userDoc.exists()) return;
-
-      const shopId = userDoc.data().barbershopId;
-      if (!shopId) return;
-      setBarbershopId(shopId);
-
       // Get barbershop doc with services array
-      const shopDoc = await getDoc(doc(db, 'barbershops', shopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (!shopDoc.exists()) return;
 
       const data = shopDoc.data();
@@ -98,7 +90,7 @@ export function ShopServicesScreen() {
   };
 
   const handleSave = async () => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -135,7 +127,7 @@ export function ShopServicesScreen() {
         updated = [...services, newService];
       }
 
-      await updateDoc(doc(db, 'barbershops', barbershopId), {
+      await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
         services: updated,
       });
 
@@ -159,11 +151,11 @@ export function ShopServicesScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            if (!barbershopId) return;
+            if (!activeBarbershopId) return;
 
             try {
               const updated = services.filter((s) => s.id !== service.id);
-              await updateDoc(doc(db, 'barbershops', barbershopId), {
+              await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
                 services: updated,
               });
               setServices(updated);

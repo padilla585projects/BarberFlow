@@ -17,13 +17,13 @@ import {
   where,
   getDocs,
   doc,
-  getDoc,
   updateDoc,
   addDoc,
   serverTimestamp,
   writeBatch,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
@@ -305,6 +305,7 @@ function buildChartData(
 type Props = NativeStackScreenProps<OwnerStackParamList, 'BarberEarnings'>;
 
 export function BarberEarningsScreen({ route }: Props) {
+  const { activeBarbershopId } = useAuthContext();
   const { barberId, barberName } = route.params;
 
   const [period, setPeriod] = useState<Period>('month');
@@ -315,7 +316,6 @@ export function BarberEarningsScreen({ route }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   // Fetch the barber's commission rate and barbershopId
   const fetchBarberData = useCallback(async () => {
@@ -327,7 +327,6 @@ export function BarberEarningsScreen({ route }: Props) {
         const rate = data.commissionRate ?? 50;
         setCommissionRate(rate);
         setCommissionInput(String(rate));
-        setBarbershopId(data.barbershopId ?? null);
       }
     } catch (err) {
       console.error('[BarberEarnings] Error fetching barber data:', err);
@@ -472,14 +471,13 @@ export function BarberEarningsScreen({ route }: Props) {
           onPress: async () => {
             setPaying(true);
             try {
-              const shopId = barbershopId;
-              if (!shopId) {
+              if (!activeBarbershopId) {
                 Alert.alert('Error', 'No se encontro la barberia.');
                 return;
               }
 
               // Create payment record
-              await addDoc(collection(db, `barbershops/${shopId}/payments`), {
+              await addDoc(collection(db, `barbershops/${activeBarbershopId}/payments`), {
                 barberId,
                 barberName,
                 period: PERIOD_LABELS[period],

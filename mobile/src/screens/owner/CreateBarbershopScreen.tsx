@@ -11,7 +11,7 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -102,10 +102,18 @@ export function CreateBarbershopScreen({ navigation }: Props) {
         reviewCount:  0,
       });
 
-      // Update the user doc with barbershopId and role
+      // Update the user doc — keep barbershopId for backward compat,
+      // set activeBarbershopId, and append to memberships array.
       await updateDoc(doc(db, 'users', user.uid), {
-        barbershopId: barbershopRef.id,
-        role:         'owner',
+        barbershopId:      barbershopRef.id,
+        activeBarbershopId: barbershopRef.id,
+        role:              'owner',
+        memberships: arrayUnion({
+          barbershopId:   barbershopRef.id,
+          barbershopName: nombre.trim(),
+          role:           'owner',
+          joinedAt:       new Date(),
+        }),
       });
 
       showSuccessAnimation();

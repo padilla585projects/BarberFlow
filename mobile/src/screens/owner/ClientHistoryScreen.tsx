@@ -18,10 +18,9 @@ import {
   where,
   orderBy,
   getDocs,
-  doc,
-  getDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 /* ── theme tokens ────────────────────────────────────── */
 const BG      = '#0A0A0A';
@@ -59,6 +58,7 @@ const formatCurrency = (amount: number): string =>
 
 /* ── component ───────────────────────────────────────── */
 export function ClientHistoryScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const navigation =
     useNavigation<NativeStackNavigationProp<OwnerStackParamList>>();
   const [clients, setClients] = useState<ClientStats[]>([]);
@@ -67,30 +67,17 @@ export function ClientHistoryScreen() {
   const [searchText, setSearchText] = useState('');
 
   const fetchClients = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user) {
+    if (!activeBarbershopId) {
       setLoading(false);
       setRefreshing(false);
       return;
     }
 
     try {
-      // Get barbershopId from user doc
-      const userSnap = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userSnap.exists()
-        ? (userSnap.data() as any).barbershopId
-        : null;
-
-      if (!barbershopId) {
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
       // Fetch all appointments for this barbershop
       const q = query(
         collection(db, 'appointments'),
-        where('barbershopId', '==', barbershopId),
+        where('barbershopId', '==', activeBarbershopId),
         orderBy('date', 'desc'),
       );
       const snap = await getDocs(q);
@@ -138,7 +125,7 @@ export function ClientHistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     fetchClients();

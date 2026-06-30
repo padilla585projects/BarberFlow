@@ -22,7 +22,8 @@ import {
   getDoc,
   setDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
@@ -101,6 +102,7 @@ const statusColor = (s: string): string => {
 
 /* ── component ───────────────────────────────────────── */
 export function ClientDetailScreen({ route, navigation }: Props) {
+  const { activeBarbershopId } = useAuthContext();
   const { clientId, clientName } = route.params;
 
   const [profile, setProfile] = useState<ClientProfile | null>(null);
@@ -111,25 +113,15 @@ export function ClientDetailScreen({ route, navigation }: Props) {
   const [savingNotes, setSavingNotes] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   /* ── active tab for history sections ─────────────── */
   const [activeTab, setActiveTab] = useState<'appointments' | 'sales'>('appointments');
 
   /* ── fetch all data ──────────────────────────────── */
   const fetchData = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user) { setLoading(false); return; }
+    if (!activeBarbershopId) { setLoading(false); return; }
 
     try {
-      // Get barbershopId
-      const userSnap = await getDoc(doc(db, 'users', user.uid));
-      const bId = userSnap.exists()
-        ? (userSnap.data() as any).barbershopId
-        : null;
-      setBarbershopId(bId);
-
-      if (!bId) { setLoading(false); return; }
 
       // Fetch client profile from users collection
       const clientSnap = await getDoc(doc(db, 'users', clientId));
@@ -151,7 +143,7 @@ export function ClientDetailScreen({ route, navigation }: Props) {
       // Fetch appointments for this client at this barbershop
       const apptQuery = query(
         collection(db, 'appointments'),
-        where('barbershopId', '==', bId),
+        where('barbershopId', '==', activeBarbershopId),
         where('clientId', '==', clientId),
         orderBy('date', 'desc'),
       );
@@ -177,7 +169,7 @@ export function ClientDetailScreen({ route, navigation }: Props) {
       // Fetch sales for this client
       const salesQuery = query(
         collection(db, 'sales'),
-        where('barbershopId', '==', bId),
+        where('barbershopId', '==', activeBarbershopId),
         where('clientId', '==', clientId),
       );
       const salesSnap = await getDocs(salesQuery);
@@ -201,7 +193,7 @@ export function ClientDetailScreen({ route, navigation }: Props) {
 
       // Fetch notes
       const notesSnap = await getDoc(
-        doc(db, 'barbershops', bId, 'clientNotes', clientId),
+        doc(db, 'barbershops', activeBarbershopId, 'clientNotes', clientId),
       );
       if (notesSnap.exists()) {
         const n = (notesSnap.data() as any).notes || '';
@@ -214,7 +206,7 @@ export function ClientDetailScreen({ route, navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [clientId, clientName]);
+  }, [clientId, clientName, activeBarbershopId]);
 
   useEffect(() => {
     navigation.setOptions({ title: clientName });
@@ -228,11 +220,11 @@ export function ClientDetailScreen({ route, navigation }: Props) {
 
   /* ── save notes ──────────────────────────────────── */
   const handleSaveNotes = async () => {
-    if (!barbershopId || notes === savedNotes) return;
+    if (!activeBarbershopId || notes === savedNotes) return;
     setSavingNotes(true);
     try {
       await setDoc(
-        doc(db, 'barbershops', barbershopId, 'clientNotes', clientId),
+        doc(db, 'barbershops', activeBarbershopId, 'clientNotes', clientId),
         { notes, updatedAt: new Date() },
         { merge: true },
       );

@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 import type {
@@ -94,7 +95,7 @@ const DEFAULT_NOTIFICATIONS: NotificationSettings = {
 export function ShopSettingsScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [barbershopId, setBarbershopId] = useState('');
+  const { activeBarbershopId } = useAuthContext();
 
   // Shop info
   const [name, setName] = useState('');
@@ -121,16 +122,10 @@ export function ShopSettingsScreen({ navigation }: Props) {
   const [dropdownVisible, setDropdownVisible] = useState<'minAdvance' | 'maxAdvance' | null>(null);
 
   const fetchSettings = useCallback(async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const shopId = userDoc.data()?.barbershopId;
-      if (!shopId) return;
-      setBarbershopId(shopId);
-
-      const shopDoc = await getDoc(doc(db, 'barbershops', shopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (!shopDoc.exists()) return;
 
       const data = shopDoc.data();
@@ -154,14 +149,14 @@ export function ShopSettingsScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
 
   const handleSave = async () => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
     if (!name.trim()) {
       Alert.alert('Error', 'El nombre de la barbería es obligatorio.');
       return;
@@ -169,7 +164,7 @@ export function ShopSettingsScreen({ navigation }: Props) {
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'barbershops', barbershopId), {
+      await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
         name: name.trim(),
         address: address.trim(),
         phone: phone.trim(),

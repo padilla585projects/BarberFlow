@@ -1,6 +1,9 @@
 import React from 'react';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useAuthContext } from '../contexts/AuthContext';
 import { NotificationsScreen } from '../screens/common/NotificationsScreen';
+import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { DashboardScreen } from '../screens/owner/DashboardScreen';
 import { ShopAppointmentsScreen } from '../screens/owner/ShopAppointmentsScreen';
 import { ShopServicesScreen } from '../screens/owner/ShopServicesScreen';
@@ -48,14 +51,55 @@ export type OwnerStackParamList = {
   Messages: undefined;
   Notifications: undefined;
   NotificationSettings: undefined;
+  ShopSelector: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
 
 const BG   = '#0A0A0A';
+const GOLD = '#C9A84C';
 const TEXT  = '#FFFFFF';
 
+/**
+ * Small header button shown when the owner belongs to multiple barbershops.
+ * Navigates to ShopSelectorScreen so they can switch context.
+ */
+function ShopSwitchButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={switchStyles.btn}
+      onPress={onPress}
+      activeOpacity={0.7}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Text style={switchStyles.icon}>⇄</Text>
+    </TouchableOpacity>
+  );
+}
+
+const switchStyles = StyleSheet.create({
+  btn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#1A1500',
+    borderWidth: 1,
+    borderColor: GOLD + '60',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  icon: {
+    fontSize: 16,
+    color: GOLD,
+    fontWeight: '700',
+  },
+});
+
 export function OwnerNavigator() {
+  const { memberships } = useAuthContext();
+  const hasMultipleShops = memberships.length > 1;
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -69,7 +113,17 @@ export function OwnerNavigator() {
       <Stack.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ headerShown: false }}
+        options={({ navigation }) => ({
+          headerShown: hasMultipleShops,
+          title: '',
+          headerRight: hasMultipleShops
+            ? () => (
+                <ShopSwitchButton
+                  onPress={() => navigation.navigate('ShopSelector')}
+                />
+              )
+            : undefined,
+        })}
       />
       <Stack.Screen
         name="CreateBarbershop"
@@ -182,6 +236,14 @@ export function OwnerNavigator() {
         name="NotificationSettings"
         component={NotificationSettingsScreen}
         options={{ title: 'Preferencias de notificación' }}
+      />
+      <Stack.Screen
+        name="ShopSelector"
+        component={ShopSelectorScreen}
+        options={{
+          title: 'Cambiar barbería',
+          animation: 'slide_from_bottom',
+        }}
       />
     </Stack.Navigator>
   );

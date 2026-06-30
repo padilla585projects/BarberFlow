@@ -13,10 +13,9 @@ import {
   query,
   orderBy,
   getDocs,
-  doc,
-  getDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
@@ -45,20 +44,15 @@ export function PaymentHistoryScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState<string | null>(null);
-  const user = auth.currentUser;
+  const { activeBarbershopId } = useAuthContext();
 
   const fetchPayments = useCallback(async () => {
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      // Get owner's barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) return;
-
       // Query all payments ordered by paidAt descending
       const q = query(
-        collection(db, `barbershops/${barbershopId}/payments`),
+        collection(db, `barbershops/${activeBarbershopId}/payments`),
         orderBy('paidAt', 'desc'),
       );
       const snap = await getDocs(q);
@@ -84,7 +78,7 @@ export function PaymentHistoryScreen({ navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     fetchPayments();

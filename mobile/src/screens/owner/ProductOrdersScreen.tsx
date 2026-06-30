@@ -15,12 +15,12 @@ import {
   where,
   getDocs,
   doc,
-  getDoc,
   updateDoc,
   orderBy,
   increment,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
@@ -73,22 +73,18 @@ const STATUS_CONFIG: Record<OrderStatus, { color: string; label: string }> = {
 };
 
 export function ProductOrdersScreen({ navigation: _navigation }: Props) {
+  const { activeBarbershopId } = useAuthContext();
   const [orders, setOrders] = useState<ProductOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const user = auth.currentUser;
 
   const fetchOrders = useCallback(async () => {
-    if (!user) return;
+    if (!activeBarbershopId) return;
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) return;
-
       const q = query(
-        collection(db, `barbershops/${barbershopId}/productOrders`),
+        collection(db, `barbershops/${activeBarbershopId}/productOrders`),
         orderBy('createdAt', 'desc'),
       );
       const snap = await getDocs(q);
@@ -105,7 +101,7 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
           notes: data.notes ?? '',
           status: data.status ?? 'reserved',
           createdAt: data.createdAt?.toDate?.() ?? new Date(0),
-          barbershopId: data.barbershopId ?? barbershopId,
+          barbershopId: data.barbershopId ?? activeBarbershopId,
         };
       });
 
@@ -116,7 +112,7 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     fetchOrders();
@@ -128,20 +124,18 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
   };
 
   const updateOrderStatus = async (order: ProductOrder, newStatus: OrderStatus) => {
+    if (!activeBarbershopId) return;
     try {
       setUpdatingId(order.id);
-      const userDoc = await getDoc(doc(db, 'users', user!.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) return;
 
-      const orderRef = doc(db, `barbershops/${barbershopId}/productOrders`, order.id);
+      const orderRef = doc(db, `barbershops/${activeBarbershopId}/productOrders`, order.id);
       await updateDoc(orderRef, { status: newStatus });
 
       // Decrement stock when marking as picked_up
       if (newStatus === 'picked_up') {
         for (const item of order.items) {
           if (item.productId) {
-            const productRef = doc(db, `barbershops/${barbershopId}/products`, item.productId);
+            const productRef = doc(db, `barbershops/${activeBarbershopId}/products`, item.productId);
             await updateDoc(productRef, {
               stock: increment(-item.quantity),
             });

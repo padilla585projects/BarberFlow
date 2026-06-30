@@ -17,12 +17,11 @@ import {
   orderBy,
   getDocs,
   doc,
-  getDoc,
   deleteDoc,
   updateDoc,
-  Timestamp,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { WaitlistEntry } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -38,30 +37,17 @@ interface WaitlistSection {
 }
 
 export function WaitlistScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
-  const fetchBarbershopId = async (): Promise<string | null> => {
-    const user = auth.currentUser;
-    if (!user) return null;
-    try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      return userDoc.data()?.barbershopId ?? null;
-    } catch (err) {
-      console.error('[WaitlistScreen] Error fetching barbershopId:', err);
-    }
-    return null;
-  };
-
-  const fetchWaitlist = useCallback(async (shopId?: string | null) => {
-    const id = shopId ?? barbershopId;
-    if (!id) return;
+  const fetchWaitlist = useCallback(async () => {
+    if (!activeBarbershopId) return;
 
     try {
       const q = query(
-        collection(db, 'barbershops', id, 'waitlist'),
+        collection(db, 'barbershops', activeBarbershopId, 'waitlist'),
         where('status', '==', 'waiting'),
         orderBy('date', 'asc'),
       );
@@ -101,7 +87,7 @@ export function WaitlistScreen() {
       // Clean up past entries in background
       if (pastIds.length > 0) {
         pastIds.forEach((pid) => {
-          deleteDoc(doc(db, 'barbershops', id, 'waitlist', pid)).catch(() => {});
+          deleteDoc(doc(db, 'barbershops', activeBarbershopId, 'waitlist', pid)).catch(() => {});
         });
       }
 
@@ -112,20 +98,11 @@ export function WaitlistScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [barbershopId]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
-    const init = async () => {
-      const shopId = await fetchBarbershopId();
-      setBarbershopId(shopId);
-      if (shopId) {
-        await fetchWaitlist(shopId);
-      } else {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
+    fetchWaitlist();
+  }, [fetchWaitlist]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -133,7 +110,7 @@ export function WaitlistScreen() {
   };
 
   const handleNotify = async (entry: WaitlistEntry) => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
 
     Alert.alert(
       'Notificar cliente',
@@ -146,7 +123,7 @@ export function WaitlistScreen() {
             try {
               // Mark as notified
               await updateDoc(
-                doc(db, 'barbershops', barbershopId, 'waitlist', entry.id),
+                doc(db, 'barbershops', activeBarbershopId, 'waitlist', entry.id),
                 { status: 'notified' },
               );
 
@@ -174,7 +151,7 @@ export function WaitlistScreen() {
   };
 
   const handleRemove = async (entry: WaitlistEntry) => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
 
     Alert.alert(
       'Eliminar de la lista',
@@ -187,7 +164,7 @@ export function WaitlistScreen() {
           onPress: async () => {
             try {
               await deleteDoc(
-                doc(db, 'barbershops', barbershopId, 'waitlist', entry.id),
+                doc(db, 'barbershops', activeBarbershopId, 'waitlist', entry.id),
               );
               setEntries((prev) => prev.filter((e) => e.id !== entry.id));
             } catch (err) {
@@ -228,7 +205,7 @@ export function WaitlistScreen() {
     );
   }
 
-  if (!barbershopId) {
+  if (!activeBarbershopId) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyTitle}>Sin barberia asociada</Text>

@@ -22,11 +22,11 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  getDoc,
   serverTimestamp,
   orderBy,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 /* ── Design tokens ────────────────────────────────────────────────────────── */
 
@@ -74,9 +74,9 @@ const INITIAL_FORM: PromoFormData = {
 /* ── Component ────────────────────────────────────────────────────────────── */
 
 export function PromosScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const [promos, setPromos] = useState<Promo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [barbershopId, setBarbershopId] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPromo, setEditingPromo] = useState<Promo | null>(null);
   const [form, setForm] = useState<PromoFormData>(INITIAL_FORM);
@@ -86,25 +86,17 @@ export function PromosScreen() {
 
   useEffect(() => {
     fetchPromos();
-  }, []);
+  }, [activeBarbershopId]);
 
   const fetchPromos = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
       setLoading(true);
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const shopId = userDoc.data()?.barbershopId;
-      if (!shopId) {
-        setLoading(false);
-        return;
-      }
-      setBarbershopId(shopId);
 
       const snap = await getDocs(
         query(
-          collection(db, 'barbershops', shopId, 'promos'),
+          collection(db, 'barbershops', activeBarbershopId, 'promos'),
           orderBy('createdAt', 'desc'),
         ),
       );
@@ -189,12 +181,12 @@ export function PromosScreen() {
       if (editingPromo) {
         // Update existing
         await updateDoc(
-          doc(db, 'barbershops', barbershopId, 'promos', editingPromo.id),
+          doc(db, 'barbershops', activeBarbershopId!, 'promos', editingPromo.id),
           promoData,
         );
       } else {
         // Create new
-        await addDoc(collection(db, 'barbershops', barbershopId, 'promos'), {
+        await addDoc(collection(db, 'barbershops', activeBarbershopId!, 'promos'), {
           ...promoData,
           currentUses: 0,
           createdAt: serverTimestamp(),
@@ -223,7 +215,7 @@ export function PromosScreen() {
           onPress: async () => {
             try {
               await deleteDoc(
-                doc(db, 'barbershops', barbershopId, 'promos', promo.id),
+                doc(db, 'barbershops', activeBarbershopId!, 'promos', promo.id),
               );
               fetchPromos();
             } catch (err) {
@@ -239,7 +231,7 @@ export function PromosScreen() {
   const toggleActive = async (promo: Promo) => {
     try {
       await updateDoc(
-        doc(db, 'barbershops', barbershopId, 'promos', promo.id),
+        doc(db, 'barbershops', activeBarbershopId!, 'promos', promo.id),
         { active: !promo.active },
       );
       setPromos((prev) =>

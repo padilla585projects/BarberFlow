@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { LoyaltyReward } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -29,12 +30,12 @@ const DEFAULT_REWARDS: LoyaltyReward[] = [
 ];
 
 export function LoyaltySettingsScreen() {
+  const { activeBarbershopId } = useAuthContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [pointsPerEuro, setPointsPerEuro] = useState('1');
   const [rewards, setRewards] = useState<LoyaltyReward[]>(DEFAULT_REWARDS);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
 
   // For adding new reward
   const [showAddForm, setShowAddForm] = useState(false);
@@ -47,16 +48,10 @@ export function LoyaltySettingsScreen() {
   }, []);
 
   const fetchConfig = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const shopId = userDoc.data()?.barbershopId;
-      if (!shopId) return;
-      setBarbershopId(shopId);
-
-      const shopDoc = await getDoc(doc(db, 'barbershops', shopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       const config = shopDoc.data()?.loyaltyConfig;
       if (config) {
         setEnabled(config.enabled ?? false);
@@ -73,7 +68,7 @@ export function LoyaltySettingsScreen() {
   };
 
   const handleSave = async () => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
     const rate = parseFloat(pointsPerEuro);
     if (isNaN(rate) || rate <= 0) {
       Alert.alert('Error', 'La tasa de puntos debe ser un número positivo');
@@ -82,7 +77,7 @@ export function LoyaltySettingsScreen() {
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'barbershops', barbershopId), {
+      await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
         loyaltyConfig: {
           enabled,
           pointsPerEuro: rate,

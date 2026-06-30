@@ -15,6 +15,7 @@ import { signOut } from '../../services/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 import { useUnreadCount } from '../common/NotificationsScreen';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'Dashboard'>;
 
@@ -39,16 +40,14 @@ export function DashboardScreen({ navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [noBarbershop, setNoBarbershop] = useState(false);
   const unreadCount = useUnreadCount();
+  const { activeBarbershopId } = useAuthContext();
   const user = auth.currentUser;
 
   const fetchStats = async () => {
     if (!user) return;
 
     try {
-      // Get owner's barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) {
+      if (!activeBarbershopId) {
         setNoBarbershop(true);
         setLoading(false);
         setRefreshing(false);
@@ -57,13 +56,13 @@ export function DashboardScreen({ navigation }: Props) {
       setNoBarbershop(false);
 
       // Get shop name
-      const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (shopDoc.exists()) setShopName(shopDoc.data()?.name ?? '');
 
       // Get all appointments for this barbershop
       const allSnap = await getDocs(query(
         collection(db, 'appointments'),
-        where('barbershopId', '==', barbershopId),
+        where('barbershopId', '==', activeBarbershopId),
       ));
 
       const today = new Date();

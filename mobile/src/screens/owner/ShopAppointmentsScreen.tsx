@@ -18,7 +18,8 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { Appointment } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -60,36 +61,15 @@ export function ShopAppointmentsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  const { activeBarbershopId } = useAuthContext();
 
-  const fetchBarbershopId = async (): Promise<string | null> => {
-    const user = auth.currentUser;
-    if (!user) return null;
-
-    try {
-      const q = query(
-        collection(db, 'users'),
-        where('uid', '==', user.uid),
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const userData = snap.docs[0].data();
-        return userData.barbershopId ?? null;
-      }
-    } catch (err) {
-      console.error('[ShopAppointmentsScreen] Error fetching barbershopId:', err);
-    }
-    return null;
-  };
-
-  const fetchAppointments = useCallback(async (shopId?: string | null) => {
-    const id = shopId ?? barbershopId;
-    if (!id) return;
+  const fetchAppointments = useCallback(async () => {
+    if (!activeBarbershopId) return;
 
     try {
       const q = query(
         collection(db, 'appointments'),
-        where('barbershopId', '==', id),
+        where('barbershopId', '==', activeBarbershopId),
         orderBy('date', 'desc'),
       );
       const snap = await getDocs(q);
@@ -102,20 +82,15 @@ export function ShopAppointmentsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [barbershopId]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
-    const init = async () => {
-      const shopId = await fetchBarbershopId();
-      setBarbershopId(shopId);
-      if (shopId) {
-        await fetchAppointments(shopId);
-      } else {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
+    if (activeBarbershopId) {
+      fetchAppointments();
+    } else {
+      setLoading(false);
+    }
+  }, [activeBarbershopId]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -155,7 +130,7 @@ export function ShopAppointmentsScreen() {
     );
   }
 
-  if (!barbershopId) {
+  if (!activeBarbershopId) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyTitle}>Sin barberia asociada</Text>

@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
-import { auth, db, storage } from '../../services/firebase';
+import { db, storage } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { pickAndUploadImage } from '../../utils/imageUpload';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
@@ -34,23 +35,16 @@ const COLUMNS = 3;
 const TILE_SIZE = (SCREEN_WIDTH - 48 - GRID_GAP * (COLUMNS - 1)) / COLUMNS;
 
 export function GalleryScreen({ navigation }: Props) {
+  const { activeBarbershopId } = useAuthContext();
   const [gallery, setGallery] = useState<string[]>([]);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  const user = auth.currentUser;
-
   const fetchGallery = useCallback(async () => {
-    if (!user) return;
+    if (!activeBarbershopId) return;
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const shopId = userDoc.data()?.barbershopId;
-      if (!shopId) return;
-      setBarbershopId(shopId);
-
-      const shopDoc = await getDoc(doc(db, 'barbershops', shopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (shopDoc.exists()) {
         setGallery(shopDoc.data()?.gallery ?? []);
       }
@@ -59,14 +53,14 @@ export function GalleryScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     fetchGallery();
   }, [fetchGallery]);
 
   const handleAddPhoto = async () => {
-    if (!barbershopId) return;
+    if (!activeBarbershopId) return;
     if (gallery.length >= MAX_PHOTOS) {
       Alert.alert('Límite alcanzado', `Solo puedes subir un máximo de ${MAX_PHOTOS} fotos.`);
       return;
@@ -75,11 +69,11 @@ export function GalleryScreen({ navigation }: Props) {
     setUploading(true);
     try {
       const filename = `${Date.now()}.jpg`;
-      const storagePath = `barbershops/${barbershopId}/gallery/${filename}`;
+      const storagePath = `barbershops/${activeBarbershopId}/gallery/${filename}`;
       const url = await pickAndUploadImage(storagePath);
 
       if (url) {
-        await updateDoc(doc(db, 'barbershops', barbershopId), {
+        await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
           gallery: arrayUnion(url),
         });
         setGallery((prev) => [...prev, url]);
@@ -98,7 +92,7 @@ export function GalleryScreen({ navigation }: Props) {
         text: 'Eliminar',
         style: 'destructive',
         onPress: async () => {
-          if (!barbershopId) return;
+          if (!activeBarbershopId) return;
           try {
             // Delete from Firebase Storage
             // Extract storage path from the download URL
@@ -112,7 +106,7 @@ export function GalleryScreen({ navigation }: Props) {
             await deleteObject(storageRef);
 
             // Remove URL from Firestore array
-            await updateDoc(doc(db, 'barbershops', barbershopId), {
+            await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
               gallery: arrayRemove(url),
             });
 

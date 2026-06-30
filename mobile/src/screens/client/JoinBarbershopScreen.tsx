@@ -11,7 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { auth, db } from '../../services/firebase';
 
@@ -131,11 +131,20 @@ export function JoinBarbershopScreen({ navigation }: Props) {
         usedAt: new Date().toISOString(),
       });
 
-      // Update user doc — role change will trigger useAuth realtime listener
-      // which will navigate automatically to BarberNavigator
+      // Update user doc — keep barbershopId for backward compat,
+      // set activeBarbershopId, and append to memberships array.
+      // The useAuth realtime listener will detect the change and
+      // navigate automatically to BarberNavigator.
       await updateDoc(doc(db, 'users', user.uid), {
-        barbershopId: invitation.barbershopId,
-        role: 'barber',
+        barbershopId:       invitation.barbershopId,
+        activeBarbershopId: invitation.barbershopId,
+        role:               'barber',
+        memberships: arrayUnion({
+          barbershopId:   invitation.barbershopId,
+          barbershopName: invitation.barbershopName,
+          role:           'barber',
+          joinedAt:       new Date(),
+        }),
       });
 
       setSuccess(true);

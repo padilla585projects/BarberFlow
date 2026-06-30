@@ -23,6 +23,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { Service, Product, SaleItem } from '../../types';
 
 const BG      = '#0A0A0A';
@@ -45,7 +46,7 @@ interface CatalogItem {
 
 export function SalesScreen() {
   const [loading, setLoading] = useState(true);
-  const [barbershopId, setBarbershopId] = useState('');
+  const { activeBarbershopId } = useAuthContext();
   const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<CatalogTab>('services');
@@ -74,29 +75,22 @@ export function SalesScreen() {
   }, []);
 
   const fetchData = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activeBarbershopId) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
 
-      // Get owner's barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const shopId = userDoc.data()?.barbershopId;
-      if (!shopId) {
-        setLoading(false);
-        return;
-      }
-      setBarbershopId(shopId);
-
       // Fetch services from barbershop document
-      const shopDoc = await getDoc(doc(db, 'barbershops', shopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       const shopServices: Service[] = shopDoc.data()?.services ?? [];
       setServices(shopServices);
 
       // Fetch products
       const prodSnap = await getDocs(
-        query(collection(db, 'products'), where('barbershopId', '==', shopId)),
+        query(collection(db, 'products'), where('barbershopId', '==', activeBarbershopId)),
       );
       const prods: Product[] = prodSnap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
       setProducts(prods);
@@ -174,14 +168,14 @@ export function SalesScreen() {
 
   const handleApplyPromo = async () => {
     const code = promoInput.trim().toUpperCase();
-    if (!code || !barbershopId) return;
+    if (!code || !activeBarbershopId) return;
 
     setPromoError('');
     setPromoLoading(true);
     try {
       const promoSnap = await getDocs(
         query(
-          collection(db, 'barbershops', barbershopId, 'promos'),
+          collection(db, 'barbershops', activeBarbershopId, 'promos'),
           where('code', '==', code),
         ),
       );
@@ -244,7 +238,7 @@ export function SalesScreen() {
 
   const handleCheckout = async () => {
     const user = auth.currentUser;
-    if (!user || cart.length === 0 || !barbershopId) return;
+    if (!user || cart.length === 0 || !activeBarbershopId) return;
 
     setSaving(true);
     try {
@@ -271,7 +265,7 @@ export function SalesScreen() {
       // Record the sale
       const saleData: Record<string, unknown> = {
         barberId: user.uid,
-        barbershopId,
+        barbershopId: activeBarbershopId,
         items: cart,
         totalAmount: finalTotal,
         originalAmount: cartTotal,
@@ -294,7 +288,7 @@ export function SalesScreen() {
       // Increment promo usage
       if (promoApplied) {
         await updateDoc(
-          doc(db, 'barbershops', barbershopId, 'promos', promoApplied.id),
+          doc(db, 'barbershops', activeBarbershopId, 'promos', promoApplied.id),
           { currentUses: increment(1) },
         );
       }

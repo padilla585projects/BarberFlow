@@ -15,6 +15,7 @@ import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth, db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { User } from '../../types';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
@@ -37,39 +38,19 @@ export function ShopBarbersScreen() {
   const [barbers, setBarbers] = useState<BarberWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  const { activeBarbershopId } = useAuthContext();
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [generatingCode, setGeneratingCode] = useState(false);
 
-  const fetchBarbershopId = async (): Promise<string | null> => {
-    const user = auth.currentUser;
-    if (!user) return null;
-
-    try {
-      const q = query(
-        collection(db, 'users'),
-        where('uid', '==', user.uid),
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const userData = snap.docs[0].data();
-        return userData.barbershopId ?? null;
-      }
-    } catch (err) {
-      console.error('[ShopBarbersScreen] Error fetching barbershopId:', err);
-    }
-    return null;
-  };
-
   const generateInviteCode = async () => {
     const user = auth.currentUser;
-    if (!user || !barbershopId) return;
+    if (!user || !activeBarbershopId) return;
 
     setGeneratingCode(true);
     try {
       // Fetch barbershop name
-      const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       const barbershopName = shopDoc.data()?.name ?? 'Barbería';
 
       // Generate random 6-digit code
@@ -79,7 +60,7 @@ export function ShopBarbersScreen() {
       const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h
 
       await setDoc(doc(db, 'invitations', code), {
-        barbershopId,
+        barbershopId: activeBarbershopId,
         barbershopName,
         createdBy: user.uid,
         createdAt: now.toISOString(),
@@ -108,9 +89,9 @@ export function ShopBarbersScreen() {
     }
   };
 
-  const fetchBarbers = useCallback(async (shopId?: string | null) => {
-    const id = shopId ?? barbershopId;
-    if (!id) return;
+  const fetchBarbers = useCallback(async () => {
+    if (!activeBarbershopId) return;
+    const id = activeBarbershopId;
 
     try {
       // Fetch users belonging to this barbershop with role barber or owner
@@ -166,17 +147,15 @@ export function ShopBarbersScreen() {
     } catch (err) {
       console.error('[ShopBarbersScreen] Error fetching barbers:', err);
     }
-  }, [barbershopId]);
+  }, [activeBarbershopId]);
 
   useEffect(() => {
     const init = async () => {
-      const id = await fetchBarbershopId();
-      setBarbershopId(id);
-      await fetchBarbers(id);
+      await fetchBarbers();
       setLoading(false);
     };
     init();
-  }, []);
+  }, [activeBarbershopId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -267,7 +246,7 @@ export function ShopBarbersScreen() {
     );
   }
 
-  if (!barbershopId) {
+  if (!activeBarbershopId) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyText}>No se encontro la barberia asociada.</Text>

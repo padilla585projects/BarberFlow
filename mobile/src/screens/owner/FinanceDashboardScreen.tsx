@@ -16,7 +16,8 @@ import {
   doc,
   getDoc,
 } from 'firebase/firestore';
-import { auth, db } from '../../services/firebase';
+import { db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 
@@ -79,6 +80,7 @@ interface RecentTransaction {
 type Props = NativeStackScreenProps<OwnerStackParamList, 'FinanceDashboard'>;
 
 export function FinanceDashboardScreen({ navigation }: Props) {
+  const { activeBarbershopId } = useAuthContext();
   const [period, setPeriod] = useState<Period>('month');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,8 +89,6 @@ export function FinanceDashboardScreen({ navigation }: Props) {
   const [sales, setSales] = useState<SaleData[]>([]);
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [barbers, setBarbers] = useState<BarberInfo[]>([]);
-
-  const user = auth.currentUser;
 
   const getPeriodStart = useCallback((): Date => {
     const now = new Date();
@@ -116,21 +116,16 @@ export function FinanceDashboardScreen({ navigation }: Props) {
   }, [period]);
 
   const fetchData = useCallback(async () => {
-    if (!user) return;
+    if (!activeBarbershopId) return;
 
     try {
-      // 1. Get barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const barbershopId = userDoc.data()?.barbershopId;
-      if (!barbershopId) return;
-
       const periodStart = getPeriodStart();
 
       // 2. Query appointments
       const apptSnap = await getDocs(
         query(
           collection(db, 'appointments'),
-          where('barbershopId', '==', barbershopId),
+          where('barbershopId', '==', activeBarbershopId),
         ),
       );
 
@@ -155,7 +150,7 @@ export function FinanceDashboardScreen({ navigation }: Props) {
       const salesSnap = await getDocs(
         query(
           collection(db, 'sales'),
-          where('barbershopId', '==', barbershopId),
+          where('barbershopId', '==', activeBarbershopId),
         ),
       );
 
@@ -177,7 +172,7 @@ export function FinanceDashboardScreen({ navigation }: Props) {
 
       // 4. Query payments
       const paymentsSnap = await getDocs(
-        collection(db, `barbershops/${barbershopId}/payments`),
+        collection(db, `barbershops/${activeBarbershopId}/payments`),
       );
 
       const paymentRows: PaymentData[] = [];
@@ -196,7 +191,7 @@ export function FinanceDashboardScreen({ navigation }: Props) {
       setPayments(paymentRows);
 
       // 5. Get barber list
-      const shopDoc = await getDoc(doc(db, 'barbershops', barbershopId));
+      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       const barberIds: string[] = shopDoc.data()?.barbers ?? [];
 
       const barberInfos: BarberInfo[] = [];
@@ -223,7 +218,7 @@ export function FinanceDashboardScreen({ navigation }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, getPeriodStart]);
+  }, [activeBarbershopId, getPeriodStart]);
 
   useEffect(() => {
     setLoading(true);
