@@ -16,51 +16,51 @@ interface NavSection {
 const ownerSections: NavSection[] = [
   {
     items: [
-      { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard', icon: '\u{1F4CA}', label: 'Dashboard' },
     ],
   },
   {
     title: 'Mi Negocio',
     items: [
       { to: '/barbershop',   icon: '✂️',  label: 'Mi Barbería' },
-      { to: '/barbers',      icon: '👤', label: 'Barberos' },
-      { to: '/services',     icon: '📋', label: 'Servicios' },
+      { to: '/barbers',      icon: '\u{1F464}', label: 'Barberos' },
+      { to: '/services',     icon: '\u{1F4CB}', label: 'Servicios' },
     ],
   },
   {
     title: 'Operaciones',
     items: [
-      { to: '/appointments', icon: '📅', label: 'Citas' },
-      { to: '/inventory',    icon: '📦', label: 'Inventario' },
-      { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
-      { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+      { to: '/appointments', icon: '\u{1F4C5}', label: 'Citas' },
+      { to: '/inventory',    icon: '\u{1F4E6}', label: 'Inventario' },
+      { to: '/orders',       icon: '\u{1F6CD}️', label: 'Pedidos Shop' },
+      { to: '/sales',        icon: '\u{1F4B6}', label: 'Ventas POS' },
     ],
   },
   {
     title: 'Finanzas',
     items: [
-      { to: '/finances', icon: '💰', label: 'Finanzas' },
-      { to: '/payments', icon: '💳', label: 'Pagos' },
+      { to: '/finances', icon: '\u{1F4B0}', label: 'Finanzas' },
+      { to: '/payments', icon: '\u{1F4B3}', label: 'Pagos' },
     ],
   },
   {
     title: 'Marketing',
     items: [
-      { to: '/promos',  icon: '🎟️', label: 'Promociones' },
+      { to: '/promos',  icon: '\u{1F39F}️', label: 'Promociones' },
       { to: '/reviews', icon: '⭐', label: 'Reseñas' },
     ],
   },
   {
     title: 'Análisis',
     items: [
-      { to: '/reports', icon: '📈', label: 'Reportes' },
+      { to: '/reports', icon: '\u{1F4C8}', label: 'Reportes' },
     ],
   },
   {
     title: 'Comunicación',
     items: [
-      { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
-      { to: '/messages',      icon: '💬', label: 'Mensajes' },
+      { to: '/notifications', icon: '\u{1F514}', label: 'Notificaciones' },
+      { to: '/messages',      icon: '\u{1F4AC}', label: 'Mensajes' },
     ],
   },
 ]
@@ -68,16 +68,16 @@ const ownerSections: NavSection[] = [
 const barberSections: NavSection[] = [
   {
     items: [
-      { to: '/dashboard',    icon: '📊', label: 'Dashboard' },
-      { to: '/appointments', icon: '📅', label: 'Mis Citas' },
-      { to: '/sales',        icon: '💶', label: 'Ventas' },
+      { to: '/dashboard',    icon: '\u{1F4CA}', label: 'Dashboard' },
+      { to: '/appointments', icon: '\u{1F4C5}', label: 'Mis Citas' },
+      { to: '/sales',        icon: '\u{1F4B6}', label: 'Ventas' },
     ],
   },
   {
     title: 'Comunicación',
     items: [
-      { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
-      { to: '/messages',      icon: '💬', label: 'Mensajes' },
+      { to: '/notifications', icon: '\u{1F514}', label: 'Notificaciones' },
+      { to: '/messages',      icon: '\u{1F4AC}', label: 'Mensajes' },
     ],
   },
 ]
@@ -85,56 +85,61 @@ const barberSections: NavSection[] = [
 const developerSections: NavSection[] = [
   {
     items: [
-      { to: '/dashboard', icon: '📊', label: 'Dashboard' },
+      { to: '/dashboard', icon: '\u{1F4CA}', label: 'Dashboard' },
     ],
   },
   {
     title: 'Gestión',
     items: [
-      { to: '/barbershops', icon: '🏪', label: 'Barberías' },
-      { to: '/users',       icon: '👥', label: 'Usuarios' },
-      { to: '/services',    icon: '📋', label: 'Servicios' },
+      { to: '/barbershops', icon: '\u{1F3EA}', label: 'Barberías' },
+      { to: '/users',       icon: '\u{1F465}', label: 'Usuarios' },
+      { to: '/services',    icon: '\u{1F4CB}', label: 'Servicios' },
     ],
   },
   {
     title: 'Operaciones',
     items: [
-      { to: '/appointments', icon: '📅', label: 'Citas' },
-      { to: '/inventory',    icon: '📦', label: 'Inventario' },
-      { to: '/orders',       icon: '🛍️', label: 'Pedidos Shop' },
-      { to: '/sales',        icon: '💶', label: 'Ventas POS' },
+      { to: '/appointments', icon: '\u{1F4C5}', label: 'Citas' },
+      { to: '/inventory',    icon: '\u{1F4E6}', label: 'Inventario' },
+      { to: '/orders',       icon: '\u{1F6CD}️', label: 'Pedidos Shop' },
+      { to: '/sales',        icon: '\u{1F4B6}', label: 'Ventas POS' },
     ],
   },
   {
     title: 'Finanzas',
     items: [
-      { to: '/finances', icon: '💰', label: 'Finanzas' },
-      { to: '/payments', icon: '💳', label: 'Pagos' },
+      { to: '/finances', icon: '\u{1F4B0}', label: 'Finanzas' },
+      { to: '/payments', icon: '\u{1F4B3}', label: 'Pagos' },
     ],
   },
   {
     title: 'Marketing',
     items: [
-      { to: '/promos',  icon: '🎟️', label: 'Promociones' },
+      { to: '/promos',  icon: '\u{1F39F}️', label: 'Promociones' },
       { to: '/reviews', icon: '⭐', label: 'Reseñas' },
     ],
   },
   {
     title: 'Análisis',
     items: [
-      { to: '/reports', icon: '📈', label: 'Reportes' },
+      { to: '/reports', icon: '\u{1F4C8}', label: 'Reportes' },
     ],
   },
   {
     title: 'Comunicación',
     items: [
-      { to: '/notifications', icon: '🔔', label: 'Notificaciones' },
-      { to: '/messages',      icon: '💬', label: 'Mensajes' },
+      { to: '/notifications', icon: '\u{1F514}', label: 'Notificaciones' },
+      { to: '/messages',      icon: '\u{1F4AC}', label: 'Mensajes' },
     ],
   },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
@@ -154,8 +159,12 @@ export default function Sidebar() {
     navigate('/login')
   }
 
+  const handleNavClick = () => {
+    onClose?.()
+  }
+
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.brand}>
         <img src="/logo.png" alt="BarberFlow" className={styles.brandLogo} />
       </div>
@@ -184,6 +193,7 @@ export default function Sidebar() {
                 className={({ isActive }) =>
                   `${styles.navItem} ${isActive ? styles.active : ''}`
                 }
+                onClick={handleNavClick}
               >
                 <span className={styles.navIcon}>{item.icon}</span>
                 <span>{item.label}</span>
@@ -194,7 +204,7 @@ export default function Sidebar() {
       </nav>
 
       <button className={styles.logoutBtn} onClick={handleLogout}>
-        <span>🚪</span>
+        <span>{'\u{1F6AA}'}</span>
         <span>Cerrar sesión</span>
       </button>
     </aside>

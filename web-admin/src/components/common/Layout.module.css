@@ -10,3 +10,51 @@
   background: var(--bg);
   min-height: 100vh;
 }
+
+/* Hamburger menu button — hidden on desktop */
+.hamburger {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 60;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: #fff;
+  font-size: 20px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.hamburger:hover {
+  background: var(--surface2);
+}
+
+/* Backdrop overlay — hidden on desktop */
+.backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+    padding: 60px 16px 24px;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 90;
+    backdrop-filter: blur(2px);
+  }
+}

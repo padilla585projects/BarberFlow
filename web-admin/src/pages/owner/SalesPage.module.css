@@ -428,3 +428,30 @@
 }
 .cobrarBtn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
 .cobrarBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .header h1 { font-size: 22px; }
+  .sub { font-size: 11px; }
+  .headerActions { width: 100%; }
+  .headerActions .shopSelect { flex: 1; }
+
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat { padding: 14px; }
+  .statValue { font-size: 22px; }
+
+  .filters { flex-direction: column; align-items: stretch; }
+  .filterSelect { min-width: 0; width: 100%; }
+
+  .table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tableHead,
+  .row { min-width: 550px; }
+
+  .overlay { padding: 8px; }
+  .tpv { max-width: 100%; max-height: 95vh; }
+  .tpvBody { grid-template-columns: 1fr; }
+  .catalog { border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
+  .ticket { max-height: 50vh; }
+  .barberSelect { flex-wrap: wrap; }
+  .barberSelect select { max-width: none; }
+}

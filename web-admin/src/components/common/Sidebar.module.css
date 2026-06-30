@@ -188,3 +188,16 @@
   color: var(--error);
   border-color: rgba(248,113,113,0.3);
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 100;
+    transition: transform 0.25s ease;
+    width: 260px;
+  }
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+}

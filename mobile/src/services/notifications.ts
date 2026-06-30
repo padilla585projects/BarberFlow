@@ -16,7 +16,6 @@ Notifications.setNotificationHandler({
 
 export async function registerForPushNotifications(uid: string): Promise<string | null> {
   if (!Device.isDevice) {
-    console.log('[Notifications] Must use physical device');
     return null;
   }
 
@@ -29,7 +28,6 @@ export async function registerForPushNotifications(uid: string): Promise<string 
   }
 
   if (finalStatus !== 'granted') {
-    console.log('[Notifications] Permission not granted');
     return null;
   }
 

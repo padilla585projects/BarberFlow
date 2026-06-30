@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationState } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthProvider, useAuthContext } from '../contexts/AuthContext';
 import { registerForPushNotifications } from '../services/notifications';
+import { logScreenView } from '../services/analytics';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { ClientNavigator } from './ClientNavigator';
@@ -24,8 +25,31 @@ interface RootNavigatorProps {
   onReady?: () => void;
 }
 
+/** Walk the navigation state tree to find the currently active route name. */
+function getActiveRouteName(state: NavigationState | undefined): string | undefined {
+  if (!state) return undefined;
+  const route = state.routes[state.index];
+  // Recurse into nested navigators
+  if (route.state) {
+    return getActiveRouteName(route.state as NavigationState);
+  }
+  return route.name;
+}
+
 function RootNavigatorInner({ onReady }: RootNavigatorProps) {
   const { firebaseUser, role, activeBarbershopId, memberships, loading } = useAuthContext();
+  const currentScreenRef = useRef<string | undefined>(undefined);
+
+  const handleNavigationStateChange = useCallback(
+    (state: NavigationState | undefined) => {
+      const screenName = getActiveRouteName(state);
+      if (screenName && screenName !== currentScreenRef.current) {
+        currentScreenRef.current = screenName;
+        logScreenView(screenName);
+      }
+    },
+    [],
+  );
 
   // Once auth resolves → hide the native splash screen
   useEffect(() => {
@@ -71,7 +95,7 @@ function RootNavigatorInner({ onReady }: RootNavigatorProps) {
   const initialScreen = getInitialScreen();
 
   return (
-    <NavigationContainer>
+    <NavigationContainer onStateChange={handleNavigationStateChange}>
       <Stack.Navigator
         screenOptions={{ headerShown: false, animation: 'fade' }}
         initialRouteName={initialScreen}

@@ -339,3 +339,15 @@
   flex-shrink: 0;
   font-weight: 600;
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .topBar { flex-wrap: wrap; }
+  .topBar h1 { font-size: 22px; }
+
+  .kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .kpi { padding: 14px 12px; }
+  .kpiValue { font-size: 18px; }
+
+  .weekBars { height: 100px; gap: 6px; }
+}
