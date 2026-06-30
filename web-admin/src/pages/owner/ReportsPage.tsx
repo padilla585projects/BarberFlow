@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { getAllBarbershops } from '../../services/barbershops'
 import { getUsersByBarbershop } from '../../services/users'
 import { getAppointmentsByBarbershop } from '../../services/appointments'
+import { getSalesByBarbershop } from '../../services/sales'
 import { useAuth } from '../../contexts/AuthContext'
-import { Barbershop, User, Appointment } from '../../types'
+import { Barbershop, User, Appointment, Sale } from '../../types'
 import styles from './ReportsPage.module.css'
 
 type Period = 'week' | 'month' | 'quarter' | 'year' | 'custom'
@@ -54,6 +55,7 @@ export default function ReportsPage() {
   const [selectedShop, setSelectedShop] = useState('')
   const [barbers, setBarbers] = useState<User[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<Period>('month')
   const [customFrom, setCustomFrom] = useState('')
@@ -63,12 +65,14 @@ export default function ReportsPage() {
   const load = async (shopId: string) => {
     if (!shopId) return
     setLoading(true)
-    const [users, apps] = await Promise.all([
+    const [users, apps, shopSales] = await Promise.all([
       getUsersByBarbershop(shopId),
       getAppointmentsByBarbershop(shopId),
+      getSalesByBarbershop(shopId),
     ])
     setBarbers(users.filter(u => u.role === 'barber' || u.role === 'owner'))
     setAppointments(apps)
+    setSales(shopSales)
     setLoading(false)
   }
 
@@ -121,73 +125,265 @@ export default function ReportsPage() {
     revenue: rows.reduce((s, r) => s + r.revenue, 0),
   }
 
+  // ─── Excel helper: gold header style ────────────────────────────────
+  const applyGoldHeader = (row: import('exceljs').Row) => {
+    row.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC9A84C' } }
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FF444444' } } }
+    })
+  }
+
+  const autoWidth = (ws: import('exceljs').Worksheet) => {
+    ws.columns.forEach(col => {
+      let maxLen = 10
+      col.eachCell?.({ includeEmpty: false }, cell => {
+        const len = cell.value ? String(cell.value).length : 0
+        if (len > maxLen) maxLen = len
+      })
+      col.width = Math.min(maxLen + 4, 50)
+    })
+  }
+
+  const addTitle = (ws: import('exceljs').Worksheet, text: string, colCount: number) => {
+    const lastCol = String.fromCharCode(64 + colCount) // A=65
+    ws.mergeCells(`A1:${lastCol}1`)
+    const titleCell = ws.getCell('A1')
+    titleCell.value = text
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FFC9A84C' } }
+    titleCell.alignment = { horizontal: 'center' }
+    ws.addRow([]) // blank row after title
+  }
+
   const exportExcel = async () => {
     setExporting(true)
     try {
-      // Importar ExcelJS en tiempo real para no aumentar el bundle
       const ExcelJS = (await import('exceljs')).default
       const wb = new ExcelJS.Workbook()
       wb.creator = 'BarberFlow'
       wb.created = new Date()
 
-      const ws = wb.addWorksheet('Reporte')
       const shopName = barbershops.find(b => b.id === selectedShop)?.name ?? 'Barbería'
       const periodLabel = { week: 'Semana actual', month: 'Mes actual', quarter: 'Trimestre', year: 'Año', custom: 'Personalizado' }[period]
+      const rangeLabel = `${from.toLocaleDateString('es-ES')} – ${to.toLocaleDateString('es-ES')}`
 
-      // Título
-      ws.mergeCells('A1:H1')
-      const titleCell = ws.getCell('A1')
-      titleCell.value = `${shopName} — ${periodLabel} (${from.toLocaleDateString('es-ES')} – ${to.toLocaleDateString('es-ES')})`
-      titleCell.font = { bold: true, size: 14 }
-      titleCell.alignment = { horizontal: 'center' }
+      // Helper to get barber name from uid
+      const barberName = (uid: string) => barbers.find(b => b.uid === uid)?.displayName ?? 'Desconocido'
 
-      ws.addRow([])
+      // Filter sales by period
+      const filteredSales = sales.filter(s => inRange(new Date(s.date), from, to))
 
-      // Cabecera
-      const header = ws.addRow(['Barbero', 'Email', 'Total citas', 'Completadas', 'Canceladas', 'Pendientes', 'Ingresos (€)', 'Ticket medio (€)', 'Servicio top'])
-      header.eachCell(cell => {
-        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF111111' } }
-        cell.alignment = { horizontal: 'center' }
-        cell.border = { bottom: { style: 'thin', color: { argb: 'FF444444' } } }
-      })
+      // ──────────────────────────────────────────────────────────────────
+      // Sheet 1: Resumen General
+      // ──────────────────────────────────────────────────────────────────
+      const ws1 = wb.addWorksheet('Resumen General')
+      addTitle(ws1, `${shopName} — ${periodLabel} (${rangeLabel})`, 9)
 
-      // Filas de datos
+      const h1 = ws1.addRow(['Barbero', 'Email', 'Total citas', 'Completadas', 'Canceladas', 'Pendientes', 'Ingresos (€)', 'Ticket medio (€)', 'Servicio top'])
+      applyGoldHeader(h1)
+
       rows.forEach((r, i) => {
-        const row = ws.addRow([
-          r.barber.displayName,
-          r.barber.email,
-          r.totalApps,
-          r.completed,
-          r.cancelled,
-          r.pending,
-          r.revenue,
-          Number(r.avgTicket.toFixed(2)),
-          r.topService,
+        const row = ws1.addRow([
+          r.barber.displayName, r.barber.email,
+          r.totalApps, r.completed, r.cancelled, r.pending,
+          r.revenue, Number(r.avgTicket.toFixed(2)), r.topService,
         ])
         if (i % 2 === 1) {
           row.eachCell(cell => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1A1A' } }
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
           })
         }
-        // Formato moneda
         row.getCell(7).numFmt = '#,##0.00 "€"'
         row.getCell(8).numFmt = '#,##0.00 "€"'
       })
 
-      // Fila total
-      ws.addRow([])
-      const totalRow = ws.addRow(['TOTAL', '', totals.apps, totals.completed, '', '', totals.revenue, '', ''])
+      ws1.addRow([])
+      const totalRow = ws1.addRow(['TOTAL', '', totals.apps, totals.completed, '', '', totals.revenue, '', ''])
       totalRow.eachCell(cell => { cell.font = { bold: true } })
       totalRow.getCell(7).numFmt = '#,##0.00 "€"'
+      autoWidth(ws1)
 
-      // Anchos de columna
-      ws.columns = [
-        { width: 22 }, { width: 28 }, { width: 13 }, { width: 14 },
-        { width: 13 }, { width: 13 }, { width: 16 }, { width: 17 }, { width: 20 },
-      ]
+      // ──────────────────────────────────────────────────────────────────
+      // Sheet 2: Desglose por Barbero
+      // ──────────────────────────────────────────────────────────────────
+      const ws2 = wb.addWorksheet('Desglose por Barbero')
+      addTitle(ws2, `Desglose por Barbero — ${rangeLabel}`, 8)
 
-      // Descargar
+      const h2 = ws2.addRow([
+        'Barbero', 'Citas completadas', 'Ingresos servicios (€)',
+        'Ingresos productos (€)', 'Ingresos total (€)',
+        'Desglose de servicios', 'Ticket medio (€)', 'Productos vendidos',
+      ])
+      applyGoldHeader(h2)
+
+      rows.forEach((r, i) => {
+        const completed = filtered.filter(a => a.barberId === r.barber.uid && a.status === 'completed')
+
+        // Service count breakdown
+        const svcCount: Record<string, number> = {}
+        completed.forEach(a => a.services.forEach(s => {
+          svcCount[s.name] = (svcCount[s.name] ?? 0) + 1
+        }))
+        const svcBreakdown = Object.entries(svcCount)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, count]) => `${name}: ${count}`)
+          .join(', ') || '—'
+
+        // Product sales for this barber
+        const barberSales = filteredSales.filter(s => s.barberId === r.barber.uid)
+        const productRevenue = barberSales.reduce((sum, s) =>
+          sum + s.items.filter(it => it.type === 'product').reduce((acc, it) => acc + it.price * it.quantity, 0), 0)
+        const serviceRevenue = r.revenue // from appointments
+        const totalProductCount = barberSales.reduce((sum, s) =>
+          sum + s.items.filter(it => it.type === 'product').reduce((acc, it) => acc + it.quantity, 0), 0)
+
+        const row = ws2.addRow([
+          r.barber.displayName,
+          r.completed,
+          serviceRevenue,
+          productRevenue,
+          serviceRevenue + productRevenue,
+          svcBreakdown,
+          Number(r.avgTicket.toFixed(2)),
+          totalProductCount,
+        ])
+        if (i % 2 === 1) {
+          row.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
+          })
+        }
+        row.getCell(3).numFmt = '#,##0.00 "€"'
+        row.getCell(4).numFmt = '#,##0.00 "€"'
+        row.getCell(5).numFmt = '#,##0.00 "€"'
+        row.getCell(7).numFmt = '#,##0.00 "€"'
+      })
+      autoWidth(ws2)
+
+      // ──────────────────────────────────────────────────────────────────
+      // Sheet 3: Servicios por Barbero
+      // ──────────────────────────────────────────────────────────────────
+      const ws3 = wb.addWorksheet('Servicios por Barbero')
+      addTitle(ws3, `Servicios por Barbero — ${rangeLabel}`, 4)
+
+      const h3 = ws3.addRow(['Barbero', 'Servicio', 'Cantidad', 'Ingresos (€)'])
+      applyGoldHeader(h3)
+
+      let svcRowIdx = 0
+      barbers.forEach(barber => {
+        const completed = filtered.filter(a => a.barberId === barber.uid && a.status === 'completed')
+        const svcMap: Record<string, { count: number; revenue: number }> = {}
+        completed.forEach(a => a.services.forEach(s => {
+          if (!svcMap[s.name]) svcMap[s.name] = { count: 0, revenue: 0 }
+          svcMap[s.name].count += 1
+          svcMap[s.name].revenue += s.price
+        }))
+
+        Object.entries(svcMap)
+          .sort((a, b) => b[1].count - a[1].count)
+          .forEach(([name, { count, revenue }]) => {
+            const row = ws3.addRow([barber.displayName, name, count, revenue])
+            if (svcRowIdx % 2 === 1) {
+              row.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
+              })
+            }
+            row.getCell(4).numFmt = '#,##0.00 "€"'
+            svcRowIdx++
+          })
+      })
+      autoWidth(ws3)
+
+      // ──────────────────────────────────────────────────────────────────
+      // Sheet 4: Productos Vendidos por Barbero
+      // ──────────────────────────────────────────────────────────────────
+      const ws4 = wb.addWorksheet('Productos por Barbero')
+      addTitle(ws4, `Productos Vendidos por Barbero — ${rangeLabel}`, 4)
+
+      const h4 = ws4.addRow(['Barbero', 'Producto', 'Cantidad', 'Ingresos (€)'])
+      applyGoldHeader(h4)
+
+      let prodRowIdx = 0
+      barbers.forEach(barber => {
+        const barberSales = filteredSales.filter(s => s.barberId === barber.uid)
+        const prodMap: Record<string, { count: number; revenue: number }> = {}
+        barberSales.forEach(s => s.items.forEach(item => {
+          if (item.type === 'product') {
+            if (!prodMap[item.name]) prodMap[item.name] = { count: 0, revenue: 0 }
+            prodMap[item.name].count += item.quantity
+            prodMap[item.name].revenue += item.price * item.quantity
+          }
+        }))
+
+        Object.entries(prodMap)
+          .sort((a, b) => b[1].revenue - a[1].revenue)
+          .forEach(([name, { count, revenue }]) => {
+            const row = ws4.addRow([barber.displayName, name, count, revenue])
+            if (prodRowIdx % 2 === 1) {
+              row.eachCell(cell => {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
+              })
+            }
+            row.getCell(4).numFmt = '#,##0.00 "€"'
+            prodRowIdx++
+          })
+      })
+
+      if (prodRowIdx === 0) {
+        ws4.addRow(['Sin ventas de productos en este periodo', '', '', ''])
+      }
+      autoWidth(ws4)
+
+      // ──────────────────────────────────────────────────────────────────
+      // Sheet 5: Citas Detalladas
+      // ──────────────────────────────────────────────────────────────────
+      const ws5 = wb.addWorksheet('Citas Detalladas')
+      addTitle(ws5, `Citas Detalladas — ${rangeLabel}`, 6)
+
+      const h5 = ws5.addRow(['Fecha', 'Barbero', 'Cliente', 'Servicios', 'Total (€)', 'Estado'])
+      applyGoldHeader(h5)
+
+      const statusLabels: Record<string, string> = {
+        pending: 'Pendiente',
+        confirmed: 'Confirmada',
+        completed: 'Completada',
+        cancelled: 'Cancelada',
+        no_show: 'No asistió',
+      }
+
+      // Sort by date descending
+      const sortedFiltered = [...filtered].sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+
+      sortedFiltered.forEach((a, i) => {
+        const d = new Date(a.date)
+        const dateStr = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        const serviceNames = a.services.map(s => s.name).join(', ')
+        // Try to find client name from barbers list (in case client is also a user)
+        // Otherwise show clientId abbreviated
+        const clientLabel = (a as any).clientName ?? a.clientId?.slice(0, 8) ?? '—'
+
+        const row = ws5.addRow([
+          dateStr,
+          barberName(a.barberId),
+          clientLabel,
+          serviceNames,
+          a.totalPrice,
+          statusLabels[a.status] ?? a.status,
+        ])
+        if (i % 2 === 1) {
+          row.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }
+          })
+        }
+        row.getCell(5).numFmt = '#,##0.00 "€"'
+      })
+      autoWidth(ws5)
+
+      // ──────────────────────────────────────────────────────────────────
+      // Download
+      // ──────────────────────────────────────────────────────────────────
       const buf = await wb.xlsx.writeBuffer()
       const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
       const url = URL.createObjectURL(blob)

@@ -101,9 +101,11 @@ export function ReportsScreen() {
       {/* What's included */}
       <Text style={styles.sectionLabel}>Incluye</Text>
       <View style={styles.includesCard}>
-        <IncludeRow emoji="📋" text="Todas las citas (fecha, cliente, barbero, estado, precio)" />
-        <IncludeRow emoji="💰" text="Todas las ventas (fecha, barbero, artículos, total)" />
-        <IncludeRow emoji="📊" text="Formato Excel (.xlsx) con 2 hojas" />
+        <IncludeRow emoji="📋" text="Resumen general con ingresos por barbero" />
+        <IncludeRow emoji="👤" text="Desglose detallado por barbero (servicios, productos, ticket medio)" />
+        <IncludeRow emoji="✂️" text="Servicios realizados por cada barbero con cantidades e ingresos" />
+        <IncludeRow emoji="🛍️" text="Productos vendidos por cada barbero" />
+        <IncludeRow emoji="📊" text="Listado completo de citas con estado y totales" />
       </View>
 
       {/* Export button */}
