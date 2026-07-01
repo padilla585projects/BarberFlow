@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
@@ -55,11 +56,9 @@ export function DashboardScreen({ navigation }: Props) {
       }
       setNoBarbershop(false);
 
-      // Get shop name
       const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (shopDoc.exists()) setShopName(shopDoc.data()?.name ?? '');
 
-      // Get all appointments for this barbershop
       const allSnap = await getDocs(query(
         collection(db, 'appointments'),
         where('barbershopId', '==', activeBarbershopId),
@@ -82,12 +81,7 @@ export function DashboardScreen({ navigation }: Props) {
         if (data.status === 'completed') revenue += (data.totalPrice ?? 0);
       });
 
-      setStats({
-        today: todayCount,
-        pending: pendingCount,
-        total: allSnap.size,
-        revenue,
-      });
+      setStats({ today: todayCount, pending: pendingCount, total: allSnap.size, revenue });
     } catch (err) {
       console.error('[DashboardScreen] Error:', err);
     } finally {
@@ -96,9 +90,7 @@ export function DashboardScreen({ navigation }: Props) {
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  useEffect(() => { fetchStats(); }, []);
 
   const handleSignOut = () => {
     Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
@@ -109,20 +101,20 @@ export function DashboardScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
+      <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color={GOLD} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (noBarbershop) {
     return (
-      <View style={styles.centered}>
+      <SafeAreaView style={styles.centered}>
         <View style={styles.ctaCard}>
-          <Text style={styles.ctaEmoji}>✂️</Text>
+          <Text style={styles.ctaIcon}>✂️</Text>
           <Text style={styles.ctaTitle}>Sin barbería registrada</Text>
           <Text style={styles.ctaSub}>
-            Aún no tienes una barbería asociada a tu cuenta. Crea la tuya para empezar a gestionar citas, servicios y más.
+            Crea tu barbería para empezar a gestionar citas, servicios y más.
           </Text>
           <TouchableOpacity
             style={styles.ctaBtn}
@@ -132,138 +124,242 @@ export function DashboardScreen({ navigation }: Props) {
             <Text style={styles.ctaBtnText}>Crear mi barbería</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSignOut} style={{ marginTop: 8 }}>
-            <Text style={styles.logoutBtn}>Cerrar sesión</Text>
+            <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchStats(); }} tintColor={GOLD} />}
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{shopName || 'Mi barbería'}</Text>
-          <Text style={styles.sub}>{user?.displayName ?? user?.email}</Text>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchStats(); }}
+            tintColor={GOLD}
+          />
+        }
+      >
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shopName} numberOfLines={1}>
+              {shopName || 'Mi barbería'}
+            </Text>
+            <Text style={styles.userName}>{user?.displayName ?? user?.email}</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Notifications')}
+              style={styles.iconBtn}
+            >
+              <Text style={styles.iconBtnText}>🔔</Text>
+              {unreadCount > 0 && <View style={styles.badge} />}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSignOut} style={styles.iconBtn}>
+              <Text style={[styles.iconBtnText, { fontSize: 14 }]}>⏻</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={{ position: 'relative' }}>
-            <Text style={{ fontSize: 20 }}>{'🔔'}</Text>
-            {unreadCount > 0 && (
-              <View style={{
-                position: 'absolute', top: -4, right: -4,
-                width: 10, height: 10, borderRadius: 5,
-                backgroundColor: GOLD,
-              }} />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleSignOut}>
-            <Text style={styles.logoutBtn}>Salir</Text>
-          </TouchableOpacity>
+
+        {/* ── Stats row ───────────────────────────────────────────────────── */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { borderTopColor: GOLD }]}>
+            <Text style={[styles.statValue, { color: GOLD }]}>{stats.today}</Text>
+            <Text style={styles.statLabel}>Hoy</Text>
+          </View>
+          <View style={[styles.statCard, { borderTopColor: '#F59E0B' }]}>
+            <Text style={[styles.statValue, { color: '#F59E0B' }]}>{stats.pending}</Text>
+            <Text style={styles.statLabel}>Pendientes</Text>
+          </View>
+          <View style={[styles.statCard, { borderTopColor: '#10B981' }]}>
+            <Text style={[styles.statValue, { color: '#10B981' }]}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <StatCard label="Hoy" value={stats.today} emoji="📅" color={GOLD} />
-        <StatCard label="Pendientes" value={stats.pending} emoji="⏳" color="#F59E0B" />
-        <StatCard label="Total" value={stats.total} emoji="✂️" color="#10B981" />
-      </View>
+        {/* ── Revenue card ────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.revenueCard}
+          onPress={() => navigation.navigate('FinanceDashboard')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.revenueLabel}>Ingresos totales</Text>
+          <Text style={styles.revenueValue}>{stats.revenue.toFixed(2)} €</Text>
+          <Text style={styles.revenueHint}>Ver detalle →</Text>
+        </TouchableOpacity>
 
-      {/* Revenue */}
-      <TouchableOpacity style={styles.revenueCard} onPress={() => navigation.navigate('FinanceDashboard')} activeOpacity={0.8}>
-        <Text style={styles.revenueLabel}>Ingresos totales</Text>
-        <Text style={styles.revenueValue}>{stats.revenue.toFixed(2)} €</Text>
-        <Text style={{fontSize: 12, color: MUTED, marginTop: 4}}>Toca para ver detalle →</Text>
-      </TouchableOpacity>
+        {/* ── Quick actions ───────────────────────────────────────────────── */}
+        <SectionTitle text="Mi Negocio" />
+        <View style={styles.menuGrid}>
+          <MenuItem icon="📋" label="Citas"     onPress={() => navigation.navigate('ShopAppointments')} />
+          <MenuItem icon="👥" label="Barberos"  onPress={() => navigation.navigate('ShopBarbers')} />
+          <MenuItem icon="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
+          <MenuItem icon="⚙️" label="Ajustes"   onPress={() => navigation.navigate('ShopSettings')} />
+        </View>
 
-      {/* Section: Mi Negocio */}
-      <ActionSection title="Mi Negocio">
-        <ActionCard emoji="📋" label="Citas"     onPress={() => navigation.navigate('ShopAppointments')} />
-        <ActionCard emoji="👥" label="Barberos"  onPress={() => navigation.navigate('ShopBarbers')} />
-        <ActionCard emoji="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
-        <ActionCard emoji="⚙️" label="Ajustes"   onPress={() => navigation.navigate('ShopSettings')} />
-      </ActionSection>
+        <SectionTitle text="Ventas" />
+        <View style={styles.menuGrid}>
+          <MenuItem icon="💰" label="Cobrar"     onPress={() => navigation.navigate('Sales')} />
+          <MenuItem icon="💳" label="Pagos"      onPress={() => navigation.navigate('PaymentHistory')} />
+          <MenuItem icon="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
+          <MenuItem icon="🛍️" label="Pedidos"    onPress={() => navigation.navigate('ProductOrders')} />
+        </View>
 
-      {/* Section: Ventas */}
-      <ActionSection title="Ventas">
-        <ActionCard emoji="💰" label="Cobrar"     onPress={() => navigation.navigate('Sales')} />
-        <ActionCard emoji="💳" label="Pagos"      onPress={() => navigation.navigate('PaymentHistory')} />
-        <ActionCard emoji="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
-        <ActionCard emoji="🛍️" label="Pedidos"    onPress={() => navigation.navigate('ProductOrders')} />
-      </ActionSection>
+        <SectionTitle text="Clientes" />
+        <View style={styles.menuGrid}>
+          <MenuItem icon="👤" label="Clientes"    onPress={() => navigation.navigate('ClientHistory')} />
+          <MenuItem icon="⭐" label="Reseñas"     onPress={() => navigation.navigate('Reviews')} />
+          <MenuItem icon="📝" label="Espera"      onPress={() => navigation.navigate('Waitlist')} />
+          <MenuItem icon="🎖️" label="Fidelidad"   onPress={() => navigation.navigate('LoyaltySettings')} />
+        </View>
 
-      {/* Section: Clientes */}
-      <ActionSection title="Clientes">
-        <ActionCard emoji="👤" label="Clientes"        onPress={() => navigation.navigate('ClientHistory')} />
-        <ActionCard emoji="⭐" label="Valoraciones"     onPress={() => navigation.navigate('Reviews')} />
-        <ActionCard emoji="📝" label="Lista de espera"  onPress={() => navigation.navigate('Waitlist')} />
-        <ActionCard emoji="🎖️" label="Fidelidad"        onPress={() => navigation.navigate('LoyaltySettings')} />
-      </ActionSection>
-
-      {/* Section: Marketing */}
-      <ActionSection title="Marketing">
-        <ActionCard emoji="🏷️" label="Promos"   onPress={() => navigation.navigate('Promos')} />
-        <ActionCard emoji="📸" label="Galería"   onPress={() => navigation.navigate('Gallery')} />
-        <ActionCard emoji="💬" label="Mensajes"  onPress={() => navigation.navigate('Messages')} />
-      </ActionSection>
-
-      {/* Section: Análisis */}
-      <ActionSection title="Análisis">
-        <ActionCard emoji="📊" label="Reportes" onPress={() => navigation.navigate('Reports')} />
-      </ActionSection>
-    </ScrollView>
+        <SectionTitle text="Marketing" />
+        <View style={styles.menuGrid}>
+          <MenuItem icon="🏷️" label="Promos"    onPress={() => navigation.navigate('Promos')} />
+          <MenuItem icon="📸" label="Galería"   onPress={() => navigation.navigate('Gallery')} />
+          <MenuItem icon="💬" label="Mensajes"  onPress={() => navigation.navigate('Messages')} />
+          <MenuItem icon="📊" label="Reportes"  onPress={() => navigation.navigate('Reports')} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-function StatCard({ label, value, emoji, color }: { label: string; value: number; emoji: string; color: string }) {
+/* ── Section title ─────────────────────────────────────────────────────────── */
+
+function SectionTitle({ text }: { text: string }) {
   return (
-    <View style={[statStyles.card, { borderTopColor: color }]}>
-      <Text style={statStyles.emoji}>{emoji}</Text>
-      <Text style={[statStyles.value, { color }]}>{value}</Text>
-      <Text style={statStyles.label}>{label}</Text>
+    <View style={styles.sectionHeader}>
+      <View style={styles.sectionLine} />
+      <Text style={styles.sectionText}>{text.toUpperCase()}</Text>
+      <View style={[styles.sectionLine, { flex: 1 }]} />
     </View>
   );
 }
 
-function ActionSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={sectionStyles.wrapper}>
-      <View style={sectionStyles.headerRow}>
-        <View style={sectionStyles.dividerLeft} />
-        <Text style={sectionStyles.title}>{title.toUpperCase()}</Text>
-        <View style={sectionStyles.dividerRight} />
-      </View>
-      <View style={sectionStyles.grid}>{children}</View>
-    </View>
-  );
-}
+/* ── Menu item (compact, 4-column grid) ────────────────────────────────────── */
 
-function ActionCard({ emoji, label, onPress }: { emoji: string; label: string; onPress: () => void }) {
+function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={actionStyles.card} onPress={onPress} activeOpacity={0.75}>
-      <View style={actionStyles.emojiWrapper}>
-        <Text style={actionStyles.emoji}>{emoji}</Text>
+    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.menuIcon}>
+        <Text style={{ fontSize: 18 }}>{icon}</Text>
       </View>
-      <Text style={actionStyles.label}>{label}</Text>
+      <Text style={styles.menuLabel} numberOfLines={1}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
+/* ── Styles ─────────────────────────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: BG },
   container: { flex: 1, backgroundColor: BG },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG, padding: 24 },
-  content: { padding: 20, gap: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  greeting: { fontSize: 22, fontWeight: '800', color: TEXT },
-  sub: { fontSize: 13, color: MUTED, marginTop: 2 },
-  logoutBtn: { fontSize: 14, color: '#EF4444', fontWeight: '600' },
-  // No-barbershop CTA
+  content: { paddingHorizontal: 16, paddingBottom: 32, gap: 16 },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  shopName: { fontSize: 20, fontWeight: '800', color: TEXT },
+  userName: { fontSize: 12, color: MUTED, marginTop: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: SURFACE,
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtnText: { fontSize: 16 },
+  badge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GOLD,
+  },
+
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 8 },
+  statCard: {
+    flex: 1,
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderTopWidth: 2,
+    paddingVertical: 12,
+    alignItems: 'center',
+    gap: 2,
+  },
+  statValue: { fontSize: 22, fontWeight: '800' },
+  statLabel: { fontSize: 10, color: MUTED, fontWeight: '600' },
+
+  // Revenue
+  revenueCard: {
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 16,
+    alignItems: 'center',
+    gap: 2,
+  },
+  revenueLabel: { fontSize: 11, color: MUTED, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  revenueValue: { fontSize: 28, fontWeight: '800', color: GOLD },
+  revenueHint: { fontSize: 11, color: MUTED, marginTop: 2 },
+
+  // Sections
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  sectionLine: { width: 16, height: 1, backgroundColor: BORDER },
+  sectionText: { fontSize: 10, fontWeight: '700', color: MUTED, letterSpacing: 1.5 },
+
+  // Menu grid — 4 columns, compact
+  menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  menuItem: {
+    width: '23%',
+    backgroundColor: SURFACE,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 12,
+    alignItems: 'center',
+    gap: 6,
+  },
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: GOLD + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: { fontSize: 10, fontWeight: '700', color: TEXT, textAlign: 'center', paddingHorizontal: 2 },
+
+  // Logout
+  logoutText: { fontSize: 14, color: '#EF4444', fontWeight: '600' },
+
+  // CTA (no barbershop)
   ctaCard: {
     backgroundColor: SURFACE,
     borderRadius: 20,
@@ -274,7 +370,7 @@ const styles = StyleSheet.create({
     gap: 12,
     width: '100%',
   },
-  ctaEmoji: { fontSize: 52, marginBottom: 4 },
+  ctaIcon: { fontSize: 48 },
   ctaTitle: { fontSize: 20, fontWeight: '800', color: TEXT, textAlign: 'center' },
   ctaSub: { fontSize: 14, color: MUTED, textAlign: 'center', lineHeight: 20 },
   ctaBtn: {
@@ -285,87 +381,4 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   ctaBtnText: { fontSize: 15, fontWeight: '800', color: BG },
-  statsRow: { flexDirection: 'row', gap: 10 },
-  revenueCard: {
-    backgroundColor: SURFACE,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 18,
-    alignItems: 'center',
-    gap: 4,
-  },
-  revenueLabel: { fontSize: 13, color: MUTED, fontWeight: '600' },
-  revenueValue: { fontSize: 32, fontWeight: '800', color: GOLD },
-});
-
-const statStyles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: SURFACE,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 14,
-    alignItems: 'center',
-    gap: 4,
-    borderTopWidth: 3,
-  },
-  emoji: { fontSize: 22 },
-  value: { fontSize: 28, fontWeight: '800' },
-  label: { fontSize: 11, color: MUTED, fontWeight: '600' },
-});
-
-const sectionStyles = StyleSheet.create({
-  wrapper: { gap: 12 },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dividerLeft: {
-    width: 18,
-    height: 1,
-    backgroundColor: BORDER,
-  },
-  dividerRight: {
-    flex: 1,
-    height: 1,
-    backgroundColor: BORDER,
-  },
-  title: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: MUTED,
-    letterSpacing: 1.2,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-});
-
-const actionStyles = StyleSheet.create({
-  card: {
-    width: '47%',
-    backgroundColor: SURFACE,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    gap: 10,
-  },
-  emojiWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(201,168,76,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emoji: { fontSize: 24 },
-  label: { fontSize: 13, fontWeight: '700', color: TEXT, textAlign: 'center' },
 });

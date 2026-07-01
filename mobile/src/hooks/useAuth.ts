@@ -16,17 +16,12 @@ export interface AuthState {
 /**
  * Determines the effective role from memberships.
  * Priority: developer > owner > barber > client
- * A user with ANY membership is at least 'barber'.
- * A user who OWNS any barbershop is 'owner'.
  */
 function resolveRole(profile: User): UserRole {
-  // Developer override — set manually in Firestore
   if (profile.role === 'developer') return 'developer';
 
   const memberships = profile.memberships ?? [];
   if (memberships.length === 0) return 'client';
-
-  // If any membership is 'owner', they're an owner
   if (memberships.some((m) => m.role === 'owner')) return 'owner';
 
   return 'barber';
@@ -34,25 +29,30 @@ function resolveRole(profile: User): UserRole {
 
 /**
  * Determines the active barbershopId.
- * Uses explicitly set activeBarbershopId, falls back to first membership,
- * then legacy barbershopId for backward compatibility.
  */
 function resolveActiveBarbershopId(profile: User): string | null {
   const memberships = profile.memberships ?? [];
 
-  // Explicit active selection
   if (profile.activeBarbershopId) {
-    // Validate it's still a valid membership
     if (memberships.some((m) => m.barbershopId === profile.activeBarbershopId)) {
       return profile.activeBarbershopId;
     }
   }
 
-  // First membership
   if (memberships.length > 0) return memberships[0].barbershopId;
 
-  // Legacy fallback
   return profile.barbershopId ?? null;
+}
+
+function buildStateFromProfile(firebaseUser: FirebaseUser, profile: User): AuthState {
+  return {
+    firebaseUser,
+    profile,
+    role: resolveRole(profile),
+    activeBarbershopId: resolveActiveBarbershopId(profile),
+    memberships: profile.memberships ?? [],
+    loading: false,
+  };
 }
 
 export function useAuth(): AuthState {
@@ -67,13 +67,26 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     let unsubProfile: (() => void) | null = null;
+    let isMounted = true;
 
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous profile listener
       if (unsubProfile) { unsubProfile(); unsubProfile = null; }
 
+      // ── Signed out ────────────────────────────────────────────────────
       if (!firebaseUser) {
-        setState({ firebaseUser: null, profile: null, role: null, activeBarbershopId: null, memberships: [], loading: false });
+        if (isMounted) {
+          setState({
+            firebaseUser: null, profile: null, role: null,
+            activeBarbershopId: null, memberships: [], loading: false,
+          });
+        }
         return;
+      }
+
+      // ── Signed in: show loading while we fetch profile ────────────────
+      if (isMounted) {
+        setState((prev) => ({ ...prev, firebaseUser, loading: true }));
       }
 
       try {
@@ -81,6 +94,7 @@ export function useAuth(): AuthState {
         const snap = await getDoc(userRef);
 
         if (!snap.exists()) {
+          // New user — create profile
           const newProfile: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email ?? '',
@@ -90,25 +104,45 @@ export function useAuth(): AuthState {
             memberships: [],
           };
           await setDoc(userRef, { ...newProfile, createdAt: serverTimestamp() });
+
+          // Set state immediately for the new user (don't wait for onSnapshot)
+          if (isMounted) {
+            setState(buildStateFromProfile(firebaseUser, newProfile));
+          }
+        } else {
+          // Existing user — set state immediately from getDoc
+          const profile = snap.data() as User;
+          if (isMounted) {
+            setState(buildStateFromProfile(firebaseUser, profile));
+          }
         }
 
-        // Listen for realtime changes
-        unsubProfile = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const profile = docSnap.data() as User;
-            const role = resolveRole(profile);
-            const activeBarbershopId = resolveActiveBarbershopId(profile);
-            const memberships = profile.memberships ?? [];
-            setState({ firebaseUser, profile, role, activeBarbershopId, memberships, loading: false });
-          }
-        });
+        // Listen for realtime changes (updates role/membership changes live)
+        unsubProfile = onSnapshot(
+          userRef,
+          (docSnap) => {
+            if (docSnap.exists() && isMounted) {
+              setState(buildStateFromProfile(firebaseUser, docSnap.data() as User));
+            }
+          },
+          (err) => {
+            console.error('[useAuth] onSnapshot error:', err);
+            // Don't crash — we already set state from getDoc above
+          },
+        );
       } catch (err) {
         console.error('[useAuth] Error fetching profile:', err);
-        setState({ firebaseUser, profile: null, role: 'client', activeBarbershopId: null, memberships: [], loading: false });
+        if (isMounted) {
+          setState({
+            firebaseUser, profile: null, role: 'client',
+            activeBarbershopId: null, memberships: [], loading: false,
+          });
+        }
       }
     });
 
     return () => {
+      isMounted = false;
       unsubAuth();
       if (unsubProfile) unsubProfile();
     };

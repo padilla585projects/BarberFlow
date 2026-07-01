@@ -70,53 +70,68 @@ function RootNavigatorInner({ onReady }: RootNavigatorProps) {
     return <View style={styles.placeholder} />;
   }
 
-  // Determine which navigator to show based on active membership
-  const activeMembership = memberships.find(
-    (m) => m.barbershopId === activeBarbershopId,
-  );
+  // Determine which screens to show based on auth state
+  const isSignedIn = !!firebaseUser;
 
-  const getInitialScreen = (): keyof RootStackParamList => {
-    if (!firebaseUser) return 'Login';
+  const activeMembership = isSignedIn
+    ? memberships.find((m) => m.barbershopId === activeBarbershopId)
+    : undefined;
 
-    // Developer always goes to Owner panel
-    if (role === 'developer') return 'Owner';
+  const effectiveRole = !isSignedIn
+    ? null
+    : role === 'developer'
+      ? 'owner'
+      : activeMembership?.role ?? 'client';
 
-    // User has memberships but none is selected → show shop selector
-    if (memberships.length > 0 && !activeBarbershopId) return 'ShopSelector';
-
-    // Route based on active membership's role
-    if (activeMembership?.role === 'owner') return 'Owner';
-    if (activeMembership?.role === 'barber') return 'Barber';
-
-    // No memberships or active membership not found → client
-    return 'Client';
-  };
-
-  const initialScreen = getInitialScreen();
+  const needsShopSelector = isSignedIn && memberships.length > 0 && !activeBarbershopId;
 
   return (
     <NavigationContainer onStateChange={handleNavigationStateChange}>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false, animation: 'fade' }}
-        initialRouteName={initialScreen}
-      >
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Client" component={ClientNavigator} />
-        <Stack.Screen name="Barber" component={BarberNavigator} />
-        <Stack.Screen name="Owner" component={OwnerNavigator} />
-        <Stack.Screen
-          name="ShopSelector"
-          component={ShopSelectorScreen}
-          options={{
-            headerShown: true,
-            headerStyle: { backgroundColor: '#0A0A0A' },
-            headerShadowVisible: false,
-            headerTintColor: '#FFFFFF',
-            headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
-            title: 'Cambiar barbería',
-            animation: 'slide_from_bottom',
-          }}
-        />
+      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+        {!isSignedIn ? (
+          // ── Auth screens ────────────────────────────────────────────
+          <Stack.Screen name="Login" component={LoginScreen} />
+        ) : needsShopSelector ? (
+          // ── Needs to pick a barbershop ──────────────────────────────
+          <Stack.Screen
+            name="ShopSelector"
+            component={ShopSelectorScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: '#0A0A0A' },
+              headerShadowVisible: false,
+              headerTintColor: '#FFFFFF',
+              headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
+              title: 'Selecciona tu barbería',
+            }}
+          />
+        ) : (
+          // ── Main app based on role ─────────────────────────────────
+          <>
+            {effectiveRole === 'owner' && (
+              <Stack.Screen name="Owner" component={OwnerNavigator} />
+            )}
+            {effectiveRole === 'barber' && (
+              <Stack.Screen name="Barber" component={BarberNavigator} />
+            )}
+            {effectiveRole === 'client' && (
+              <Stack.Screen name="Client" component={ClientNavigator} />
+            )}
+            <Stack.Screen
+              name="ShopSelector"
+              component={ShopSelectorScreen}
+              options={{
+                headerShown: true,
+                headerStyle: { backgroundColor: '#0A0A0A' },
+                headerShadowVisible: false,
+                headerTintColor: '#FFFFFF',
+                headerTitleStyle: { fontWeight: '700', color: '#FFFFFF' },
+                title: 'Cambiar barbería',
+                animation: 'slide_from_bottom',
+              }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
