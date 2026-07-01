@@ -12,6 +12,7 @@ import {
   Image,
   ActionSheetIOS,
   Platform,
+  Linking,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
@@ -351,6 +352,16 @@ export function ProfileScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('NotificationSettings')} activeOpacity={0.7}>
           <Text style={styles.linkIcon}>🔔</Text>
           <Text style={styles.linkText}>Notificaciones</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL('https://barberflow-2026.web.app/privacy.html')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>📄</Text>
+          <Text style={styles.linkText}>Política de privacidad</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL('https://barberflow-2026.web.app/terms.html')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>📋</Text>
+          <Text style={styles.linkText}>Términos de uso</Text>
           <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
       </View>

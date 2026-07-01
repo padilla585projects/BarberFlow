@@ -129,7 +129,10 @@ export function AgendaScreen() {
               <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
                 <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={signOut}>
+              <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Salir', style: 'destructive', onPress: signOut },
+              ])}>
                 <Text style={styles.logoutBtn}>Salir</Text>
               </TouchableOpacity>
             </View>

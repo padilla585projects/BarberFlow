@@ -70,7 +70,7 @@ export const sendWeeklySummary = onSchedule(
         const total = aptsSnap.size
         const completed = aptsSnap.docs.filter(d => d.data().status === 'completed').length
         const cancelled = aptsSnap.docs.filter(d => d.data().status === 'cancelled').length
-        const noShow = aptsSnap.docs.filter(d => d.data().status === 'no-show').length
+        const noShow = aptsSnap.docs.filter(d => d.data().status === 'no_show').length
 
         const completedDocs = aptsSnap.docs.filter(d => d.data().status === 'completed')
         const appointmentRevenue = completedDocs.reduce(

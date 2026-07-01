@@ -37,6 +37,7 @@ exports.onMessageCreated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
 const push_1 = require("../utils/push");
+const notificationStore_1 = require("../utils/notificationStore");
 if (!admin.apps.length)
     admin.initializeApp();
 const REGION = 'europe-west1';
@@ -66,6 +67,7 @@ exports.onMessageCreated = (0, firestore_1.onDocumentCreated)({ document: 'barbe
                 if (token) {
                     await (0, push_1.sendPushNotification)(token, `${senderName} (a todos)`, preview, pushData);
                 }
+                await (0, notificationStore_1.storeNotification)(uid, { title: `${senderName} (a todos)`, body: preview, type: 'message', data: pushData });
             });
             await Promise.all(promises);
         }
@@ -75,6 +77,7 @@ exports.onMessageCreated = (0, firestore_1.onDocumentCreated)({ document: 'barbe
             if (token) {
                 await (0, push_1.sendPushNotification)(token, `Mensaje de ${senderName}`, preview, pushData);
             }
+            await (0, notificationStore_1.storeNotification)(recipientId, { title: `Mensaje de ${senderName}`, body: preview, type: 'message', data: pushData });
         }
     }
     else if (senderRole === 'barber') {
@@ -86,6 +89,7 @@ exports.onMessageCreated = (0, firestore_1.onDocumentCreated)({ document: 'barbe
             if (token) {
                 await (0, push_1.sendPushNotification)(token, `Mensaje de ${senderName}`, preview, pushData);
             }
+            await (0, notificationStore_1.storeNotification)(ownerId, { title: `Mensaje de ${senderName}`, body: preview, type: 'message', data: pushData });
         }
     }
 });

@@ -23,6 +23,7 @@ import {
   or,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
+import { useAuthContext } from '../../contexts/AuthContext';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -48,6 +49,7 @@ interface BarberInfo {
 
 export function MessagesScreen() {
   const user = auth.currentUser;
+  const { activeBarbershopId } = useAuthContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export function MessagesScreen() {
         if (!userData) return;
 
         const role = userData.role as 'owner' | 'barber';
-        const shopId = userData.barbershopId as string;
+        const shopId = activeBarbershopId ?? (userData.barbershopId as string);
         setUserRole(role);
         setBarbershopId(shopId);
 
@@ -108,7 +110,7 @@ export function MessagesScreen() {
         console.error('[MessagesScreen] Init error:', err);
       }
     })();
-  }, [user]);
+  }, [user, activeBarbershopId]);
 
   // Subscribe to messages
   useEffect(() => {

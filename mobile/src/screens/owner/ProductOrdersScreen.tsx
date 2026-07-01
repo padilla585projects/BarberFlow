@@ -135,7 +135,7 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
       if (newStatus === 'picked_up') {
         for (const item of order.items) {
           if (item.productId) {
-            const productRef = doc(db, `barbershops/${activeBarbershopId}/products`, item.productId);
+            const productRef = doc(db, 'products', item.productId);
             await updateDoc(productRef, {
               stock: increment(-item.quantity),
             });

@@ -1,6 +1,7 @@
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import * as admin from 'firebase-admin'
 import { getExpoPushToken, sendPushNotification } from '../utils/push'
+import { storeNotification } from '../utils/notificationStore'
 
 if (!admin.apps.length) admin.initializeApp()
 
@@ -36,6 +37,7 @@ export const onMessageCreated = onDocumentCreated(
           if (token) {
             await sendPushNotification(token, `${senderName} (a todos)`, preview, pushData)
           }
+          await storeNotification(uid, { title: `${senderName} (a todos)`, body: preview, type: 'message', data: pushData })
         })
         await Promise.all(promises)
       } else {
@@ -44,6 +46,7 @@ export const onMessageCreated = onDocumentCreated(
         if (token) {
           await sendPushNotification(token, `Mensaje de ${senderName}`, preview, pushData)
         }
+        await storeNotification(recipientId, { title: `Mensaje de ${senderName}`, body: preview, type: 'message', data: pushData })
       }
     } else if (senderRole === 'barber') {
       // Barber sent message: notify the owner
@@ -54,6 +57,7 @@ export const onMessageCreated = onDocumentCreated(
         if (token) {
           await sendPushNotification(token, `Mensaje de ${senderName}`, preview, pushData)
         }
+        await storeNotification(ownerId, { title: `Mensaje de ${senderName}`, body: preview, type: 'message', data: pushData })
       }
     }
   },

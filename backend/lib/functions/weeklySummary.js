@@ -96,7 +96,7 @@ exports.sendWeeklySummary = (0, scheduler_1.onSchedule)({
             const total = aptsSnap.size;
             const completed = aptsSnap.docs.filter(d => d.data().status === 'completed').length;
             const cancelled = aptsSnap.docs.filter(d => d.data().status === 'cancelled').length;
-            const noShow = aptsSnap.docs.filter(d => d.data().status === 'no-show').length;
+            const noShow = aptsSnap.docs.filter(d => d.data().status === 'no_show').length;
             const completedDocs = aptsSnap.docs.filter(d => d.data().status === 'completed');
             const appointmentRevenue = completedDocs.reduce((sum, d) => sum + (d.data().totalPrice || 0), 0);
             const tips = completedDocs.reduce((sum, d) => sum + (d.data().tipAmount || 0), 0);

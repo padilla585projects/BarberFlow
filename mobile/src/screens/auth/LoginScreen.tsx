@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -189,7 +190,20 @@ export function LoginScreen() {
           </View>
 
           <Text style={styles.disclaimer}>
-            Al continuar aceptas los términos de uso de BarberFlow
+            Al continuar aceptas la{' '}
+            <Text
+              style={styles.disclaimerLink}
+              onPress={() => Linking.openURL('https://barberflow-2026.web.app/privacy.html')}
+            >
+              Política de Privacidad
+            </Text>
+            {' '}y los{' '}
+            <Text
+              style={styles.disclaimerLink}
+              onPress={() => Linking.openURL('https://barberflow-2026.web.app/terms.html')}
+            >
+              Términos de Uso
+            </Text>
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -382,5 +396,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     letterSpacing: 0.2,
+  },
+  disclaimerLink: {
+    color: GOLD,
+    textDecorationLine: 'underline',
   },
 });
