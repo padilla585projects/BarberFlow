@@ -14,6 +14,7 @@ import { ProductDetailScreen } from '../screens/client/ProductDetailScreen';
 import { CartScreen } from '../screens/client/CartScreen';
 import { CheckoutScreen } from '../screens/client/CheckoutScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
+import { BugReportScreen } from '../screens/common/BugReportScreen';
 import { BarberPortfolioScreen } from '../screens/client/BarberPortfolioScreen';
 import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
 import { JoinBarbershopScreen } from '../screens/client/JoinBarbershopScreen';
@@ -37,6 +38,7 @@ export type ClientStackParamList = {
   NotificationSettings: undefined;
   CreateBarbershop: undefined;
   JoinBarbershop: undefined;
+  BugReport: undefined;
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -221,6 +223,11 @@ export function ClientNavigator() {
         name="JoinBarbershop"
         component={JoinBarbershopScreen}
         options={{ title: 'Unirse como barbero' }}
+      />
+      <Stack.Screen
+        name="BugReport"
+        component={BugReportScreen}
+        options={{ title: 'Reportar un problema' }}
       />
     </Stack.Navigator>
   );

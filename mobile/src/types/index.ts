@@ -45,6 +45,8 @@ export interface Barbershop {
   bookingSettings?: BookingSettings;
   notificationSettings?: NotificationSettings;
   gallery?: string[];
+  totalRatings?: number;
+  ratingSum?: number;
   createdAt: Date;
 }
 

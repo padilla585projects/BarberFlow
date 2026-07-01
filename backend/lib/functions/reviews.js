@@ -41,25 +41,31 @@ const notificationStore_1 = require("../utils/notificationStore");
 if (!admin.apps.length)
     admin.initializeApp();
 const REGION = 'europe-west1';
-// New review → notify barber
+// New review → update rating aggregates + notify barber
 exports.onReviewCreatedPush = (0, firestore_1.onDocumentCreated)({ document: 'barbershops/{barbershopId}/reviews/{reviewId}', region: REGION }, async (event) => {
     var _a, _b;
     const review = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
     if (!review)
         return;
+    const rating = review.rating;
+    const barbershopId = event.params.barbershopId;
+    // Update barbershop rating aggregates (using admin SDK — bypasses security rules)
+    await admin.firestore().doc(`barbershops/${barbershopId}`).update({
+        totalRatings: admin.firestore.FieldValue.increment(1),
+        ratingSum: admin.firestore.FieldValue.increment(rating),
+    });
     const barberId = review.barberId;
     if (!barberId)
         return;
     const token = await (0, push_1.getExpoPushToken)(barberId);
-    if (!token)
-        return;
     const clientName = review.clientName || 'Un cliente';
-    const rating = review.rating;
     const stars = '⭐'.repeat(rating);
     const barberTitle = 'Nueva reseña';
     const barberBody = `${clientName} te ha dejado una reseña ${stars}`;
-    const pushData = { barbershopId: event.params.barbershopId, reviewId: event.params.reviewId, type: 'new_review' };
-    await (0, push_1.sendPushNotification)(token, barberTitle, barberBody, pushData);
+    const pushData = { barbershopId, reviewId: event.params.reviewId, type: 'new_review' };
+    if (token) {
+        await (0, push_1.sendPushNotification)(token, barberTitle, barberBody, pushData);
+    }
     await (0, notificationStore_1.storeNotification)(barberId, { title: barberTitle, body: barberBody, type: 'review', data: pushData });
     // Also notify the shop owner
     const shopSnap = await admin.firestore().collection('barbershops').doc(event.params.barbershopId).get();

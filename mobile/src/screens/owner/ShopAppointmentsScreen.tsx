@@ -195,6 +195,16 @@ export function ShopAppointmentsScreen() {
               <Text style={styles.cardBarber}>
                 Barbero: {(item as any).barberName ?? 'Sin asignar'}
               </Text>
+              {item.services && item.services.length > 0 && (
+                <Text style={styles.cardServices} numberOfLines={2}>
+                  {item.services.map((s) => s.name).join(', ')}
+                </Text>
+              )}
+              {item.services && item.services.length > 0 && (
+                <Text style={styles.cardMeta}>
+                  {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
+                </Text>
+              )}
               <View
                 style={[
                   styles.badge,
@@ -324,6 +334,8 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1, gap: 3 },
   cardClient: { fontSize: 15, fontWeight: '700', color: TEXT },
   cardBarber: { fontSize: 12, color: MUTED },
+  cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
+  cardMeta: { fontSize: 11, color: MUTED },
   badge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,

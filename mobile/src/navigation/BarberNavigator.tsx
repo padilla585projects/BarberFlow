@@ -12,6 +12,7 @@ import { PortfolioScreen } from '../screens/barber/PortfolioScreen';
 import { BarberReportsScreen } from '../screens/barber/BarberReportsScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
+import { BugReportScreen } from '../screens/common/BugReportScreen';
 
 export type BarberStackParamList = {
   Agenda: undefined;
@@ -24,6 +25,7 @@ export type BarberStackParamList = {
   Notifications: undefined;
   NotificationSettings: undefined;
   ShopSelector: undefined;
+  BugReport: undefined;
 };
 
 const Stack = createNativeStackNavigator<BarberStackParamList>();
@@ -146,6 +148,11 @@ export function BarberNavigator() {
           title: 'Cambiar barbería',
           animation: 'slide_from_bottom',
         }}
+      />
+      <Stack.Screen
+        name="BugReport"
+        component={BugReportScreen}
+        options={{ title: 'Reportar un problema' }}
       />
     </Stack.Navigator>
   );

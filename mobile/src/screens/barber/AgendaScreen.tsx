@@ -129,6 +129,9 @@ export function AgendaScreen() {
               <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
                 <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
               </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
+                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
                 { text: 'Cancelar', style: 'cancel' },
                 { text: 'Salir', style: 'destructive', onPress: signOut },
@@ -153,6 +156,16 @@ export function AgendaScreen() {
             <View style={styles.cardInfo}>
               <Text style={styles.cardClient}>{(item as any).clientName ?? 'Cliente'}</Text>
               <Text style={styles.cardEmail}>{(item as any).clientEmail ?? ''}</Text>
+              {item.services && item.services.length > 0 && (
+                <Text style={styles.cardServices} numberOfLines={2}>
+                  {item.services.map((s) => s.name).join(', ')}
+                </Text>
+              )}
+              {item.services && item.services.length > 0 && (
+                <Text style={styles.cardMeta}>
+                  {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
+                </Text>
+              )}
               <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] + '20' }]}>
                 <Text style={[styles.badgeText, { color: STATUS_COLOR[item.status] }]}>
                   {item.status === 'pending' ? 'Pendiente' :
@@ -242,6 +255,8 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1, gap: 3 },
   cardClient: { fontSize: 15, fontWeight: '700', color: TEXT },
   cardEmail: { fontSize: 12, color: MUTED },
+  cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
+  cardMeta: { fontSize: 11, color: MUTED },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, marginTop: 2 },
   badgeText: { fontSize: 11, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 8 },

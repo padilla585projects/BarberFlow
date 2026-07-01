@@ -194,37 +194,42 @@ export function DashboardScreen({ navigation }: Props) {
           <Text style={styles.revenueHint}>Ver detalle →</Text>
         </TouchableOpacity>
 
-        {/* ── Quick actions ───────────────────────────────────────────────── */}
-        <SectionTitle text="Mi Negocio" />
-        <View style={styles.menuGrid}>
-          <MenuItem icon="📋" label="Citas"     onPress={() => navigation.navigate('ShopAppointments')} />
-          <MenuItem icon="👥" label="Barberos"  onPress={() => navigation.navigate('ShopBarbers')} />
-          <MenuItem icon="✂️" label="Servicios" onPress={() => navigation.navigate('ShopServices')} />
-          <MenuItem icon="⚙️" label="Ajustes"   onPress={() => navigation.navigate('ShopSettings')} />
+        {/* ── Menu list ────────────────────────────────────────────────── */}
+        <SectionTitle text="Gestión" />
+        <View style={styles.listSection}>
+          <ListRow icon="📋" title="Citas" subtitle="Ver y gestionar las citas del día" onPress={() => navigation.navigate('ShopAppointments')} />
+          <ListRow icon="✂️" title="Servicios" subtitle="Catálogo de cortes y tratamientos" onPress={() => navigation.navigate('ShopServices')} />
+          <ListRow icon="👥" title="Barberos" subtitle="Equipo y horarios" onPress={() => navigation.navigate('ShopBarbers')} />
+          <ListRow icon="📝" title="Lista de espera" subtitle="Clientes esperando turno" onPress={() => navigation.navigate('Waitlist')} last />
         </View>
 
         <SectionTitle text="Ventas" />
-        <View style={styles.menuGrid}>
-          <MenuItem icon="💰" label="Cobrar"     onPress={() => navigation.navigate('Sales')} />
-          <MenuItem icon="💳" label="Pagos"      onPress={() => navigation.navigate('PaymentHistory')} />
-          <MenuItem icon="📦" label="Inventario" onPress={() => navigation.navigate('Inventory')} />
-          <MenuItem icon="🛍️" label="Pedidos"    onPress={() => navigation.navigate('ProductOrders')} />
+        <View style={styles.listSection}>
+          <ListRow icon="💰" title="Cobrar" subtitle="Registrar un cobro rápido" onPress={() => navigation.navigate('Sales')} />
+          <ListRow icon="💳" title="Historial de pagos" subtitle="Transacciones anteriores" onPress={() => navigation.navigate('PaymentHistory')} />
+          <ListRow icon="📦" title="Inventario" subtitle="Stock de productos" onPress={() => navigation.navigate('Inventory')} />
+          <ListRow icon="🛍️" title="Pedidos" subtitle="Pedidos de la tienda online" onPress={() => navigation.navigate('ProductOrders')} last />
         </View>
 
         <SectionTitle text="Clientes" />
-        <View style={styles.menuGrid}>
-          <MenuItem icon="👤" label="Clientes"    onPress={() => navigation.navigate('ClientHistory')} />
-          <MenuItem icon="⭐" label="Reseñas"     onPress={() => navigation.navigate('Reviews')} />
-          <MenuItem icon="📝" label="Espera"      onPress={() => navigation.navigate('Waitlist')} />
-          <MenuItem icon="🎖️" label="Fidelidad"   onPress={() => navigation.navigate('LoyaltySettings')} />
+        <View style={styles.listSection}>
+          <ListRow icon="👤" title="Clientes" subtitle="Historial y fichas de clientes" onPress={() => navigation.navigate('ClientHistory')} />
+          <ListRow icon="⭐" title="Reseñas" subtitle="Valoraciones de clientes" onPress={() => navigation.navigate('Reviews')} />
+          <ListRow icon="🎖️" title="Fidelidad" subtitle="Programa de puntos y recompensas" onPress={() => navigation.navigate('LoyaltySettings')} last />
         </View>
 
         <SectionTitle text="Marketing" />
-        <View style={styles.menuGrid}>
-          <MenuItem icon="🏷️" label="Promos"    onPress={() => navigation.navigate('Promos')} />
-          <MenuItem icon="📸" label="Galería"   onPress={() => navigation.navigate('Gallery')} />
-          <MenuItem icon="💬" label="Mensajes"  onPress={() => navigation.navigate('Messages')} />
-          <MenuItem icon="📊" label="Reportes"  onPress={() => navigation.navigate('Reports')} />
+        <View style={styles.listSection}>
+          <ListRow icon="🏷️" title="Promociones" subtitle="Descuentos y ofertas activas" onPress={() => navigation.navigate('Promos')} />
+          <ListRow icon="📸" title="Galería" subtitle="Fotos de trabajos realizados" onPress={() => navigation.navigate('Gallery')} />
+          <ListRow icon="💬" title="Mensajes" subtitle="Chat con clientes" onPress={() => navigation.navigate('Messages')} />
+          <ListRow icon="📊" title="Reportes" subtitle="Estadísticas del negocio" onPress={() => navigation.navigate('Reports')} last />
+        </View>
+
+        <SectionTitle text="Configuración" />
+        <View style={styles.listSection}>
+          <ListRow icon="⚙️" title="Ajustes" subtitle="Horarios, ubicación y más" onPress={() => navigation.navigate('ShopSettings')} />
+          <ListRow icon="🐛" title="Reportar un problema" subtitle="Reporta errores o sugerencias" onPress={() => navigation.navigate('BugReport')} last />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -243,15 +248,29 @@ function SectionTitle({ text }: { text: string }) {
   );
 }
 
-/* ── Menu item (compact, 4-column grid) ────────────────────────────────────── */
+/* ── List row ─────────────────────────────────────────────────────────────── */
 
-function MenuItem({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
+function ListRow({ icon, title, subtitle, onPress, last }: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  last?: boolean;
+}) {
   return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.menuIcon}>
+    <TouchableOpacity
+      style={[styles.listRow, !last && styles.listRowBorder]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <View style={styles.listRowIcon}>
         <Text style={{ fontSize: 18 }}>{icon}</Text>
       </View>
-      <Text style={styles.menuLabel} numberOfLines={1}>{label}</Text>
+      <View style={styles.listRowText}>
+        <Text style={styles.listRowTitle}>{title}</Text>
+        <Text style={styles.listRowSub} numberOfLines={1}>{subtitle}</Text>
+      </View>
+      <Text style={styles.listRowChevron}>›</Text>
     </TouchableOpacity>
   );
 }
@@ -330,31 +349,51 @@ const styles = StyleSheet.create({
   sectionLine: { width: 16, height: 1, backgroundColor: BORDER },
   sectionText: { fontSize: 10, fontWeight: '700', color: MUTED, letterSpacing: 1.5 },
 
-  // Menu grid — 4 columns, compact
-  menuGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  menuItem: {
-    width: '23%',
+  // List section
+  listSection: {
     backgroundColor: SURFACE,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 6,
+    overflow: 'hidden',
   },
-  menuIcon: {
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  listRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  listRowIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: GOLD + '12',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
-  menuLabel: { fontSize: 10, fontWeight: '700', color: TEXT, textAlign: 'center', paddingHorizontal: 2 },
+  listRowText: {
+    flex: 1,
+  },
+  listRowTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT,
+  },
+  listRowSub: {
+    fontSize: 11,
+    color: MUTED,
+    marginTop: 1,
+  },
+  listRowChevron: {
+    fontSize: 20,
+    color: MUTED,
+    marginLeft: 8,
+  },
 
   // Logout
   logoutText: { fontSize: 14, color: '#EF4444', fontWeight: '600' },

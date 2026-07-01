@@ -11,7 +11,7 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
@@ -49,11 +49,21 @@ const DAY_ORDER: (keyof OpeningHours)[] = [
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GALLERY_THUMB = 120;
 
+interface Review {
+  id: string;
+  clientName: string;
+  barberName: string;
+  rating: number;
+  comment: string;
+  createdAt: any;
+}
+
 export function BarbershopScreen({ route, navigation }: Props) {
   const { barbershopId, name } = route.params;
   const [shop, setShop] = useState<Barbershop | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -62,6 +72,17 @@ export function BarbershopScreen({ route, navigation }: Props) {
         if (snap.exists()) {
           setShop({ id: snap.id, ...snap.data() } as Barbershop);
         }
+
+        // Fetch recent reviews
+        const reviewsQuery = query(
+          collection(db, 'barbershops', barbershopId, 'reviews'),
+          orderBy('createdAt', 'desc'),
+          limit(10),
+        );
+        const reviewSnap = await getDocs(reviewsQuery);
+        setReviews(
+          reviewSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Review)),
+        );
       } catch (err) {
         console.error('Error fetching barbershop:', err);
       } finally {
@@ -165,6 +186,43 @@ export function BarbershopScreen({ route, navigation }: Props) {
           />
         </View>
       )}
+
+      {/* Rating summary + reviews */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Valoraciones</Text>
+        {shop?.totalRatings && shop.totalRatings > 0 ? (
+          <>
+            <View style={styles.ratingSummary}>
+              <Text style={styles.ratingBig}>
+                {(shop.ratingSum! / shop.totalRatings).toFixed(1)}
+              </Text>
+              <View style={styles.ratingMeta}>
+                <Text style={styles.ratingStars}>
+                  {'★'.repeat(Math.round(shop.ratingSum! / shop.totalRatings))}
+                  {'☆'.repeat(5 - Math.round(shop.ratingSum! / shop.totalRatings))}
+                </Text>
+                <Text style={styles.ratingCount}>
+                  {shop.totalRatings} {shop.totalRatings === 1 ? 'valoración' : 'valoraciones'}
+                </Text>
+              </View>
+            </View>
+            {reviews.map((r) => (
+              <View key={r.id} style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewAuthor}>{r.clientName}</Text>
+                  <Text style={styles.reviewStars}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
+                </View>
+                {r.barberName ? (
+                  <Text style={styles.reviewBarber}>Barbero: {r.barberName}</Text>
+                ) : null}
+                {r.comment ? <Text style={styles.reviewComment}>{r.comment}</Text> : null}
+              </View>
+            ))}
+          </>
+        ) : (
+          <Text style={styles.placeholder}>Sin valoraciones todavía</Text>
+        )}
+      </View>
 
       {/* Opening hours */}
       <View style={styles.section}>
@@ -289,6 +347,23 @@ const styles = StyleSheet.create({
   },
   dayName: { fontSize: 14, fontWeight: '600', color: TEXT_C },
   dayHours: { fontSize: 14, color: MUTED },
+
+  ratingSummary: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  ratingBig: { fontSize: 36, fontWeight: '800', color: GOLD },
+  ratingMeta: { gap: 2 },
+  ratingStars: { fontSize: 16, color: GOLD, letterSpacing: 2 },
+  ratingCount: { fontSize: 13, color: MUTED },
+  reviewCard: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    gap: 4,
+  },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  reviewAuthor: { fontSize: 14, fontWeight: '600', color: TEXT_C },
+  reviewStars: { fontSize: 13, color: GOLD },
+  reviewBarber: { fontSize: 12, color: MUTED },
+  reviewComment: { fontSize: 13, color: TEXT_C, lineHeight: 18, marginTop: 2 },
 
   galleryList: { gap: 8 },
   galleryThumb: {

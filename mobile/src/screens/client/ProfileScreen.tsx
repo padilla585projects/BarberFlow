@@ -364,6 +364,11 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.linkText}>Términos de uso</Text>
           <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('BugReport')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>{'🐛'}</Text>
+          <Text style={styles.linkText}>Reportar un problema</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Account ─────────────────────────────────────────────────────── */}

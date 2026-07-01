@@ -17,7 +17,6 @@ import {
   doc,
   updateDoc,
   serverTimestamp,
-  increment,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -67,11 +66,7 @@ export function ReviewScreen({ route, navigation }: Props) {
         reviewed: true,
       });
 
-      // Update barbershop rating aggregates
-      await updateDoc(doc(db, 'barbershops', barbershopId), {
-        totalRatings: increment(1),
-        ratingSum: increment(rating),
-      });
+      // Rating aggregation is handled by the onReviewCreatedPush Cloud Function
 
       setSubmitted(true);
       setTimeout(() => {

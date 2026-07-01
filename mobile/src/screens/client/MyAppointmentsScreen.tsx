@@ -151,6 +151,16 @@ export function MyAppointmentsScreen() {
               <Text style={styles.cardDate}>
                 {dateStr} · {item.timeSlot}
               </Text>
+              {item.services && item.services.length > 0 && (
+                <Text style={styles.cardServices} numberOfLines={2}>
+                  {item.services.map((s) => s.name).join(', ')}
+                </Text>
+              )}
+              {item.services && item.services.length > 0 && (
+                <Text style={styles.cardDuration}>
+                  {item.services.reduce((sum, s) => sum + s.duration, 0)} min
+                </Text>
+              )}
               {item.totalPrice > 0 && (
                 <Text style={styles.cardPrice}>{item.totalPrice.toFixed(2)} €</Text>
               )}
@@ -210,6 +220,8 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20 },
   badgeText: { fontSize: 11, fontWeight: '700' },
   cardDate: { fontSize: 13, color: MUTED },
+  cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
+  cardDuration: { fontSize: 11, color: MUTED },
   cardPrice: { fontSize: 14, fontWeight: '600', color: GOLD },
   cancelBtn: {
     marginTop: 8,

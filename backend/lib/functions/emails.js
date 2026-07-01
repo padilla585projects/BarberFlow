@@ -47,65 +47,127 @@ async function getUser(uid) {
     const snap = await db.collection('users').doc(uid).get();
     return snap.exists ? snap.data() : null;
 }
-async function getBarbershopName(id) {
+async function getBarbershop(id) {
     var _a, _b;
     const snap = await db.collection('barbershops').doc(id).get();
-    return snap.exists ? ((_b = (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : 'BarberFlow') : 'BarberFlow';
+    if (!snap.exists)
+        return { name: 'BarberFlow', ownerId: null };
+    const data = snap.data();
+    return { name: (_a = data.name) !== null && _a !== void 0 ? _a : 'BarberFlow', ownerId: (_b = data.ownerId) !== null && _b !== void 0 ? _b : null };
 }
 function fmtDate(ts) {
     return ts.toDate().toLocaleDateString('es-ES', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
 }
-// ─── onCreate: nueva cita → email de confirmación ────────────────────────────
+// ─── onCreate: nueva cita → email al cliente Y al owner ─────────────────────
 exports.onAppointmentCreated = (0, firestore_1.onDocumentCreated)({ document: 'appointments/{appointmentId}', region: REGION, secrets: SECRETS }, async (event) => {
-    var _a, _b;
+    var _a, _b, _c;
     const apt = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
     if (!apt)
         return;
-    const [client, barber, barbershopName] = await Promise.all([
+    const barbershopId = apt.barbershopId;
+    const [client, barber, barbershop] = await Promise.all([
         getUser(apt.clientId),
         getUser(apt.barberId),
-        getBarbershopName(apt.barbershopId),
+        getBarbershop(barbershopId),
     ]);
-    if (!(client === null || client === void 0 ? void 0 : client.email))
-        return;
-    const html = (0, email_1.tplAppointmentConfirmed)({
-        clientName: client.displayName,
-        barberName: (_b = barber === null || barber === void 0 ? void 0 : barber.displayName) !== null && _b !== void 0 ? _b : 'tu barbero',
-        barbershopName,
-        services: apt.services.map(s => s.name),
-        date: fmtDate(apt.date),
-        timeSlot: apt.timeSlot,
-        totalPrice: apt.totalPrice,
-    });
-    await (0, email_1.sendEmail)(client.email, `✅ Cita confirmada — ${barbershopName}`, html);
+    const barberName = (_b = barber === null || barber === void 0 ? void 0 : barber.displayName) !== null && _b !== void 0 ? _b : 'tu barbero';
+    const services = apt.services.map(s => s.name);
+    const date = fmtDate(apt.date);
+    const timeSlot = apt.timeSlot;
+    const totalPrice = apt.totalPrice;
+    // Email to client
+    if (client === null || client === void 0 ? void 0 : client.email) {
+        const html = (0, email_1.tplAppointmentReceived)({
+            clientName: client.displayName,
+            barberName,
+            barbershopName: barbershop.name,
+            services,
+            date,
+            timeSlot,
+            totalPrice,
+        });
+        await (0, email_1.sendEmail)(client.email, `Cita recibida — ${barbershop.name}`, html);
+    }
+    // Email to barbershop owner
+    if (barbershop.ownerId) {
+        const owner = await getUser(barbershop.ownerId);
+        if (owner === null || owner === void 0 ? void 0 : owner.email) {
+            const ownerHtml = (0, email_1.tplNewAppointmentOwner)({
+                ownerName: owner.displayName,
+                clientName: (_c = client === null || client === void 0 ? void 0 : client.displayName) !== null && _c !== void 0 ? _c : 'Un cliente',
+                barberName,
+                barbershopName: barbershop.name,
+                services,
+                date,
+                timeSlot,
+                totalPrice,
+            });
+            await (0, email_1.sendEmail)(owner.email, `Nueva cita recibida — ${barbershop.name}`, ownerHtml);
+        }
+    }
 });
-// ─── onUpdate: cambio de estado → notificar cancelación ──────────────────────
+// ─── onUpdate: cambio de estado → notificar al cliente Y al owner ───────────
 exports.onAppointmentStatusChanged = (0, firestore_1.onDocumentUpdated)({ document: 'appointments/{appointmentId}', region: REGION, secrets: SECRETS }, async (event) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const before = (_a = event.data) === null || _a === void 0 ? void 0 : _a.before.data();
     const after = (_b = event.data) === null || _b === void 0 ? void 0 : _b.after.data();
     if (!before || !after)
         return;
     if (before.status === after.status)
         return;
-    const [client, barber, barbershopName] = await Promise.all([
+    const barbershopId = after.barbershopId;
+    const [client, barber, barbershop] = await Promise.all([
         getUser(after.clientId),
         getUser(after.barberId),
-        getBarbershopName(after.barbershopId),
+        getBarbershop(barbershopId),
     ]);
-    if (!(client === null || client === void 0 ? void 0 : client.email))
-        return;
-    if (after.status === 'cancelled') {
-        const html = (0, email_1.tplAppointmentCancelled)({
-            clientName: client.displayName,
-            barberName: (_c = barber === null || barber === void 0 ? void 0 : barber.displayName) !== null && _c !== void 0 ? _c : 'tu barbero',
-            barbershopName,
-            date: fmtDate(after.date),
-            timeSlot: after.timeSlot,
-        });
-        await (0, email_1.sendEmail)(client.email, `❌ Cita cancelada — ${barbershopName}`, html);
+    const barberName = (_c = barber === null || barber === void 0 ? void 0 : barber.displayName) !== null && _c !== void 0 ? _c : 'tu barbero';
+    const date = fmtDate(after.date);
+    const timeSlot = after.timeSlot;
+    if (after.status === 'confirmed') {
+        // Email to client
+        if (client === null || client === void 0 ? void 0 : client.email) {
+            const html = (0, email_1.tplAppointmentConfirmed)({
+                clientName: client.displayName,
+                barberName,
+                barbershopName: barbershop.name,
+                services: after.services.map(s => s.name),
+                date,
+                timeSlot,
+                totalPrice: after.totalPrice,
+            });
+            await (0, email_1.sendEmail)(client.email, `Cita confirmada — ${barbershop.name}`, html);
+        }
+    }
+    else if (after.status === 'cancelled') {
+        // Email to client
+        if (client === null || client === void 0 ? void 0 : client.email) {
+            const html = (0, email_1.tplAppointmentCancelled)({
+                clientName: client.displayName,
+                barberName,
+                barbershopName: barbershop.name,
+                date,
+                timeSlot,
+            });
+            await (0, email_1.sendEmail)(client.email, `Cita cancelada — ${barbershop.name}`, html);
+        }
+        // Email to owner
+        if (barbershop.ownerId) {
+            const owner = await getUser(barbershop.ownerId);
+            if (owner === null || owner === void 0 ? void 0 : owner.email) {
+                const clientName = (_d = client === null || client === void 0 ? void 0 : client.displayName) !== null && _d !== void 0 ? _d : 'Un cliente';
+                const ownerHtml = (0, email_1.tplAppointmentCancelled)({
+                    clientName,
+                    barberName,
+                    barbershopName: barbershop.name,
+                    date,
+                    timeSlot,
+                });
+                await (0, email_1.sendEmail)(owner.email, `Cita cancelada — ${barbershop.name}`, ownerHtml);
+            }
+        }
     }
 });
 //# sourceMappingURL=emails.js.map

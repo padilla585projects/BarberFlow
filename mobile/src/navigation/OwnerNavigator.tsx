@@ -26,6 +26,7 @@ import { PaymentHistoryScreen } from '../screens/owner/PaymentHistoryScreen';
 import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
+import { BugReportScreen } from '../screens/common/BugReportScreen';
 
 export type OwnerStackParamList = {
   Dashboard: undefined;
@@ -52,6 +53,7 @@ export type OwnerStackParamList = {
   Notifications: undefined;
   NotificationSettings: undefined;
   ShopSelector: undefined;
+  BugReport: undefined;
 };
 
 const Stack = createNativeStackNavigator<OwnerStackParamList>();
@@ -244,6 +246,11 @@ export function OwnerNavigator() {
           title: 'Cambiar barbería',
           animation: 'slide_from_bottom',
         }}
+      />
+      <Stack.Screen
+        name="BugReport"
+        component={BugReportScreen}
+        options={{ title: 'Reportar un problema' }}
       />
     </Stack.Navigator>
   );

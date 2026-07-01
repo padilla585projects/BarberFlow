@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendEmail = sendEmail;
 exports.tplAppointmentConfirmed = tplAppointmentConfirmed;
+exports.tplAppointmentReceived = tplAppointmentReceived;
+exports.tplNewAppointmentOwner = tplNewAppointmentOwner;
 exports.tplAppointmentCancelled = tplAppointmentCancelled;
 exports.tplAppointmentReminder = tplAppointmentReminder;
 const resend_1 = require("resend");
@@ -87,6 +89,130 @@ function tplAppointmentConfirmed(data) {
         <!-- Footer -->
         <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee">
           <p style="color:#bbb;font-size:12px;margin:0">© ${new Date().getFullYear()} BarberFlow · Gestión de barberías</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+function tplAppointmentReceived(data) {
+    return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cita recibida</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:#000;padding:28px 40px;text-align:center">
+          <p style="color:#fff;font-size:22px;font-weight:800;letter-spacing:0.1em;margin:0">BARBERFLOW</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px">
+          <p style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px">Cita recibida</p>
+          <p style="color:#666;font-size:15px;margin:0 0 28px">Hola <strong>${data.clientName}</strong>, hemos recibido tu solicitud de cita. Te avisaremos cuando sea confirmada.</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px;padding:0">
+            <tr><td style="padding:20px 24px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Barberia</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.barbershopName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Barbero</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.barberName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Fecha</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.date}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Hora</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.timeSlot}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Servicios</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.services.join(', ')}</td>
+                </tr>
+                <tr><td colspan="2" style="padding-top:16px;border-top:1px solid #e8e8e8"></td></tr>
+                <tr>
+                  <td style="padding:10px 0 0;color:#111;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Total</td>
+                  <td style="padding:10px 0 0;font-size:20px;font-weight:800;color:#111">${data.totalPrice.toFixed(2)}E</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <p style="margin:28px 0 0;font-size:13px;color:#999;line-height:1.7">
+            Recibiras una notificacion cuando tu barbero confirme la cita.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee">
+          <p style="color:#bbb;font-size:12px;margin:0">BarberFlow</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+function tplNewAppointmentOwner(data) {
+    return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nueva cita recibida</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:#000;padding:28px 40px;text-align:center">
+          <p style="color:#fff;font-size:22px;font-weight:800;letter-spacing:0.1em;margin:0">BARBERFLOW</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px">
+          <p style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px">Nueva cita recibida</p>
+          <p style="color:#666;font-size:15px;margin:0 0 28px">Hola <strong>${data.ownerName}</strong>, se ha reservado una nueva cita en <strong>${data.barbershopName}</strong>.</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px;padding:0">
+            <tr><td style="padding:20px 24px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Cliente</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.clientName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Barbero</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.barberName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Fecha</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.date}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Hora</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.timeSlot}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Servicios</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.services.join(', ')}</td>
+                </tr>
+                <tr><td colspan="2" style="padding-top:16px;border-top:1px solid #e8e8e8"></td></tr>
+                <tr>
+                  <td style="padding:10px 0 0;color:#111;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Total</td>
+                  <td style="padding:10px 0 0;font-size:20px;font-weight:800;color:#111">${data.totalPrice.toFixed(2)}E</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <p style="margin:28px 0 0;font-size:13px;color:#999;line-height:1.7">
+            Abre la app de BarberFlow para gestionar esta cita.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee">
+          <p style="color:#bbb;font-size:12px;margin:0">BarberFlow</p>
         </td></tr>
       </table>
     </td></tr>
