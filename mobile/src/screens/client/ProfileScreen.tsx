@@ -355,27 +355,6 @@ export function ProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* ── Professional ──────────────────────────────────────────────── */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>¿Eres profesional?</Text>
-        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('CreateBarbershop')} activeOpacity={0.7}>
-          <Text style={styles.linkIcon}>💼</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkText}>Registrar mi barbería</Text>
-            <Text style={styles.linkSub}>Gestiona citas, barberos y servicios</Text>
-          </View>
-          <Text style={styles.linkArrow}>›</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('JoinBarbershop')} activeOpacity={0.7}>
-          <Text style={styles.linkIcon}>🔑</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.linkText}>Tengo un código de invitación</Text>
-            <Text style={styles.linkSub}>Únete a una barbería como barbero</Text>
-          </View>
-          <Text style={styles.linkArrow}>›</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* ── Account ─────────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cuenta</Text>
@@ -384,6 +363,17 @@ export function ProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
         <TouchableOpacity style={styles.dangerOutlineBtn} onPress={handleDeleteAccount} activeOpacity={0.7}>
           <Text style={styles.dangerOutlineBtnText}>Eliminar cuenta</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Pro options (very discrete) ───────────────────────────────── */}
+      <View style={styles.proLinks}>
+        <TouchableOpacity onPress={() => navigation.navigate('CreateBarbershop')} activeOpacity={0.7}>
+          <Text style={styles.proLinkText}>Registrar mi barbería</Text>
+        </TouchableOpacity>
+        <Text style={styles.proDot}>·</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('JoinBarbershop')} activeOpacity={0.7}>
+          <Text style={styles.proLinkText}>Unirme como barbero</Text>
         </TouchableOpacity>
       </View>
 
@@ -501,7 +491,6 @@ const styles = StyleSheet.create({
   },
   linkIcon: { fontSize: 18 },
   linkText: { flex: 1, fontSize: 15, color: TEXT },
-  linkSub: { fontSize: 12, color: MUTED, marginTop: 2 },
   linkArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
 
   // Danger buttons
@@ -520,6 +509,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dangerOutlineBtnText: { color: RED, fontSize: 15, fontWeight: '700' },
+
+  // Pro links (discrete)
+  proLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 8,
+  },
+  proLinkText: { fontSize: 12, color: MUTED, opacity: 0.5 },
+  proDot: { fontSize: 12, color: MUTED, opacity: 0.3 },
 
   // Version
   version: { textAlign: 'center', color: MUTED, fontSize: 12, marginTop: 12, opacity: 0.6 },

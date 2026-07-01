@@ -77,11 +77,15 @@ function RootNavigatorInner({ onReady }: RootNavigatorProps) {
     ? memberships.find((m) => m.barbershopId === activeBarbershopId)
     : undefined;
 
+  // Role logic: you only see the owner/barber panel if you HAVE an active barbershop.
+  // No barbershop → client view, even if your role is owner/developer.
   const effectiveRole = !isSignedIn
     ? null
-    : role === 'developer'
-      ? 'owner'
-      : activeMembership?.role ?? 'client';
+    : !activeBarbershopId
+      ? 'client'
+      : role === 'developer'
+        ? 'owner'
+        : activeMembership?.role ?? 'client';
 
   const needsShopSelector = isSignedIn && memberships.length > 0 && !activeBarbershopId;
 
