@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
@@ -100,34 +101,7 @@ export function HomeScreen({ navigation }: Props) {
             </TouchableOpacity>
           </View>
         }
-        ListFooterComponent={
-          <View style={styles.footerBanners}>
-            <TouchableOpacity
-              style={styles.proBanner}
-              onPress={() => navigation.navigate('CreateBarbershop')}
-              activeOpacity={0.8}
-            >
-              <View style={styles.proBannerLeft}>
-                <Text style={styles.proBannerEmoji}>💼</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.proBannerTitle}>¿Eres profesional?</Text>
-                  <Text style={styles.proBannerSub}>Registra tu barbería y gestiona todo desde aquí</Text>
-                </View>
-              </View>
-              <Text style={styles.proBannerArrow}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.joinBanner}
-              onPress={() => navigation.navigate('JoinBarbershop')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.joinBannerIcon}>🔑</Text>
-              <Text style={styles.joinBannerText}>¿Tienes un código de invitación?</Text>
-              <Text style={styles.joinBannerArrow}>›</Text>
-            </TouchableOpacity>
-          </View>
-        }
+        ListFooterComponent={<View style={{ height: 24 }} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>✂</Text>
@@ -145,10 +119,14 @@ export function HomeScreen({ navigation }: Props) {
             }
             activeOpacity={0.8}
           >
-            {/* Avatar with gold initial */}
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-            </View>
+            {/* Photo or avatar fallback */}
+            {item.photoURL ? (
+              <Image source={{ uri: item.photoURL }} style={styles.shopPhoto} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
 
             {/* Info */}
             <View style={styles.cardInfo}>
@@ -243,11 +221,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  // Avatar circle with gold border + gold initial
+  // Shop photo
+  shopPhoto: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#1E1E1E',
+  },
+
+  // Avatar circle with gold border + gold initial (fallback)
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 52,
+    height: 52,
+    borderRadius: 12,
     backgroundColor: '#1E1E1E',
     borderWidth: 1.5,
     borderColor: GOLD,
@@ -256,7 +242,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: GOLD,
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: '800',
   },
 
@@ -303,57 +289,4 @@ const styles = StyleSheet.create({
   loyaltyLabel: { fontSize: 12, color: MUTED, fontWeight: '600' },
   loyaltyValue: { fontSize: 18, fontWeight: '800', color: GOLD },
   loyaltyArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
-
-  // Footer banners wrapper
-  footerBanners: {
-    gap: 10,
-    marginTop: 20,
-  },
-
-  // Pro banner
-  proBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: SURFACE,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: GOLD + '30',
-    padding: 14,
-  },
-  proBannerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  proBannerEmoji: { fontSize: 24 },
-  proBannerTitle: { fontSize: 14, fontWeight: '700', color: GOLD },
-  proBannerSub: { fontSize: 12, color: MUTED, marginTop: 2 },
-  proBannerArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
-
-  // Join as barber banner (subtle)
-  joinBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: SURFACE,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-  },
-  joinBannerIcon: { fontSize: 16 },
-  joinBannerText: {
-    flex: 1,
-    fontSize: 13,
-    color: SUBTLE,
-    fontWeight: '500',
-  },
-  joinBannerArrow: {
-    fontSize: 18,
-    color: MUTED,
-    opacity: 0.6,
-  },
 });
