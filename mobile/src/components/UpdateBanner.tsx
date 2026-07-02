@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import * as Updates from 'expo-updates';
 
-const GOLD   = '#C9A84C';
+const GOLD      = '#C9A84C';
 const BG_BANNER = '#1A1500';
-const TEXT_C = '#FFFFFF';
+const TEXT_C    = '#FFFFFF';
 
 /**
  * UpdateBanner — shown when a new OTA update has been downloaded and is
@@ -21,41 +21,43 @@ const TEXT_C = '#FFFFFF';
  */
 export function UpdateBanner() {
   const [isPending, setIsPending] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
-  const slideAnim = new Animated.Value(-80);
+  // useRef so Animated.Value is NOT recreated on every render
+  const slideAnim = useRef(new Animated.Value(-120)).current;
 
-  // Listen for update state via useUpdates hook
   const { isUpdatePending } = Updates.useUpdates();
 
-  // When update is pending (downloaded), animate the banner in
+  // When update is downloaded and ready, slide the banner in
   useEffect(() => {
     if (isUpdatePending && !isPending) {
       setIsPending(true);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 80,
-        friction: 10,
-      }).start();
     }
   }, [isUpdatePending]);
 
-  // On mount: check for update in the background (non-blocking)
+  // Animate in when isPending flips to true
   useEffect(() => {
-    if (__DEV__) return; // expo-updates is disabled in development
+    if (isPending) {
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 60,
+        friction: 10,
+      }).start();
+    }
+  }, [isPending]);
+
+  // On mount: proactively check + download any pending update
+  useEffect(() => {
+    if (__DEV__) return; // expo-updates is disabled in Expo Go / dev mode
 
     const checkAndFetch = async () => {
       try {
-        setIsChecking(true);
         const result = await Updates.checkForUpdateAsync();
         if (result.isAvailable) {
           await Updates.fetchUpdateAsync();
-          // isUpdatePending will become true via useUpdates() once download completes
+          // isUpdatePending will flip via useUpdates() once download finishes
         }
       } catch {
-        // Silently ignore — network errors should never block the user
-      } finally {
-        setIsChecking(false);
+        // Network errors must never block the user
       }
     };
 
@@ -66,7 +68,6 @@ export function UpdateBanner() {
     try {
       await Updates.reloadAsync();
     } catch {
-      // If reload fails, dismiss the banner gracefully
       setIsPending(false);
     }
   };
@@ -105,9 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: BG_BANNER,
     borderBottomWidth: 1,
     borderBottomColor: GOLD,
-    // Android shadow
     elevation: 8,
-    // iOS shadow
     shadowColor: GOLD,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -118,15 +117,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === 'android' ? 44 : 54, // below status bar
+    paddingTop: Platform.OS === 'android' ? 44 : 54,
     gap: 12,
   },
-  emoji: {
-    fontSize: 22,
-  },
-  textWrap: {
-    flex: 1,
-  },
+  emoji: { fontSize: 22 },
+  textWrap: { flex: 1 },
   title: {
     color: GOLD,
     fontSize: 14,

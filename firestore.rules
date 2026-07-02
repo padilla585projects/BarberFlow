@@ -109,6 +109,14 @@ service cloud.firestore {
           request.auth.uid == barberId || isOwnerOf(barbershopId) || isDeveloper()
         );
       }
+
+      // Promo codes subcollection (stored under barbershop, not root)
+      match /promos/{promoId} {
+        allow read: if isAuth();
+        allow create: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
+        allow update: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
+        allow delete: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
+      }
     }
 
     // Appointments
@@ -235,6 +243,20 @@ service cloud.firestore {
       allow create: if isDeveloper();
       allow update: if isAuth() && resource.data.userId == request.auth.uid;
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Analytics events (cualquier usuario autenticado puede escribir eventos)
+    match /analytics_events/{eventId} {
+      allow create: if isAuth();
+      allow read, update, delete: if isDeveloper();
+    }
+
+    // Invitaciones de barberos (el owner genera el código, el barber lo consume)
+    match /invitations/{code} {
+      allow read: if isAuth();
+      allow create: if isAuth() && (isDeveloper() || getRole() == 'owner');
+      allow update: if isAuth();
+      allow delete: if isDeveloper();
     }
   }
 }
