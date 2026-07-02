@@ -18,6 +18,8 @@ import { BugReportScreen } from '../screens/common/BugReportScreen';
 import { BarberPortfolioScreen } from '../screens/client/BarberPortfolioScreen';
 import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
 import { JoinBarbershopScreen } from '../screens/client/JoinBarbershopScreen';
+import { OrderHistoryScreen } from '../screens/client/OrderHistoryScreen';
+import { RescheduleScreen } from '../screens/client/RescheduleScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -39,6 +41,8 @@ export type ClientStackParamList = {
   CreateBarbershop: undefined;
   JoinBarbershop: undefined;
   BugReport: undefined;
+  OrderHistory: undefined;
+  Reschedule: { appointmentId: string; barberId: string; barbershopId: string; totalDuration: number };
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -228,6 +232,16 @@ export function ClientNavigator() {
         name="BugReport"
         component={BugReportScreen}
         options={{ title: 'Reportar un problema' }}
+      />
+      <Stack.Screen
+        name="OrderHistory"
+        component={OrderHistoryScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Reschedule"
+        component={RescheduleScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

@@ -166,6 +166,20 @@ export function MyAppointmentsScreen() {
               )}
               {(item.status === 'pending' || item.status === 'confirmed') && (
                 <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: GOLD }]}
+                  onPress={() => navigation.navigate('Reschedule', {
+                    appointmentId: item.id,
+                    barberId: item.barberId,
+                    barbershopId: item.barbershopId,
+                    totalDuration: item.services?.reduce((s, sv) => s + sv.duration, 0) ?? 30,
+                  })}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.actionBtnText, { color: '#000' }]}>✎ Reprogramar</Text>
+                </TouchableOpacity>
+              )}
+              {(item.status === 'pending' || item.status === 'confirmed') && (
+                <TouchableOpacity
                   style={styles.cancelBtn}
                   onPress={() => cancelAppointment(item.id)}
                   activeOpacity={0.8}
@@ -223,6 +237,13 @@ const styles = StyleSheet.create({
   cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
   cardDuration: { fontSize: 11, color: MUTED },
   cardPrice: { fontSize: 14, fontWeight: '600', color: GOLD },
+  actionBtn: {
+    marginTop: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  actionBtnText: { fontSize: 13, fontWeight: '700' },
   cancelBtn: {
     marginTop: 8,
     paddingVertical: 8,

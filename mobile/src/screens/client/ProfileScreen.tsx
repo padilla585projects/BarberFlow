@@ -344,6 +344,11 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.linkText}>Mis puntos</Text>
           <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('OrderHistory')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>{'🛍️'}</Text>
+          <Text style={styles.linkText}>Mis pedidos</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('MyAppointments')} activeOpacity={0.7}>
           <Text style={styles.linkIcon}>📋</Text>
           <Text style={styles.linkText}>Mis citas</Text>
@@ -362,6 +367,11 @@ export function ProfileScreen({ navigation }: Props) {
         <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL('https://barberflow-2026.web.app/terms.html')} activeOpacity={0.7}>
           <Text style={styles.linkIcon}>📋</Text>
           <Text style={styles.linkText}>Términos de uso</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL('https://barberflow-2026.web.app/legal.html')} activeOpacity={0.7}>
+          <Text style={styles.linkIcon}>{'⚖️'}</Text>
+          <Text style={styles.linkText}>Aviso legal</Text>
           <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('BugReport')} activeOpacity={0.7}>
