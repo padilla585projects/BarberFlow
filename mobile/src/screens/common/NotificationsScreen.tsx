@@ -171,7 +171,12 @@ export function NotificationsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); subscribe(); }}
+            onRefresh={() => {
+              setRefreshing(true);
+              // El onSnapshot ya mantiene los datos actualizados en tiempo real.
+              // Solo reseteamos el indicador después de un breve momento.
+              setTimeout(() => setRefreshing(false), 800);
+            }}
             tintColor={GOLD}
           />
         }

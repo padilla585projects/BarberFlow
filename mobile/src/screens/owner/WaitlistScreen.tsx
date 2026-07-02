@@ -127,13 +127,12 @@ export function WaitlistScreen() {
                 { status: 'notified' },
               );
 
-              // Send push notification via the notifications collection
+              // Send push notification to the client's notifications subcollection
               const { addDoc, collection: col, serverTimestamp } = await import('firebase/firestore');
-              await addDoc(col(db, 'notifications'), {
-                userId: entry.clientId,
-                title: 'Hueco disponible',
-                body: `Se ha liberado un hueco para ${entry.barberName}. Reserva tu cita ahora.`,
-                type: 'waitlist',
+              await addDoc(col(db, 'users', entry.clientId, 'notifications'), {
+                title: '¡Es tu turno!',
+                body: 'Tu turno en la barbería ha llegado. Por favor, acércate.',
+                type: 'general',
                 read: false,
                 createdAt: serverTimestamp(),
               });

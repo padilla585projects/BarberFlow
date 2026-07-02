@@ -156,6 +156,10 @@ export function LoyaltyScreen() {
               const promoCode = generatePromoCode();
 
               // Create promo code in the barbershop's promos collection
+              if (!barbershopId) {
+                Alert.alert('Error', 'No se pudo identificar la barbería. Por favor recarga la pantalla.');
+                return;
+              }
               if (barbershopId) {
                 await addDoc(collection(db, 'barbershops', barbershopId, 'promos'), {
                   code: promoCode,
