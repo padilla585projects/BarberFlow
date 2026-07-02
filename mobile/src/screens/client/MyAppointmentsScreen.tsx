@@ -17,6 +17,7 @@ import {
   getDocs,
   doc,
   updateDoc,
+  increment,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { useNavigation } from '@react-navigation/native';
@@ -78,7 +79,7 @@ export function MyAppointmentsScreen() {
     fetchAppointments();
   }, []);
 
-  const cancelAppointment = (id: string) => {
+  const cancelAppointment = (item: Appointment & { promoCode?: string }) => {
     Alert.alert(
       'Cancelar cita',
       '¿Seguro que quieres cancelar esta cita?',
@@ -89,9 +90,29 @@ export function MyAppointmentsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await updateDoc(doc(db, 'appointments', id), { status: 'cancelled' });
+              await updateDoc(doc(db, 'appointments', item.id), { status: 'cancelled' });
+
+              // Restore promo usage if a promo code was applied
+              if (item.promoCode && item.barbershopId) {
+                try {
+                  const promoQ = query(
+                    collection(db, 'barbershops', item.barbershopId, 'promos'),
+                    where('code', '==', item.promoCode),
+                  );
+                  const promoSnap = await getDocs(promoQ);
+                  if (!promoSnap.empty) {
+                    await updateDoc(promoSnap.docs[0].ref, {
+                      currentUses: increment(-1),
+                    });
+                  }
+                } catch {
+                  // Non-critical: log but don't block the cancellation flow
+                  console.warn('[MyAppointments] Could not restore promo usage');
+                }
+              }
+
               setAppointments((prev) =>
-                prev.map((a) => (a.id === id ? { ...a, status: 'cancelled' as const } : a)),
+                prev.map((a) => (a.id === item.id ? { ...a, status: 'cancelled' as const } : a)),
               );
             } catch (err) {
               Alert.alert('Error', 'No se pudo cancelar la cita');
@@ -181,7 +202,7 @@ export function MyAppointmentsScreen() {
               {(item.status === 'pending' || item.status === 'confirmed') && (
                 <TouchableOpacity
                   style={styles.cancelBtn}
-                  onPress={() => cancelAppointment(item.id)}
+                  onPress={() => cancelAppointment(item as Appointment & { promoCode?: string })}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.cancelBtnText}>Cancelar cita</Text>

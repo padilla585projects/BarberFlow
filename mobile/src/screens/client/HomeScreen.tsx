@@ -34,9 +34,13 @@ export function HomeScreen({ navigation }: Props) {
 
   const fetchBarbershops = async () => {
     try {
-      const q    = query(collection(db, 'barbershops'), orderBy('name'));
+      const q = query(collection(db, 'barbershops'), orderBy('name'));
       const snap = await getDocs(q);
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Barbershop));
+      // Filter out barbershops explicitly marked inactive (active: false)
+      // Barbershops without the field are shown (backward-compatible)
+      const data = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Barbershop & { active?: boolean }))
+        .filter((b) => b.active !== false);
       setBarbershops(data);
 
       // Fetch loyalty points

@@ -40,6 +40,7 @@ export function AgendaScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // today used for display in the header
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -47,18 +48,27 @@ export function AgendaScreen() {
     const user = auth.currentUser;
     if (!user || !activeBarbershopId) return;
 
+    // Re-compute start-of-today inside fetchAgenda so refreshes after midnight are correct
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
     try {
       const q = query(
         collection(db, 'appointments'),
         where('barberId', '==', user.uid),
         where('barbershopId', '==', activeBarbershopId),
-        where('date', '>=', today),
+        where('date', '>=', startOfToday),
         orderBy('date'),
       );
       const snap = await getDocs(q);
       setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
     } catch (err) {
       console.error('[AgendaScreen] Error:', err);
+      Alert.alert(
+        'Error al cargar citas',
+        'No se pudo cargar la agenda. Revisa tu conexión y vuelve a intentarlo.',
+        [{ text: 'OK' }],
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -120,6 +130,9 @@ export function AgendaScreen() {
               <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
                 <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
               </TouchableOpacity>
+              <TouchableOpacity onPress={() => navigation.navigate('Payments')}>
+                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💳</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('Portfolio')}>
                 <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📸</Text>
               </TouchableOpacity>
@@ -148,7 +161,8 @@ export function AgendaScreen() {
             <Text style={styles.emptySub}>No tienes citas programadas para hoy</Text>
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          return (
           <View style={styles.card}>
             <View style={styles.cardTime}>
               <Text style={styles.cardTimeText}>{item.timeSlot}</Text>
@@ -166,13 +180,15 @@ export function AgendaScreen() {
                   {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
                 </Text>
               )}
-              <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] + '20' }]}>
-                <Text style={[styles.badgeText, { color: STATUS_COLOR[item.status] }]}>
-                  {item.status === 'pending' ? 'Pendiente' :
-                   item.status === 'confirmed' ? 'Confirmada' :
-                   item.status === 'completed' ? 'Completada' :
-                   item.status === 'no_show' ? 'No presentado' : 'Cancelada'}
-                </Text>
+              <View style={styles.badgesRow}>
+                <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] + '20' }]}>
+                  <Text style={[styles.badgeText, { color: STATUS_COLOR[item.status] }]}>
+                    {item.status === 'pending' ? 'Pendiente' :
+                     item.status === 'confirmed' ? 'Confirmada' :
+                     item.status === 'completed' ? 'Completada' :
+                     item.status === 'no_show' ? 'No presentado' : 'Cancelada'}
+                  </Text>
+                </View>
               </View>
             </View>
             {item.status === 'pending' && (
@@ -215,7 +231,8 @@ export function AgendaScreen() {
               </View>
             )}
           </View>
-        )}
+          );
+        }}
       />
     </View>
   );
@@ -257,6 +274,7 @@ const styles = StyleSheet.create({
   cardEmail: { fontSize: 12, color: MUTED },
   cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
   cardMeta: { fontSize: 11, color: MUTED },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, marginTop: 2 },
   badgeText: { fontSize: 11, fontWeight: '700' },
   actions: { flexDirection: 'row', gap: 8 },

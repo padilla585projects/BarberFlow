@@ -9,6 +9,8 @@ import {
   ScrollView,
   FlatList,
   TextInput,
+  Modal,
+  Linking,
 } from 'react-native';
 import {
   collection,
@@ -28,6 +30,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
+
+type PaymentMethod = 'cash' | 'bizum' | 'paypal';
+
+interface BarbershopPaymentConfig {
+  paymentMethods: { cash: boolean; bizum: boolean; paypal: boolean };
+  bizumPhone?: string;
+  paypalUsername?: string;
+}
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'Book'>;
 
@@ -234,6 +244,18 @@ export function BookScreen({ route, navigation }: Props) {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
 
+  // Payment
+  const [paymentConfig, setPaymentConfig] = useState<BarbershopPaymentConfig | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [createdAppointmentId, setCreatedAppointmentId] = useState<string | null>(null);
+  const [paymentModalInfo, setPaymentModalInfo] = useState<{
+    method: PaymentMethod;
+    amount: number;
+    bizumPhone?: string;
+    paypalUsername?: string;
+  } | null>(null);
+
   // Waitlist
   const [joiningWaitlist, setJoiningWaitlist] = useState(false);
 
@@ -373,6 +395,18 @@ export function BookScreen({ route, navigation }: Props) {
             duration: s.duration ?? 30,
           }));
           setServices(serviceList);
+
+          // Payment methods config
+          const pm = shopData.paymentMethods as { cash?: boolean; bizum?: boolean; paypal?: boolean } | undefined;
+          setPaymentConfig({
+            paymentMethods: {
+              cash: pm?.cash !== false, // default true
+              bizum: pm?.bizum === true,
+              paypal: pm?.paypal === true,
+            },
+            bizumPhone: (shopData.bizumPhone as string) ?? undefined,
+            paypalUsername: (shopData.paypalUsername as string) ?? undefined,
+          });
 
           if (shopData.openingHours) {
             // Firestore stores { open: boolean, from: 'HH:MM', to: 'HH:MM' }
@@ -557,6 +591,23 @@ export function BookScreen({ route, navigation }: Props) {
         return;
       }
 
+      // Validate single-use loyalty promos: must belong to this client and be unused
+      if (data.singleUse) {
+        const uid = auth.currentUser?.uid;
+        if (data.linkedClientId && data.linkedClientId !== uid) {
+          setPromoError('Este codigo no es valido para tu cuenta.');
+          setPromoApplied(null);
+          setPromoLoading(false);
+          return;
+        }
+        if ((data.currentUses ?? 0) > 0) {
+          setPromoError('Este codigo de puntos ya ha sido utilizado.');
+          setPromoApplied(null);
+          setPromoLoading(false);
+          return;
+        }
+      }
+
       setPromoApplied({
         id: promoDoc.id,
         code: data.code,
@@ -630,6 +681,8 @@ export function BookScreen({ route, navigation }: Props) {
         services: servicesPayload,
         totalPrice: finalPrice,
         originalPrice: totalPrice,
+        paymentMethod: selectedPayment,
+        paymentStatus: 'pending',
         createdAt: serverTimestamp(),
       };
 
@@ -640,7 +693,7 @@ export function BookScreen({ route, navigation }: Props) {
         appointmentData.promoValue = promoApplied.value;
       }
 
-      await addDoc(collection(db, 'appointments'), appointmentData);
+      const appointmentRef = await addDoc(collection(db, 'appointments'), appointmentData);
 
       // Increment promo usage
       if (promoApplied) {
@@ -650,12 +703,24 @@ export function BookScreen({ route, navigation }: Props) {
         );
       }
 
-      const dateLabel = `${selectedDate.getDate()} ${SPANISH_MONTHS[selectedDate.getMonth()]}`;
-      Alert.alert(
-        'Cita reservada',
-        `Tu cita el ${dateLabel} a las ${selectedSlot} ha sido enviada. El barbero la confirmará pronto.`,
-        [{ text: 'OK', onPress: () => navigation.navigate('MyAppointments') }],
-      );
+      setCreatedAppointmentId(appointmentRef.id);
+
+      if (selectedPayment === 'bizum' || selectedPayment === 'paypal') {
+        setPaymentModalInfo({
+          method: selectedPayment,
+          amount: finalPrice,
+          bizumPhone: paymentConfig?.bizumPhone,
+          paypalUsername: paymentConfig?.paypalUsername,
+        });
+        setShowPaymentModal(true);
+      } else {
+        const dateLabel = `${selectedDate.getDate()} ${SPANISH_MONTHS[selectedDate.getMonth()]}`;
+        Alert.alert(
+          'Cita reservada',
+          `Tu cita el ${dateLabel} a las ${selectedSlot} ha sido enviada. El barbero la confirmará pronto.`,
+          [{ text: 'OK', onPress: () => navigation.navigate('MyAppointments') }],
+        );
+      }
     } catch (err) {
       console.error('[BookScreen] Error creating appointment:', err);
       Alert.alert('Error', 'No se pudo reservar la cita. Intenta de nuevo.');
@@ -1045,7 +1110,121 @@ export function BookScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      {/* ─── 6. Confirm button ────────────────────────────────────────── */}
+      {/* ─── 6. Payment method ──────────────────────────────────────── */}
+      {selectedSlot && paymentConfig && (
+        <>
+          <Text style={styles.sectionLabel}>Metodo de pago</Text>
+          <View style={styles.paymentList}>
+            {paymentConfig.paymentMethods.cash && (
+              <TouchableOpacity
+                style={[
+                  styles.paymentCard,
+                  selectedPayment === 'cash' && styles.paymentCardSelected,
+                ]}
+                onPress={() => setSelectedPayment('cash')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentIcon}>{'💵'}</Text>
+                  <View style={styles.paymentCardInfo}>
+                    <Text
+                      style={[
+                        styles.paymentCardTitle,
+                        selectedPayment === 'cash' && styles.paymentCardTitleSelected,
+                      ]}
+                    >
+                      Pagar en caja
+                    </Text>
+                    <Text style={styles.paymentCardDesc}>
+                      Paga en efectivo o tarjeta en el local
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.paymentRadio,
+                      selectedPayment === 'cash' && styles.paymentRadioSelected,
+                    ]}
+                  >
+                    {selectedPayment === 'cash' && <View style={styles.paymentRadioDot} />}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {paymentConfig.paymentMethods.bizum && (
+              <TouchableOpacity
+                style={[
+                  styles.paymentCard,
+                  selectedPayment === 'bizum' && styles.paymentCardSelected,
+                ]}
+                onPress={() => setSelectedPayment('bizum')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentIcon}>{'📱'}</Text>
+                  <View style={styles.paymentCardInfo}>
+                    <Text
+                      style={[
+                        styles.paymentCardTitle,
+                        selectedPayment === 'bizum' && styles.paymentCardTitleSelected,
+                      ]}
+                    >
+                      Bizum
+                    </Text>
+                    <Text style={styles.paymentCardDesc}>
+                      Envia un Bizum al {paymentConfig.bizumPhone ?? ''}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.paymentRadio,
+                      selectedPayment === 'bizum' && styles.paymentRadioSelected,
+                    ]}
+                  >
+                    {selectedPayment === 'bizum' && <View style={styles.paymentRadioDot} />}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {paymentConfig.paymentMethods.paypal && (
+              <TouchableOpacity
+                style={[
+                  styles.paymentCard,
+                  selectedPayment === 'paypal' && styles.paymentCardSelected,
+                ]}
+                onPress={() => setSelectedPayment('paypal')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentIcon}>{'🅿️'}</Text>
+                  <View style={styles.paymentCardInfo}>
+                    <Text
+                      style={[
+                        styles.paymentCardTitle,
+                        selectedPayment === 'paypal' && styles.paymentCardTitleSelected,
+                      ]}
+                    >
+                      PayPal
+                    </Text>
+                    <Text style={styles.paymentCardDesc}>Paga por PayPal</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.paymentRadio,
+                      selectedPayment === 'paypal' && styles.paymentRadioSelected,
+                    ]}
+                  >
+                    {selectedPayment === 'paypal' && <View style={styles.paymentRadioDot} />}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+        </>
+      )}
+
+      {/* ─── 7. Confirm button ────────────────────────────────────────── */}
       <TouchableOpacity
         style={[styles.confirmBtn, !canConfirm && styles.btnDisabled]}
         onPress={handleBook}
@@ -1062,6 +1241,84 @@ export function BookScreen({ route, navigation }: Props) {
           </Text>
         )}
       </TouchableOpacity>
+
+      {/* ─── Payment instructions modal ───────────────────────────────── */}
+      <Modal
+        visible={showPaymentModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowPaymentModal(false);
+          navigation.navigate('MyAppointments');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalCheckmark}>{'✓'}</Text>
+            <Text style={styles.modalTitle}>Cita reservada</Text>
+
+            {paymentModalInfo?.method === 'bizum' && (
+              <>
+                <Text style={styles.modalDesc}>
+                  Envia {paymentModalInfo.amount.toFixed(2)}{'€'} al numero
+                </Text>
+                <Text style={styles.modalHighlight}>
+                  {paymentModalInfo.bizumPhone ?? ''}
+                </Text>
+                <Text style={styles.modalSubDesc}>mediante Bizum</Text>
+              </>
+            )}
+
+            {paymentModalInfo?.method === 'paypal' && (
+              <>
+                <Text style={styles.modalDesc}>
+                  Paga {paymentModalInfo.amount.toFixed(2)}{'€'} por PayPal
+                </Text>
+                <TouchableOpacity
+                  style={styles.modalPaypalBtn}
+                  onPress={() => {
+                    const url = `https://paypal.me/${paymentModalInfo.paypalUsername ?? ''}/${paymentModalInfo.amount.toFixed(2)}`;
+                    Linking.openURL(url);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalPaypalBtnText}>Abrir PayPal</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <TouchableOpacity
+              style={styles.modalConfirmBtn}
+              onPress={async () => {
+                if (createdAppointmentId) {
+                  try {
+                    await updateDoc(doc(db, 'appointments', createdAppointmentId), {
+                      paymentStatus: 'client_confirmed',
+                    });
+                  } catch (e) {
+                    console.error('[BookScreen] Error updating payment status:', e);
+                  }
+                }
+                setShowPaymentModal(false);
+                navigation.navigate('MyAppointments');
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalConfirmBtnText}>Ya he pagado</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowPaymentModal(false);
+                navigation.navigate('MyAppointments');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalSkipText}>Pagare mas tarde</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -1307,4 +1564,103 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   waitlistBtnText: { color: '#000', fontSize: 14, fontWeight: '700' },
+
+  /* Payment method */
+  paymentList: { gap: 10 },
+  paymentCard: {
+    flexDirection: 'column',
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    padding: 16,
+  },
+  paymentCardSelected: { borderColor: GOLD },
+  paymentCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paymentIcon: { fontSize: 24 },
+  paymentCardInfo: { flex: 1, gap: 2 },
+  paymentCardTitle: { fontSize: 15, fontWeight: '700', color: TEXT },
+  paymentCardTitleSelected: { color: GOLD },
+  paymentCardDesc: { fontSize: 12, color: MUTED },
+  paymentRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: MUTED,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentRadioSelected: { borderColor: GOLD },
+  paymentRadioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: GOLD,
+  },
+
+  /* Payment modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: SURFACE,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    maxWidth: 360,
+  },
+  modalCheckmark: {
+    fontSize: 40,
+    color: '#4CAF50',
+    width: 72,
+    height: 72,
+    lineHeight: 72,
+    textAlign: 'center',
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: '#4CAF50',
+    overflow: 'hidden',
+  },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: TEXT },
+  modalDesc: { fontSize: 15, color: MUTED, textAlign: 'center', lineHeight: 22 },
+  modalHighlight: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: GOLD,
+    letterSpacing: 1,
+    marginVertical: 4,
+  },
+  modalSubDesc: { fontSize: 13, color: MUTED },
+  modalPaypalBtn: {
+    backgroundColor: '#0070BA',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    marginTop: 4,
+  },
+  modalPaypalBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  modalConfirmBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalConfirmBtnText: { color: '#000', fontSize: 15, fontWeight: '700' },
+  modalSkipText: { color: MUTED, fontSize: 13, fontWeight: '600', marginTop: 4 },
 });

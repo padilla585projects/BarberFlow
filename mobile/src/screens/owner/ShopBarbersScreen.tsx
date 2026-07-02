@@ -53,8 +53,9 @@ export function ShopBarbersScreen() {
       const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       const barbershopName = shopDoc.data()?.name ?? 'Barbería';
 
-      // Generate random 6-digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate cryptographically-unpredictable 8-char alphanumeric code (avoids confusable chars)
+      const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const code = Array.from({ length: 8 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
 
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h

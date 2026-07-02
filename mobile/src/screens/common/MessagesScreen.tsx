@@ -303,6 +303,20 @@ export function MessagesScreen() {
         inverted
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={null}
+        ItemSeparatorComponent={({ leadingItem, trailingItem }) => {
+          // With inverted FlatList, leadingItem is newer (data[i]) and trailingItem is older (data[i+1])
+          const d1 = leadingItem?.createdAt?.toDate?.();
+          const d2 = trailingItem?.createdAt?.toDate?.();
+          if (!d1 || !d2 || d1.toDateString() === d2.toDateString()) return null;
+          // Show the date label of the older group (trailingItem), visually it appears ABOVE the separator
+          return (
+            <View style={styles.dateSeparator}>
+              <View style={styles.dateSeparatorLine} />
+              <Text style={styles.dateSeparatorText}>{formatDate(trailingItem?.createdAt)}</Text>
+              <View style={styles.dateSeparatorLine} />
+            </View>
+          );
+        }}
       />
 
       {/* Input bar */}
@@ -456,6 +470,27 @@ const styles = StyleSheet.create({
   },
   emptyEmoji: { fontSize: 48 },
   emptyText: { fontSize: 16, color: MUTED, fontWeight: '600' },
+
+  // Date separators between message groups
+  dateSeparator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: BORDER,
+  },
+  dateSeparatorText: {
+    fontSize: 11,
+    color: MUTED,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 
   // Input bar
   inputBar: {

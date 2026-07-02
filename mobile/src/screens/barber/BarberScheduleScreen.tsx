@@ -200,15 +200,24 @@ export function BarberScheduleScreen() {
 
     if (!selectedDate || !timePickerTarget) return;
 
-    // Round to nearest 30 minutes
-    let minutes = selectedDate.getMinutes();
-    minutes = minutes < 15 ? 0 : minutes < 45 ? 30 : 0;
-    if (minutes === 0 && selectedDate.getMinutes() >= 45) {
-      selectedDate.setHours(selectedDate.getHours() + 1);
-    }
-    selectedDate.setMinutes(minutes);
+    // Work on a copy to avoid mutating the picker's internal Date object
+    const rawMinutes = selectedDate.getMinutes();
+    let roundedHours = selectedDate.getHours();
+    let roundedMinutes: number;
 
-    const timeStr = `${String(selectedDate.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    if (rawMinutes < 15) {
+      roundedMinutes = 0;
+    } else if (rawMinutes < 45) {
+      roundedMinutes = 30;
+    } else {
+      roundedMinutes = 0;
+      roundedHours += 1;
+    }
+
+    const rounded = new Date(selectedDate);
+    rounded.setHours(roundedHours, roundedMinutes, 0, 0);
+
+    const timeStr = `${String(roundedHours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`;
 
     setWeeklyHours((prev) => ({
       ...prev,
@@ -219,7 +228,7 @@ export function BarberScheduleScreen() {
     }));
 
     if (Platform.OS === 'ios') {
-      setTimePickerValue(selectedDate);
+      setTimePickerValue(rounded);
     }
   };
 
