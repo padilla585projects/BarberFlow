@@ -255,11 +255,13 @@ export function PromosScreen() {
 
   const isExpired = (d: Date) => d < new Date();
 
-  /** Simple date adjuster buttons instead of a native date picker */
+  /** Simple date adjuster buttons: adds days from the current expiry (or today if already expired) */
   const adjustExpiryDays = (days: number) => {
-    const newDate = new Date();
-    newDate.setDate(newDate.getDate() + days);
-    setForm((prev) => ({ ...prev, expiryDate: newDate }));
+    setForm((prev) => {
+      const base = prev.expiryDate > new Date() ? new Date(prev.expiryDate) : new Date();
+      base.setDate(base.getDate() + days);
+      return { ...prev, expiryDate: base };
+    });
   };
 
   /* ── Render helpers ─────────────────────────────────────────────────── */
@@ -467,7 +469,7 @@ export function PromosScreen() {
               />
 
               {/* Expiry date */}
-              <Text style={styles.fieldLabel}>Fecha de expiracion</Text>
+              <Text style={styles.fieldLabel}>Fecha de expiración</Text>
               <View style={styles.dateDisplay}>
                 <Text style={styles.dateText}>{formatDate(form.expiryDate)}</Text>
               </View>
@@ -476,25 +478,25 @@ export function PromosScreen() {
                   style={styles.dateBtn}
                   onPress={() => adjustExpiryDays(7)}
                 >
-                  <Text style={styles.dateBtnText}>7 dias</Text>
+                  <Text style={styles.dateBtnText}>+7 días</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dateBtn}
                   onPress={() => adjustExpiryDays(15)}
                 >
-                  <Text style={styles.dateBtnText}>15 dias</Text>
+                  <Text style={styles.dateBtnText}>+15 días</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dateBtn}
                   onPress={() => adjustExpiryDays(30)}
                 >
-                  <Text style={styles.dateBtnText}>30 dias</Text>
+                  <Text style={styles.dateBtnText}>+30 días</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dateBtn}
                   onPress={() => adjustExpiryDays(90)}
                 >
-                  <Text style={styles.dateBtnText}>90 dias</Text>
+                  <Text style={styles.dateBtnText}>+90 días</Text>
                 </TouchableOpacity>
               </View>
 

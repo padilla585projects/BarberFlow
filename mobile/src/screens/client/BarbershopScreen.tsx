@@ -100,6 +100,11 @@ export function BarbershopScreen({ route, navigation }: Props) {
   }
 
   const displayName = shop?.name ?? name;
+  // Pre-compute rating values to avoid NaN when ratingSum is undefined
+  const ratingSum = shop?.ratingSum ?? 0;
+  const ratingTotal = shop?.totalRatings ?? 0;
+  const avgRating = ratingTotal > 0 ? ratingSum / ratingTotal : 0;
+  const avgRatingRounded = Math.min(5, Math.max(0, Math.round(avgRating)));
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -190,19 +195,17 @@ export function BarbershopScreen({ route, navigation }: Props) {
       {/* Rating summary + reviews */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Valoraciones</Text>
-        {shop?.totalRatings && shop.totalRatings > 0 ? (
+        {ratingTotal > 0 ? (
           <>
             <View style={styles.ratingSummary}>
-              <Text style={styles.ratingBig}>
-                {(shop.ratingSum! / shop.totalRatings).toFixed(1)}
-              </Text>
+              <Text style={styles.ratingBig}>{avgRating.toFixed(1)}</Text>
               <View style={styles.ratingMeta}>
                 <Text style={styles.ratingStars}>
-                  {'★'.repeat(Math.round(shop.ratingSum! / shop.totalRatings))}
-                  {'☆'.repeat(5 - Math.round(shop.ratingSum! / shop.totalRatings))}
+                  {'★'.repeat(avgRatingRounded)}
+                  {'☆'.repeat(5 - avgRatingRounded)}
                 </Text>
                 <Text style={styles.ratingCount}>
-                  {shop.totalRatings} {shop.totalRatings === 1 ? 'valoración' : 'valoraciones'}
+                  {ratingTotal} {ratingTotal === 1 ? 'valoración' : 'valoraciones'}
                 </Text>
               </View>
             </View>
@@ -210,7 +213,10 @@ export function BarbershopScreen({ route, navigation }: Props) {
               <View key={r.id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
                   <Text style={styles.reviewAuthor}>{r.clientName}</Text>
-                  <Text style={styles.reviewStars}>{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</Text>
+                  <Text style={styles.reviewStars}>
+                    {'★'.repeat(Math.min(5, Math.max(0, r.rating)))}
+                    {'☆'.repeat(5 - Math.min(5, Math.max(0, r.rating)))}
+                  </Text>
                 </View>
                 {r.barberName ? (
                   <Text style={styles.reviewBarber}>Barbero: {r.barberName}</Text>

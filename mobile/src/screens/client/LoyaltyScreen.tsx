@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -77,6 +77,8 @@ export function LoyaltyScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [redeeming, setRedeeming] = useState<number | null>(null);
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  // Use a ref to avoid including barbershopId in useCallback deps (prevents double-fetch)
+  const barbershopIdRef = useRef<string | null>(null);
 
   const fetchData = useCallback(async () => {
     const user = auth.currentUser;
@@ -89,7 +91,7 @@ export function LoyaltyScreen() {
       setPoints(userData?.loyaltyPoints ?? 0);
 
       // Try to find the user's most-visited barbershop from their appointments
-      if (!barbershopId) {
+      if (!barbershopIdRef.current) {
         const appointmentsSnap = await getDocs(
           query(collection(db, 'appointments'), where('clientId', '==', user.uid))
         );
@@ -101,7 +103,9 @@ export function LoyaltyScreen() {
             const dateB = b.data().date?.toDate?.() ?? new Date(0);
             return dateB.getTime() - dateA.getTime();
           });
-          setBarbershopId(sorted[0].data().barbershopId);
+          const id = sorted[0].data().barbershopId as string;
+          barbershopIdRef.current = id;
+          setBarbershopId(id);
         }
       }
 
@@ -131,7 +135,7 @@ export function LoyaltyScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [barbershopId]);
+  }, []); // empty deps: barbershopIdRef avoids reactivity loop
 
   useEffect(() => {
     fetchData();
@@ -268,7 +272,7 @@ export function LoyaltyScreen() {
 
       {/* How it works */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Como funciona</Text>
+        <Text style={styles.sectionTitle}>Cómo funciona</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Text style={styles.infoIcon}>1.</Text>

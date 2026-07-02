@@ -139,23 +139,31 @@ export function OrderHistoryScreen() {
           </View>
         }
         renderItem={({ item }) => {
-          const date = item.createdAt?.toDate?.() ?? new Date();
-          const dateStr = date.toLocaleDateString('es-ES', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          });
+          const rawDate = item.createdAt?.toDate?.();
+          const dateStr = rawDate
+            ? rawDate.toLocaleDateString('es-ES', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })
+            : 'Fecha desconocida';
           const orderId = item.id.slice(-8).toUpperCase();
-          const status: OrderStatus = item.status as OrderStatus;
-          const method: PaymentMethod = item.paymentMethod as PaymentMethod;
+          const status: OrderStatus =
+            item.status in STATUS_COLOR ? (item.status as OrderStatus) : 'pending';
+          const method: PaymentMethod =
+            item.paymentMethod in PAYMENT_LABEL
+              ? (item.paymentMethod as PaymentMethod)
+              : 'cash';
+          const statusColor = STATUS_COLOR[status] ?? MUTED;
+          const statusLabel = STATUS_LABEL[status] ?? item.status;
 
           return (
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.orderId}>#{orderId}</Text>
-                <View style={[styles.badge, { backgroundColor: STATUS_COLOR[status] + '20' }]}>
-                  <Text style={[styles.badgeText, { color: STATUS_COLOR[status] }]}>
-                    {STATUS_LABEL[status]}
+                <View style={[styles.badge, { backgroundColor: statusColor + '20' }]}>
+                  <Text style={[styles.badgeText, { color: statusColor }]}>
+                    {statusLabel}
                   </Text>
                 </View>
               </View>
