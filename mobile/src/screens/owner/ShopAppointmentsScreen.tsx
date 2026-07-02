@@ -21,6 +21,10 @@ import {
 import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { Appointment } from '../../types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
+
+type Props = NativeStackScreenProps<OwnerStackParamList, 'ShopAppointments'>;
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -56,12 +60,19 @@ const TABS: { key: FilterTab; label: string }[] = [
   { key: 'no_show', label: 'No presentados' },
 ];
 
-export function ShopAppointmentsScreen() {
+export function ShopAppointmentsScreen({ route }: Props) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const { activeBarbershopId } = useAuthContext();
+
+  // Aplicar filtro inicial recibido por params
+  useEffect(() => {
+    const f = route.params?.initialFilter;
+    if (f === 'pending') setActiveTab('pending');
+    // 'today' y 'all' usan la tab 'all' pero 'today' filtra por fecha
+  }, []);
 
   const fetchAppointments = useCallback(async () => {
     if (!activeBarbershopId) return;
@@ -108,9 +119,29 @@ export function ShopAppointmentsScreen() {
     }
   };
 
-  const filtered = activeTab === 'all'
-    ? appointments
-    : appointments.filter((a) => a.status === activeTab);
+  const isToday = (date: any): boolean => {
+    if (!date) return false;
+    const d = date.toDate ? date.toDate() : new Date(date);
+    const today = new Date();
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const filtered = (() => {
+    const initialFilter = route.params?.initialFilter;
+    let list = appointments;
+    // Si el filtro inicial era 'today' y estamos en la tab 'all', filtrar por hoy
+    if (initialFilter === 'today' && activeTab === 'all') {
+      list = list.filter((a) => isToday(a.date));
+    }
+    if (activeTab !== 'all') {
+      list = list.filter((a) => a.status === activeTab);
+    }
+    return list;
+  })();
 
   const formatDate = (date: any): string => {
     if (!date) return '';
@@ -181,88 +212,93 @@ export function ShopAppointmentsScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.cardTime}>
-              <Text style={styles.cardTimeText}>{item.timeSlot}</Text>
-              <Text style={styles.cardDateText}>{formatDate(item.date)}</Text>
-            </View>
-
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardClient}>
-                {(item as any).clientName ?? 'Cliente'}
-              </Text>
-              <Text style={styles.cardBarber}>
-                Barbero: {(item as any).barberName ?? 'Sin asignar'}
-              </Text>
-              {item.services && item.services.length > 0 && (
-                <Text style={styles.cardServices} numberOfLines={2}>
-                  {item.services.map((s) => s.name).join(', ')}
-                </Text>
-              )}
-              {item.services && item.services.length > 0 && (
-                <Text style={styles.cardMeta}>
-                  {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
-                </Text>
-              )}
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: STATUS_COLOR[item.status] + '20' },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.badgeText,
-                    { color: STATUS_COLOR[item.status] },
-                  ]}
-                >
-                  {STATUS_LABEL[item.status]}
-                </Text>
+        renderItem={({ item }) => {
+          return (
+            <View style={styles.card}>
+              <View style={styles.cardTime}>
+                <Text style={styles.cardTimeText}>{item.timeSlot}</Text>
+                <Text style={styles.cardDateText}>{formatDate(item.date)}</Text>
               </View>
-            </View>
 
-            {item.status === 'pending' && (
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
-                  onPress={() => updateStatus(item.id, 'confirmed')}
-                >
-                  <Text style={styles.actionBtnText}>✓</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
-                  onPress={() => updateStatus(item.id, 'cancelled')}
-                >
-                  <Text style={styles.actionBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {item.status === 'confirmed' && (
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
-                  onPress={() => updateStatus(item.id, 'completed')}
-                >
-                  <Text style={styles.actionBtnText}>✓✓</Text>
-                </TouchableOpacity>
-                {(() => {
-                  const apptDate = item.date && (item.date as any).toDate
-                    ? (item.date as any).toDate()
-                    : new Date(item.date);
-                  return apptDate < new Date();
-                })() && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
-                    onPress={() => updateStatus(item.id, 'no_show')}
-                  >
-                    <Text style={styles.actionBtnText}>NS</Text>
-                  </TouchableOpacity>
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardClient}>
+                  {(item as any).clientName ?? 'Cliente'}
+                </Text>
+                <Text style={styles.cardBarber}>
+                  Barbero: {(item as any).barberName ?? 'Sin asignar'}
+                </Text>
+                {item.services && item.services.length > 0 && (
+                  <Text style={styles.cardServices} numberOfLines={2}>
+                    {item.services.map((s) => s.name).join(', ')}
+                  </Text>
                 )}
+                {item.services && item.services.length > 0 && (
+                  <Text style={styles.cardMeta}>
+                    {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
+                  </Text>
+                )}
+
+                <View style={styles.badgesRow}>
+                  <View
+                    style={[
+                      styles.badge,
+                      { backgroundColor: STATUS_COLOR[item.status] + '20' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        { color: STATUS_COLOR[item.status] },
+                      ]}
+                    >
+                      {STATUS_LABEL[item.status]}
+                    </Text>
+                  </View>
+                </View>
               </View>
-            )}
-          </View>
-        )}
+
+              {item.status === 'pending' && (
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
+                    onPress={() => updateStatus(item.id, 'confirmed')}
+                  >
+                    <Text style={styles.actionBtnText}>✓</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
+                    onPress={() => updateStatus(item.id, 'cancelled')}
+                  >
+                    <Text style={styles.actionBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {item.status === 'confirmed' && (
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
+                    onPress={() => updateStatus(item.id, 'completed')}
+                  >
+                    <Text style={styles.actionBtnText}>✓✓</Text>
+                  </TouchableOpacity>
+                  {(() => {
+                    const apptDate = item.date && (item.date as any).toDate
+                      ? (item.date as any).toDate()
+                      : new Date(item.date);
+                    return apptDate < new Date();
+                  })() && (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
+                      onPress={() => updateStatus(item.id, 'no_show')}
+                    >
+                      <Text style={styles.actionBtnText}>NS</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        }}
       />
     </View>
   );
@@ -336,6 +372,12 @@ const styles = StyleSheet.create({
   cardBarber: { fontSize: 12, color: MUTED },
   cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
   cardMeta: { fontSize: 11, color: MUTED },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
   badge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,

@@ -23,6 +23,7 @@ import { WaitlistScreen } from '../screens/owner/WaitlistScreen';
 import { ShopSettingsScreen } from '../screens/owner/ShopSettingsScreen';
 import { ProductOrdersScreen } from '../screens/owner/ProductOrdersScreen';
 import { PaymentHistoryScreen } from '../screens/owner/PaymentHistoryScreen';
+import { ClientPaymentsScreen } from '../screens/owner/ClientPaymentsScreen';
 import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
@@ -31,7 +32,7 @@ import { BugReportScreen } from '../screens/common/BugReportScreen';
 export type OwnerStackParamList = {
   Dashboard: undefined;
   CreateBarbershop: undefined;
-  ShopAppointments: undefined;
+  ShopAppointments: { initialFilter?: 'all' | 'pending' | 'today' } | undefined;
   ShopServices: undefined;
   ShopBarbers: undefined;
   Sales: undefined;
@@ -48,6 +49,7 @@ export type OwnerStackParamList = {
   Waitlist: undefined;
   ProductOrders: undefined;
   PaymentHistory: undefined;
+  ClientPayments: undefined;
   ShopSettings: undefined;
   Messages: undefined;
   Notifications: undefined;
@@ -218,6 +220,11 @@ export function OwnerNavigator() {
         name="PaymentHistory"
         component={PaymentHistoryScreen}
         options={{ title: 'Historial de Pagos' }}
+      />
+      <Stack.Screen
+        name="ClientPayments"
+        component={ClientPaymentsScreen}
+        options={{ title: 'Cobros de clientes' }}
       />
       <Stack.Screen
         name="ShopSettings"

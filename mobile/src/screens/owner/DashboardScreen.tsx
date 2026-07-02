@@ -132,7 +132,7 @@ export function DashboardScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -162,25 +162,37 @@ export function DashboardScreen({ navigation }: Props) {
               {unreadCount > 0 && <View style={styles.badge} />}
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSignOut} style={styles.iconBtn}>
-              <Text style={[styles.iconBtnText, { fontSize: 14 }]}>⏻</Text>
+              <Text style={[styles.iconBtnText, { fontSize: 16 }]}>🚪</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* ── Stats row ───────────────────────────────────────────────────── */}
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderTopColor: GOLD }]}>
+          <TouchableOpacity
+            style={[styles.statCard, { borderTopColor: GOLD }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('ShopAppointments', { initialFilter: 'today' })}
+          >
             <Text style={[styles.statValue, { color: GOLD }]}>{stats.today}</Text>
             <Text style={styles.statLabel}>Hoy</Text>
-          </View>
-          <View style={[styles.statCard, { borderTopColor: '#F59E0B' }]}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statCard, { borderTopColor: '#F59E0B' }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('ShopAppointments', { initialFilter: 'pending' })}
+          >
             <Text style={[styles.statValue, { color: '#F59E0B' }]}>{stats.pending}</Text>
             <Text style={styles.statLabel}>Pendientes</Text>
-          </View>
-          <View style={[styles.statCard, { borderTopColor: '#10B981' }]}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.statCard, { borderTopColor: '#10B981' }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('ShopAppointments', { initialFilter: 'all' })}
+          >
             <Text style={[styles.statValue, { color: '#10B981' }]}>{stats.total}</Text>
             <Text style={styles.statLabel}>Total</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Revenue card ────────────────────────────────────────────────── */}
@@ -207,6 +219,7 @@ export function DashboardScreen({ navigation }: Props) {
         <View style={styles.listSection}>
           <ListRow icon="💰" title="Cobrar" subtitle="Registrar un cobro rápido" onPress={() => navigation.navigate('Sales')} />
           <ListRow icon="💳" title="Historial de pagos" subtitle="Transacciones anteriores" onPress={() => navigation.navigate('PaymentHistory')} />
+          <ListRow icon="💳" title="Cobros de clientes" subtitle="Confirma pagos por Bizum, PayPal o caja" onPress={() => navigation.navigate('ClientPayments')} />
           <ListRow icon="📦" title="Inventario" subtitle="Stock de productos" onPress={() => navigation.navigate('Inventory')} />
           <ListRow icon="🛍️" title="Pedidos" subtitle="Pedidos de la tienda online" onPress={() => navigation.navigate('ProductOrders')} last />
         </View>
