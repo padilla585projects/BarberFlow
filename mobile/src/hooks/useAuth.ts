@@ -91,7 +91,13 @@ export function useAuth(): AuthState {
 
       try {
         const userRef = doc(db, 'users', firebaseUser.uid);
-        const snap = await getDoc(userRef);
+        // Timeout de 8s para evitar pantalla negra infinita cuando la red es lenta
+        const snap = await Promise.race([
+          getDoc(userRef),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Firestore timeout')), 8000),
+          ),
+        ]);
 
         if (!snap.exists()) {
           // New user — create profile
