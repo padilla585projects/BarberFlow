@@ -8,10 +8,8 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from './src/services/sentry';
 import { UpdateBanner } from './src/components/UpdateBanner';
 
-// Initialize Sentry crash reporting
-initSentry();
-
-// Suppress non-critical warnings that would show the LogBox bar to the user
+// Suppress non-critical warnings BEFORE any module initialization
+// (LogBox must register patterns before initSentry() fires its warning)
 LogBox.ignoreLogs([
   '[analytics] failed to log event',
   'Sentry DSN not configured',
@@ -19,6 +17,9 @@ LogBox.ignoreLogs([
   'Non-serializable values were found in the navigation state',
   'VirtualizedLists should never be nested',
 ]);
+
+// Initialize Sentry crash reporting (after LogBox patterns are registered)
+initSentry();
 
 // Keep native splash visible until auth state resolves
 SplashScreen.preventAutoHideAsync();
