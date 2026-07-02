@@ -4,7 +4,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { RootNavigator } from './src/navigation';
 import { CartProvider } from './src/contexts/CartContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
-import { initSentry, Sentry } from './src/services/sentry';
+import { initSentry, wrapWithSentry } from './src/services/sentry';
+import { UpdateBanner } from './src/components/UpdateBanner';
 
 // Initialize Sentry crash reporting
 initSentry();
@@ -22,10 +23,12 @@ function App() {
       <SafeAreaProvider>
         <CartProvider>
           <RootNavigator onReady={onReady} />
+          {/* OTA update banner — appears when a new version is ready */}
+          <UpdateBanner />
         </CartProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );
 }
 
-export default Sentry.wrap(App);
+export default wrapWithSentry(App);
