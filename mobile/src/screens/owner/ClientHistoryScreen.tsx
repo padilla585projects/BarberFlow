@@ -18,6 +18,7 @@ import {
   where,
   orderBy,
   getDocs,
+  limit,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -79,6 +80,7 @@ export function ClientHistoryScreen() {
         collection(db, 'appointments'),
         where('barbershopId', '==', activeBarbershopId),
         orderBy('date', 'desc'),
+        limit(500),
       );
       const snap = await getDocs(q);
 

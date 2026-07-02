@@ -14,6 +14,7 @@ import {
   query,
   orderBy,
   getDocs,
+  limit,
   doc,
   getDoc,
 } from 'firebase/firestore';
@@ -65,6 +66,7 @@ export function ReviewsScreen() {
       const q = query(
         collection(db, 'barbershops', activeBarbershopId, 'reviews'),
         orderBy('createdAt', 'desc'),
+        limit(100),
       );
       const snap = await getDocs(q);
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
