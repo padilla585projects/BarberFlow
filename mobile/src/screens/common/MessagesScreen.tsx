@@ -287,6 +287,14 @@ export function MessagesScreen() {
         </View>
       )}
 
+      {/* Empty state — fuera del FlatList inverted para que no se vea al revés */}
+      {messages.length === 0 && !loading && (
+        <View style={styles.empty}>
+          <Text style={styles.emptyEmoji}>💬</Text>
+          <Text style={styles.emptyText}>No hay mensajes</Text>
+        </View>
+      )}
+
       {/* Messages list */}
       <FlatList
         data={messages}
@@ -294,12 +302,7 @@ export function MessagesScreen() {
         renderItem={renderMessage}
         inverted
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>💬</Text>
-            <Text style={styles.emptyText}>No hay mensajes</Text>
-          </View>
-        }
+        ListEmptyComponent={null}
       />
 
       {/* Input bar */}
@@ -450,8 +453,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 64,
     gap: 12,
-    // FlatList inverted flips content, rotate the empty state back
-    transform: [{ scaleY: -1 }],
   },
   emptyEmoji: { fontSize: 48 },
   emptyText: { fontSize: 16, color: MUTED, fontWeight: '600' },

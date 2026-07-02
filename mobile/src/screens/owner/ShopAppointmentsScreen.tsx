@@ -17,8 +17,9 @@ import {
   getDocs,
   doc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { db, auth } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { Appointment } from '../../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -114,6 +115,28 @@ export function ShopAppointmentsScreen({ route }: Props) {
       setAppointments((prev) =>
         prev.map((a) => (a.id === id ? { ...a, status } : a)),
       );
+
+      // Marcar como leídas las notificaciones relacionadas con esta cita
+      const uid = auth.currentUser?.uid;
+      if (uid) {
+        try {
+          const notifQuery = query(
+            collection(db, 'users', uid, 'notifications'),
+            where('read', '==', false),
+            where('data.appointmentId', '==', id),
+          );
+          const notifSnap = await getDocs(notifQuery);
+          if (!notifSnap.empty) {
+            const batch = writeBatch(db);
+            notifSnap.docs.forEach((d) => {
+              batch.update(d.ref, { read: true });
+            });
+            await batch.commit();
+          }
+        } catch {
+          // No crítico si falla — la notificación se puede marcar manualmente
+        }
+      }
     } catch (err) {
       Alert.alert('Error', 'No se pudo actualizar el estado');
     }
