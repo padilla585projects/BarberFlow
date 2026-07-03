@@ -6,6 +6,7 @@ import { AuthProvider, useAuthContext } from '../contexts/AuthContext';
 import { registerForPushNotifications } from '../services/notifications';
 import { logScreenView } from '../services/analytics';
 import { LoginScreen } from '../screens/auth/LoginScreen';
+import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { ClientNavigator } from './ClientNavigator';
 import { BarberNavigator } from './BarberNavigator';
@@ -13,6 +14,7 @@ import { OwnerNavigator } from './OwnerNavigator';
 
 export type RootStackParamList = {
   Login: undefined;
+  Register: undefined;
   Client: undefined;
   Barber: undefined;
   Owner: undefined;
@@ -94,7 +96,10 @@ function RootNavigatorInner({ onReady }: RootNavigatorProps) {
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
         {!isSignedIn ? (
           // ── Auth screens ────────────────────────────────────────────
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+          </>
         ) : needsShopSelector ? (
           // ── Needs to pick a barbershop ──────────────────────────────
           <Stack.Screen

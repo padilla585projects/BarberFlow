@@ -18,6 +18,9 @@ import { StatusBar } from 'expo-status-bar';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import { signInWithGoogle } from '../../services/auth';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation';
 
 // ── Theme (matches web-admin dark palette) ────────────────────────────────────
 const BG      = '#0A0A0A';
@@ -53,6 +56,7 @@ export function LoginScreen() {
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const handleGoogleSignIn = async () => {
     try {
@@ -188,6 +192,18 @@ export function LoginScreen() {
               </View>
             )}
           </View>
+
+          {/* ── Register link ──────────────────────────────────────────── */}
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => navigation.navigate('Register')}
+            disabled={loading}
+          >
+            <Text style={styles.registerLinkText}>
+              ¿No tienes cuenta?{' '}
+              <Text style={styles.registerLinkBold}>Regístrate</Text>
+            </Text>
+          </TouchableOpacity>
 
           <Text style={styles.disclaimer}>
             Al continuar aceptas la{' '}
@@ -395,6 +411,19 @@ const styles = StyleSheet.create({
   cancelText: {
     color: MUTED,
     fontSize: 13,
+  },
+
+  registerLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  registerLinkText: {
+    color: MUTED,
+    fontSize: 14,
+  },
+  registerLinkBold: {
+    color: GOLD,
+    fontWeight: '700',
   },
 
   disclaimer: {
