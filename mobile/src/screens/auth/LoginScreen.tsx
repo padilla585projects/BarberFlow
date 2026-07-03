@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../services/firebase';
 import { signInWithGoogle } from '../../services/auth';
 import { useNavigation } from '@react-navigation/native';
@@ -67,6 +67,27 @@ export function LoginScreen() {
       if (!msg.includes('cancelado')) {
         Alert.alert('Error al iniciar sesión', msg);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Escribe tu email', 'Pon tu email arriba y pulsa "Olvidé mi contraseña"');
+      return;
+    }
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(auth, email.trim());
+      Alert.alert('Email enviado', `Revisa tu bandeja de entrada en ${email.trim()}. Si no lo ves, mira la carpeta de spam.`);
+    } catch (err: any) {
+      const code = err?.code ?? '';
+      let msg = 'No se pudo enviar el email';
+      if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
+        msg = 'No existe ninguna cuenta con ese email';
+      }
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }
@@ -174,6 +195,13 @@ export function LoginScreen() {
                   autoComplete="password"
                   editable={!loading}
                 />
+                <TouchableOpacity
+                  style={styles.forgotBtn}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                >
+                  <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.emailBtn, loading && styles.btnDisabled]}
                   onPress={handleEmailSignIn}
@@ -411,6 +439,16 @@ const styles = StyleSheet.create({
   cancelText: {
     color: MUTED,
     fontSize: 13,
+  },
+
+  forgotBtn: {
+    alignItems: 'flex-end',
+    paddingVertical: 2,
+  },
+  forgotText: {
+    color: MUTED,
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
 
   registerLink: {
