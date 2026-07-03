@@ -74,6 +74,9 @@ export interface Service {
   description?: string;
 }
 
+export type PaymentMethod = 'cash' | 'bizum' | 'paypal';
+export type PaymentStatus = 'pending' | 'client_confirmed' | 'confirmed' | 'paid';
+
 export interface Appointment {
   id: string;
   clientId: string;
@@ -87,6 +90,8 @@ export interface Appointment {
   timeSlot: string; // "10:00"
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   totalPrice: number;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
   createdAt: Date;
 }
 

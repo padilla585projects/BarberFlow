@@ -63,6 +63,8 @@ export interface Appointment {
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   totalPrice: number;
   createdAt: Date;
+  paymentMethod?: 'cash' | 'bizum' | 'paypal';
+  paymentStatus?: 'pending' | 'client_confirmed' | 'confirmed' | 'paid';
 }
 
 export interface Product {
@@ -126,6 +128,8 @@ export interface Order {
   address?: string;
   notes?: string;
   createdAt: Date;
+  paymentMethod?: 'cash' | 'bizum' | 'paypal';
+  paymentStatus?: 'pending' | 'client_confirmed' | 'confirmed' | 'paid';
 }
 
 export interface Review {
