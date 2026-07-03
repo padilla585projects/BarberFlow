@@ -4,7 +4,7 @@
     "slug": "barberflow",
     "version": "1.5.0",
     "orientation": "portrait",
-    "icon": "./assets/logo-login.png",
+    "icon": "./assets/logo-login-icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo-login.png",
+        "foregroundImage": "./assets/logo-login-icon.png",
         "backgroundColor": "#0A0A0A"
       },
       "predictiveBackGestureEnabled": false,
