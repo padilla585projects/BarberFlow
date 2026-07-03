@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../../services/firebase';
 import Constants from 'expo-constants';
 import { signOut } from '../../services/auth';
+import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
@@ -46,6 +47,7 @@ function getInitials(name: string): string {
 
 export function ProfileScreen({ navigation }: Props) {
   const user = auth.currentUser;
+  const { role } = useAuthContext();
 
   const [displayName, setDisplayName]     = useState(user?.displayName ?? '');
   const [phone, setPhone]                 = useState('');
@@ -381,6 +383,22 @@ export function ProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
+      {/* ── Trabaja con nosotros ────────────────────────────────────────── */}
+      {role === 'client' && (
+        <TouchableOpacity
+          style={styles.workWithUsBtn}
+          onPress={() => navigation.navigate('WorkWithUs')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.workWithUsIcon}>✂️</Text>
+          <View style={styles.workWithUsTextCol}>
+            <Text style={styles.workWithUsTitle}>Trabaja con nosotros</Text>
+            <Text style={styles.workWithUsSub}>Aplica para ser barbero</Text>
+          </View>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
+      )}
+
       {/* ── Account ─────────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cuenta</Text>
@@ -550,4 +568,33 @@ const styles = StyleSheet.create({
   // Version
   version: { textAlign: 'center', color: MUTED, fontSize: 12, marginTop: 12, opacity: 0.6 },
   signature: { textAlign: 'center', color: MUTED, fontSize: 11, marginTop: 4, opacity: 0.4 },
+
+  // Work with us button
+  workWithUsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SURFACE,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: GOLD + '55',
+    padding: 16,
+    marginBottom: 0,
+    gap: 12,
+  },
+  workWithUsIcon: {
+    fontSize: 24,
+  },
+  workWithUsTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  workWithUsTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: GOLD,
+  },
+  workWithUsSub: {
+    fontSize: 12,
+    color: MUTED,
+  },
 });

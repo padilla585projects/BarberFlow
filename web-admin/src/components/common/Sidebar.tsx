@@ -23,7 +23,8 @@ const ownerSections: NavSection[] = [
     title: 'Mi Negocio',
     items: [
       { to: '/barbershop',   icon: '✂️',  label: 'Mi Barbería' },
-      { to: '/barbers',      icon: '\u{1F464}', label: 'Barberos' },
+      { to: '/barbers',             icon: '\u{1F464}', label: 'Barberos' },
+      { to: '/barber-applications', icon: '✂️',         label: 'Solicitudes barberos' },
       { to: '/services',     icon: '\u{1F4CB}', label: 'Servicios' },
     ],
   },
