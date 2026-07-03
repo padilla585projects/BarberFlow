@@ -11,7 +11,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 52px 56px;
+  padding: 40px 56px;
   position: relative;
   overflow: hidden;
   border-right: 1px solid rgba(201,168,76,0.2);
@@ -416,13 +416,13 @@
 }
 
 .footer {
-  color: #2e2e2e;
+  color: #555;
   font-size: 11px;
   text-align: center;
   margin-top: 24px;
   line-height: 1.7;
   padding-top: 20px;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid rgba(201,168,76,0.1);
 }
 
 @media (max-width: 900px) {
