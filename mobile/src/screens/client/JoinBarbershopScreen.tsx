@@ -25,7 +25,7 @@ const TEXT    = '#FFFFFF';
 const MUTED   = '#888888';
 const BORDER  = '#282828';
 
-const CODE_LENGTH = 6;
+const CODE_LENGTH = 6; // debe coincidir con ShopBarbersScreen (6 chars alfanuméricos)
 
 export function JoinBarbershopScreen({ navigation }: Props) {
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
@@ -38,8 +38,8 @@ export function JoinBarbershopScreen({ navigation }: Props) {
   const code = digits.join('');
 
   const handleDigitChange = (text: string, index: number) => {
-    // Only allow digits
-    const cleaned = text.replace(/[^0-9]/g, '');
+    // Letras A-Z y números 2-9 (sin caracteres confusables)
+    const cleaned = text.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, '');
 
     if (cleaned.length === 0) {
       // Backspace: clear current cell and move back
@@ -86,7 +86,7 @@ export function JoinBarbershopScreen({ navigation }: Props) {
 
   const handleSubmit = async () => {
     if (code.length < CODE_LENGTH) {
-      Alert.alert('Código incompleto', 'Introduce los 6 dígitos del código.');
+      Alert.alert('Código incompleto', 'Introduce los 6 caracteres del código.');
       return;
     }
 
@@ -190,7 +190,7 @@ export function JoinBarbershopScreen({ navigation }: Props) {
 
         <Text style={styles.title}>Unirse a una barbería</Text>
         <Text style={styles.subtitle}>
-          Introduce el código de 6 dígitos que te proporcionó el propietario de la barbería.
+          Introduce el código de 6 caracteres que te proporcionó el propietario de la barbería.
         </Text>
 
         {/* 6-digit code input */}
@@ -209,7 +209,8 @@ export function JoinBarbershopScreen({ navigation }: Props) {
               onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
               onFocus={() => setFocusedIndex(i)}
               onBlur={() => setFocusedIndex(-1)}
-              keyboardType="number-pad"
+              keyboardType="default"
+              autoCapitalize="characters"
               maxLength={CODE_LENGTH}
               selectTextOnFocus
               caretHidden
