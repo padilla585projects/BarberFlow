@@ -60,10 +60,14 @@ export default function LoginPage() {
       // onAuthStateChanged detecta el login y el useEffect navega al dashboard
     } catch (err: any) {
       const code: string = err?.code ?? ''
+      const msg: string = err?.message ?? ''
+      console.error('[Google login error]', code, msg, err)
       if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
         // El usuario cerró la ventana — no es un error real
+      } else if (code === 'auth/popup-blocked') {
+        setError('El navegador bloqueó la ventana de Google. Permite las ventanas emergentes para este sitio en la barra de direcciones.')
       } else {
-        setError('Error al conectar con Google. Inténtalo de nuevo.')
+        setError(`Error: ${code || msg || 'desconocido'}`)
       }
       setLoading(false)
     }
@@ -112,7 +116,7 @@ export default function LoginPage() {
       <div className={styles.brand}>
         <div className={styles.brandBg} />
         <div className={styles.brandTop}>
-          <img src="/logo.png" alt="BarberFlow" style={{ width: 120, height: 120, borderRadius: '50%' }} />
+          <img src="/logo.png" alt="BarberFlow" style={{ width: 200, height: 200, borderRadius: '50%' }} />
         </div>
 
         <div className={styles.brandCenter}>
@@ -121,6 +125,7 @@ export default function LoginPage() {
             <span>sin</span><br />
             límites
           </h1>
+          <div className={styles.brandDivider} />
           <p className={styles.brandSub}>
             La plataforma completa para barberías modernas. Reservas, barberos, inventario y reportes en un solo lugar.
           </p>
