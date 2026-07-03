@@ -55,7 +55,7 @@ interface BarberReport {
   products: ProductBreakdown[];
 }
 
-type Period = 'week' | 'month';
+type Period = 'today' | 'week' | 'month';
 
 export function BarberReportsScreen() {
   const { activeBarbershopId } = useAuthContext();
@@ -72,7 +72,9 @@ export function BarberReportsScreen() {
     try {
       const now = new Date();
       const start = new Date(now);
-      if (selectedPeriod === 'week') {
+      if (selectedPeriod === 'today') {
+        // start stays as today
+      } else if (selectedPeriod === 'week') {
         start.setDate(start.getDate() - 7);
       } else {
         start.setDate(start.getDate() - 30);
@@ -244,6 +246,14 @@ export function BarberReportsScreen() {
     >
       {/* Period selector */}
       <View style={styles.periodRow}>
+        <TouchableOpacity
+          style={[styles.periodBtn, selectedPeriod === 'today' && styles.periodActive]}
+          onPress={() => setSelectedPeriod('today')}
+        >
+          <Text style={[styles.periodText, selectedPeriod === 'today' && styles.periodTextActive]}>
+            Hoy
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={[styles.periodBtn, selectedPeriod === 'week' && styles.periodActive]}
           onPress={() => setSelectedPeriod('week')}

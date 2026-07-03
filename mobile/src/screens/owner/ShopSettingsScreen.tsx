@@ -112,6 +112,12 @@ export function ShopSettingsScreen({ navigation }: Props) {
   // Notifications
   const [notifications, setNotifications] = useState<NotificationSettings>(DEFAULT_NOTIFICATIONS);
 
+  // Payment methods
+  const [payBizum, setPayBizum] = useState(false);
+  const [payPaypal, setPayPaypal] = useState(false);
+  const [bizumPhone, setBizumPhone] = useState('');
+  const [paypalUsername, setPaypalUsername] = useState('');
+
   // Time picker state
   const [pickerVisible, setPickerVisible] = useState<{
     day: DayKey;
@@ -143,6 +149,13 @@ export function ShopSettingsScreen({ navigation }: Props) {
       if (data.notificationSettings) {
         setNotifications(data.notificationSettings as NotificationSettings);
       }
+      if (data.paymentMethods) {
+        const pm = data.paymentMethods as { cash: boolean; bizum: boolean; paypal: boolean };
+        setPayBizum(pm.bizum ?? false);
+        setPayPaypal(pm.paypal ?? false);
+      }
+      if (data.bizumPhone) setBizumPhone(data.bizumPhone as string);
+      if (data.paypalUsername) setPaypalUsername(data.paypalUsername as string);
     } catch (err) {
       console.error('[ShopSettings] fetch error:', err);
       Alert.alert('Error', 'No se pudieron cargar los ajustes.');
@@ -172,6 +185,13 @@ export function ShopSettingsScreen({ navigation }: Props) {
         openingHours: hours,
         bookingSettings: booking,
         notificationSettings: notifications,
+        paymentMethods: {
+          cash: true,
+          bizum: payBizum,
+          paypal: payPaypal,
+        },
+        bizumPhone: bizumPhone.trim(),
+        paypalUsername: paypalUsername.trim(),
       });
       Alert.alert('Guardado', 'Los ajustes se han actualizado correctamente.');
     } catch (err) {
@@ -451,6 +471,80 @@ export function ShopSettingsScreen({ navigation }: Props) {
           </View>
           <Text style={npStyles.arrow}>›</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* ── Payment Methods ─────────────────────── */}
+      <Text style={styles.sectionTitle}>Métodos de pago</Text>
+      <View style={styles.card}>
+        {/* Cash — always on */}
+        <View style={styles.toggleRow}>
+          <Text style={payStyles.methodIcon}>💵</Text>
+          <Text style={[styles.toggleLabel, { marginLeft: 8 }]}>Pagar en caja</Text>
+          <Switch
+            value={true}
+            disabled
+            trackColor={{ false: BORDER, true: GOLD }}
+            thumbColor={TEXT_C}
+          />
+        </View>
+        <Text style={payStyles.methodHint}>Siempre disponible</Text>
+
+        {/* Bizum */}
+        <View style={[styles.toggleRow, { marginTop: 16 }]}>
+          <Text style={payStyles.methodIcon}>📱</Text>
+          <Text style={[styles.toggleLabel, { marginLeft: 8 }]}>Bizum</Text>
+          <Switch
+            value={payBizum}
+            onValueChange={setPayBizum}
+            trackColor={{ false: BORDER, true: GOLD }}
+            thumbColor={TEXT_C}
+          />
+        </View>
+        {payBizum && (
+          <>
+            <Text style={styles.label}>Teléfono Bizum</Text>
+            <TextInput
+              style={styles.input}
+              value={bizumPhone}
+              onChangeText={setBizumPhone}
+              placeholder="612345678"
+              placeholderTextColor={MUTED}
+              keyboardType="phone-pad"
+              maxLength={15}
+            />
+          </>
+        )}
+
+        {/* PayPal */}
+        <View style={[styles.toggleRow, { marginTop: 16 }]}>
+          <Text style={payStyles.methodIcon}>🅿️</Text>
+          <Text style={[styles.toggleLabel, { marginLeft: 8 }]}>PayPal</Text>
+          <Switch
+            value={payPaypal}
+            onValueChange={setPayPaypal}
+            trackColor={{ false: BORDER, true: GOLD }}
+            thumbColor={TEXT_C}
+          />
+        </View>
+        {payPaypal && (
+          <>
+            <Text style={styles.label}>Usuario PayPal.me</Text>
+            <TextInput
+              style={styles.input}
+              value={paypalUsername}
+              onChangeText={setPaypalUsername}
+              placeholder="tu-barberia"
+              placeholderTextColor={MUTED}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {paypalUsername.trim() !== '' && (
+              <Text style={payStyles.methodHint}>
+                paypal.me/{paypalUsername.trim()}
+              </Text>
+            )}
+          </>
+        )}
       </View>
 
       {/* ── Save ──────────────────────────────────── */}
@@ -777,5 +871,17 @@ const npStyles = StyleSheet.create({
     fontSize: 22,
     color: GOLD,
     opacity: 0.6,
+  },
+});
+
+const payStyles = StyleSheet.create({
+  methodIcon: {
+    fontSize: 20,
+  },
+  methodHint: {
+    fontSize: 12,
+    color: MUTED,
+    marginTop: 4,
+    marginLeft: 36,
   },
 });

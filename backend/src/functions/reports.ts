@@ -9,10 +9,21 @@ const REGION = 'europe-west1'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getPeriodStart(period: 'week' | 'month'): Date {
+type ReportPeriod = 'today' | 'week' | 'month'
+
+function getPeriodStart(period: ReportPeriod): Date {
+  if (period === 'today') {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    return start
+  }
   const now = new Date()
   const days = period === 'week' ? 7 : 30
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+}
+
+function periodLabelOf(period: ReportPeriod): string {
+  return period === 'today' ? 'Diario' : period === 'week' ? 'Semanal' : 'Mensual'
 }
 
 function fmtDate(ts: admin.firestore.Timestamp): string {
@@ -21,10 +32,9 @@ function fmtDate(ts: admin.firestore.Timestamp): string {
   })
 }
 
-function buildFilename(period: 'week' | 'month'): string {
+function buildFilename(period: ReportPeriod): string {
   const today = new Date().toISOString().slice(0, 10)
-  const label = period === 'week' ? 'Semanal' : 'Mensual'
-  return `BarberFlow_Reporte_${label}_${today}.xlsx`
+  return `BarberFlow_Reporte_${periodLabelOf(period)}_${today}.xlsx`
 }
 
 function applyHeaderStyle(row: ExcelJS.Row): void {
@@ -75,10 +85,10 @@ export const generateReport = onCall(
       period?: string
     }
 
-    if (!barbershopId || !period || !['week', 'month'].includes(period)) {
+    if (!barbershopId || !period || !['today', 'week', 'month'].includes(period)) {
       throw new HttpsError(
         'invalid-argument',
-        'Se requiere barbershopId y period ("week" | "month").',
+        'Se requiere barbershopId y period ("today" | "week" | "month").',
       )
     }
 
@@ -106,7 +116,7 @@ export const generateReport = onCall(
       )
     }
 
-    const validPeriod = period as 'week' | 'month'
+    const validPeriod = period as ReportPeriod
     const periodStart = getPeriodStart(validPeriod)
 
     // ── Fetch appointments ────────────────────────────────────────────────
@@ -227,7 +237,7 @@ export const generateReport = onCall(
       }
     }
 
-    const periodLabel = validPeriod === 'week' ? 'Semanal' : 'Mensual'
+    const periodLabel = periodLabelOf(validPeriod)
 
     // ── Sheet 1: Resumen General ─────────────────────────────────────────
     const ws1 = workbook.addWorksheet('Resumen General')
@@ -383,7 +393,7 @@ export const generateBarberReport = onCall(
       barberId?: string
     }
 
-    if (!barbershopId || !period || !['week', 'month'].includes(period) || !barberId) {
+    if (!barbershopId || !period || !['today', 'week', 'month'].includes(period) || !barberId) {
       throw new HttpsError(
         'invalid-argument',
         'Se requiere barbershopId, barberId y period ("week" | "month").',
@@ -408,7 +418,7 @@ export const generateBarberReport = onCall(
       throw new HttpsError('permission-denied', 'No tienes permisos para este reporte.')
     }
 
-    const validPeriod = period as 'week' | 'month'
+    const validPeriod = period as ReportPeriod
     const periodStart = getPeriodStart(validPeriod)
     const barberName = await getBarberName(barberId)
 
@@ -485,7 +495,7 @@ export const generateBarberReport = onCall(
     workbook.creator = 'BarberFlow'
     workbook.created = new Date()
 
-    const periodLabel = validPeriod === 'week' ? 'Semanal' : 'Mensual'
+    const periodLabel = periodLabelOf(validPeriod)
 
     const addSheetTitle = (ws: ExcelJS.Worksheet, text: string, colCount: number) => {
       const lastCol = String.fromCharCode(64 + colCount)
@@ -511,7 +521,7 @@ export const generateBarberReport = onCall(
 
     const summaryData: [string, string | number][] = [
       ['Barbero', barberName],
-      ['Periodo', validPeriod === 'week' ? 'Última semana' : 'Último mes'],
+      ['Periodo', validPeriod === 'today' ? 'Hoy' : validPeriod === 'week' ? 'Última semana' : 'Último mes'],
       ['', ''],
       ['Total de citas', appointmentsSnap.size],
       ['Completadas', completedCount],

@@ -7,7 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
+  Share,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   collection,
   query,
@@ -16,7 +19,8 @@ import {
   doc,
   getDoc,
 } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import app, { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
@@ -28,7 +32,6 @@ const TEXT    = '#FFFFFF';
 const MUTED   = '#888888';
 const BORDER  = '#282828';
 const GREEN   = '#10B981';
-const RED     = '#EF4444';
 
 type Period = 'today' | 'week' | 'month' | 'year';
 
@@ -56,17 +59,9 @@ interface SaleData {
   items: Array<{ type?: string; name?: string; price?: number }>;
 }
 
-interface PaymentData {
-  barberId: string;
-  barberName: string;
-  commissionAmount: number;
-  paidAt: Date;
-}
-
 interface BarberInfo {
   uid: string;
   displayName: string;
-  commissionRate: number;
 }
 
 interface RecentTransaction {
@@ -84,10 +79,10 @@ export function FinanceDashboardScreen({ navigation }: Props) {
   const [period, setPeriod] = useState<Period>('month');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const [sales, setSales] = useState<SaleData[]>([]);
-  const [payments, setPayments] = useState<PaymentData[]>([]);
   const [barbers, setBarbers] = useState<BarberInfo[]>([]);
 
   const getPeriodStart = useCallback((): Date => {
@@ -170,27 +165,7 @@ export function FinanceDashboardScreen({ navigation }: Props) {
       });
       setSales(saleRows);
 
-      // 4. Query payments
-      const paymentsSnap = await getDocs(
-        collection(db, `barbershops/${activeBarbershopId}/payments`),
-      );
-
-      const paymentRows: PaymentData[] = [];
-      paymentsSnap.docs.forEach((d) => {
-        const data = d.data();
-        const paidAt: Date = data.paidAt?.toDate?.() ?? new Date(0);
-        if (paidAt >= periodStart) {
-          paymentRows.push({
-            barberId: data.barberId ?? '',
-            barberName: data.barberName ?? '',
-            commissionAmount: data.commissionAmount ?? 0,
-            paidAt,
-          });
-        }
-      });
-      setPayments(paymentRows);
-
-      // 5. Get barber list
+      // 4. Get barber list
       const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       const barberIds: string[] = shopDoc.data()?.barbers ?? [];
 
@@ -204,7 +179,6 @@ export function FinanceDashboardScreen({ navigation }: Props) {
             barberInfos.push({
               uid: bid,
               displayName: bData.displayName ?? 'Barbero',
-              commissionRate: bData.commissionRate ?? 50,
             });
           }
         } catch {
@@ -237,21 +211,17 @@ export function FinanceDashboardScreen({ navigation }: Props) {
   const salesRevenue = sales.reduce((sum, s) => sum + s.totalAmount, 0);
   const totalRevenue = appointmentRevenue + salesRevenue;
   const totalTips = sales.reduce((sum, s) => sum + s.tipAmount, 0);
-  const totalCommissionsPaid = payments.reduce((sum, p) => sum + p.commissionAmount, 0);
-  const netProfit = totalRevenue - totalCommissionsPaid;
 
   // Per-barber breakdown
   const barberBreakdown = barbers.map((barber) => {
     const barberAppts = completedAppointments.filter((a) => a.barberId === barber.uid);
     const barberRevenue = barberAppts.reduce((sum, a) => sum + a.totalPrice, 0);
-    const commissionAmount = barberRevenue * (barber.commissionRate / 100);
     const revenuePercent = totalRevenue > 0 ? (barberRevenue / totalRevenue) * 100 : 0;
 
     return {
       ...barber,
       appointmentCount: barberAppts.length,
       revenue: barberRevenue,
-      commissionAmount,
       revenuePercent,
     };
   });
@@ -301,6 +271,47 @@ export function FinanceDashboardScreen({ navigation }: Props) {
     });
   };
 
+  const canExport = period !== 'year';
+
+  const handleExport = async () => {
+    if (!activeBarbershopId) {
+      Alert.alert('Error', 'No se encontró tu barbería');
+      return;
+    }
+    if (!canExport) return;
+
+    try {
+      setExporting(true);
+
+      const functions = getFunctions(app, 'europe-west1');
+      const generate = httpsCallable<
+        { barbershopId: string; period: 'today' | 'week' | 'month' },
+        { base64: string; filename: string }
+      >(functions, 'generateReport');
+
+      const result = await generate({
+        barbershopId: activeBarbershopId,
+        period: period as 'today' | 'week' | 'month',
+      });
+      const { base64, filename } = result.data;
+
+      const fileUri = FileSystem.documentDirectory + filename;
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      await Share.share({
+        url: fileUri,
+        title: filename,
+      });
+    } catch (err: any) {
+      console.error('[FinanceDashboard] Export error:', err);
+      Alert.alert('Error', err.message ?? 'No se pudo generar el reporte');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -342,7 +353,24 @@ export function FinanceDashboardScreen({ navigation }: Props) {
         ))}
       </View>
 
-      {/* Top KPI cards (2x2) */}
+      {/* Export to Excel */}
+      <TouchableOpacity
+        style={[styles.exportBtn, (exporting || !canExport) && styles.exportBtnDisabled]}
+        onPress={handleExport}
+        disabled={exporting || !canExport}
+        activeOpacity={0.85}
+      >
+        {exporting ? (
+          <ActivityIndicator color="#000" />
+        ) : (
+          <Text style={styles.exportBtnText}>📊 Exportar a Excel</Text>
+        )}
+      </TouchableOpacity>
+      {!canExport && (
+        <Text style={styles.exportNote}>Exporta por día, semana o mes</Text>
+      )}
+
+      {/* Top KPI cards */}
       <View style={styles.kpiGrid}>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Total Ingresos</Text>
@@ -355,13 +383,9 @@ export function FinanceDashboardScreen({ navigation }: Props) {
           <Text style={styles.kpiValue}>{formatCurrency(totalTips)}</Text>
         </View>
         <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Comisiones pagadas</Text>
-          <Text style={styles.kpiValue}>{formatCurrency(totalCommissionsPaid)}</Text>
-        </View>
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Beneficio neto</Text>
-          <Text style={[styles.kpiValue, { color: netProfit >= 0 ? GREEN : RED }]}>
-            {formatCurrency(netProfit)}
+          <Text style={styles.kpiLabel}>Citas completadas</Text>
+          <Text style={[styles.kpiValue, { color: GREEN }]}>
+            {completedAppointments.length}
           </Text>
         </View>
       </View>
@@ -385,14 +409,6 @@ export function FinanceDashboardScreen({ navigation }: Props) {
               <View style={styles.barberStatItem}>
                 <Text style={styles.barberStatLabel}>Ingresos</Text>
                 <Text style={styles.barberStatValue}>{formatCurrency(b.revenue)}</Text>
-              </View>
-              <View style={styles.barberStatItem}>
-                <Text style={styles.barberStatLabel}>
-                  Comision ({b.commissionRate}%)
-                </Text>
-                <Text style={[styles.barberStatValue, { color: GOLD }]}>
-                  {formatCurrency(b.commissionAmount)}
-                </Text>
               </View>
             </View>
             {/* Progress bar */}
@@ -505,6 +521,34 @@ const styles = StyleSheet.create({
   periodChipTextActive: {
     color: '#000000',
     fontWeight: '700',
+  },
+
+  // Export button
+  exportBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  exportBtnDisabled: {
+    opacity: 0.5,
+  },
+  exportBtnText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  exportNote: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: MUTED,
+    textAlign: 'center',
+    marginTop: -10,
   },
 
   // KPI grid
