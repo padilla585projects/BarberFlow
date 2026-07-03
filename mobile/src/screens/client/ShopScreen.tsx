@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Image,
   Dimensions,
   RefreshControl,
 } from 'react-native';
@@ -54,6 +55,20 @@ function getPlaceholderColor(name: string): string {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return PLACEHOLDER_COLORS[Math.abs(hash) % PLACEHOLDER_COLORS.length];
+}
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  Styling: '💇',
+  Barba: '🧔',
+  Cabello: '💈',
+  Afeitado: '🪒',
+  Perfume: '🧴',
+  Accesorios: '✂️',
+};
+const DEFAULT_EMOJI = '📦';
+
+function getCategoryEmoji(category: string): string {
+  return CATEGORY_EMOJIS[category] ?? DEFAULT_EMOJI;
 }
 
 function StockBadge({ stock }: { stock: number }) {
@@ -232,17 +247,27 @@ export function ShopScreen({ route, navigation }: Props) {
               })
             }
           >
-            {/* Image placeholder */}
-            <View
-              style={[
-                styles.cardImage,
-                { backgroundColor: getPlaceholderColor(item.name) },
-              ]}
-            >
-              <Text style={styles.cardImageLetter}>
-                {item.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            {/* Product image */}
+            {item.photoURL ? (
+              <Image
+                source={{ uri: item.photoURL }}
+                style={styles.cardImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={[
+                  styles.cardImage,
+                  styles.cardFallback,
+                  { backgroundColor: getPlaceholderColor(item.name) },
+                ]}
+              >
+                <Text style={styles.cardFallbackEmoji}>
+                  {getCategoryEmoji(item.category)}
+                </Text>
+                <Text style={styles.cardFallbackLabel}>Sin imagen</Text>
+              </View>
+            )}
 
             <View style={styles.cardBody}>
               <Text style={styles.cardName} numberOfLines={2}>
@@ -347,14 +372,22 @@ const styles = StyleSheet.create({
   },
   cardImage: {
     width: '100%',
-    height: CARD_WIDTH * 0.7,
+    height: CARD_WIDTH * 0.85,
+  },
+  cardFallback: {
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
   },
-  cardImageLetter: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: 'rgba(255,255,255,0.5)',
+  cardFallbackEmoji: {
+    fontSize: 40,
+  },
+  cardFallbackLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.35)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   cardBody: { padding: 10, gap: 4 },
   cardName: { color: TEXT_C, fontSize: 13, fontWeight: '600' },

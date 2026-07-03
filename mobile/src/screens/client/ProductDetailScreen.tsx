@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
   Dimensions,
   Alert,
 } from 'react-native';
@@ -35,6 +36,20 @@ function getPlaceholderColor(name: string): string {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return PLACEHOLDER_COLORS[Math.abs(hash) % PLACEHOLDER_COLORS.length];
+}
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  Styling: '💇',
+  Barba: '🧔',
+  Cabello: '💈',
+  Afeitado: '🪒',
+  Perfume: '🧴',
+  Accesorios: '✂️',
+};
+const DEFAULT_EMOJI = '📦';
+
+function getCategoryEmoji(category: string): string {
+  return CATEGORY_EMOJIS[category] ?? DEFAULT_EMOJI;
 }
 
 export function ProductDetailScreen({ route, navigation }: Props) {
@@ -109,17 +124,27 @@ export function ProductDetailScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Product image placeholder */}
-      <View
-        style={[
-          styles.imageWrap,
-          { backgroundColor: getPlaceholderColor(product.name) },
-        ]}
-      >
-        <Text style={styles.imageLetter}>
-          {product.name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
+      {/* Product image */}
+      {product.photoURL ? (
+        <Image
+          source={{ uri: product.photoURL }}
+          style={styles.imageWrap}
+          resizeMode="cover"
+        />
+      ) : (
+        <View
+          style={[
+            styles.imageWrap,
+            styles.imageFallback,
+            { backgroundColor: getPlaceholderColor(product.name) },
+          ]}
+        >
+          <Text style={styles.imageFallbackEmoji}>
+            {getCategoryEmoji(product.category)}
+          </Text>
+          <Text style={styles.imageFallbackLabel}>Sin imagen</Text>
+        </View>
+      )}
 
       {/* Product info */}
       <View style={styles.infoSection}>
@@ -230,14 +255,22 @@ const styles = StyleSheet.create({
   // Image
   imageWrap: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.7,
+    height: SCREEN_WIDTH * 0.75,
+  },
+  imageFallback: {
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 10,
   },
-  imageLetter: {
+  imageFallbackEmoji: {
     fontSize: 72,
-    fontWeight: '800',
-    color: 'rgba(255,255,255,0.4)',
+  },
+  imageFallbackLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.35)',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 
   // Info

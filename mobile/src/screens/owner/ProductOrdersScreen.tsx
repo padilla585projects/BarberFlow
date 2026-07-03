@@ -23,6 +23,7 @@ import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
+import type { PaymentMethod, PaymentStatus } from '../../types';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'ProductOrders'>;
 
@@ -53,6 +54,8 @@ interface ProductOrder {
   status: OrderStatus;
   createdAt: Date;
   barbershopId: string;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
 }
 
 type FilterTab = 'all' | OrderStatus;
@@ -102,6 +105,8 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
           status: data.status ?? 'reserved',
           createdAt: data.createdAt?.toDate?.() ?? new Date(0),
           barbershopId: data.barbershopId ?? activeBarbershopId,
+          paymentMethod: data.paymentMethod,
+          paymentStatus: data.paymentStatus,
         };
       });
 
