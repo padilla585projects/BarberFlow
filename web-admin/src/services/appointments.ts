@@ -50,6 +50,13 @@ export async function updateAppointmentStatus(
   await updateDoc(doc(db, COL, id), { status })
 }
 
+export async function updateAppointmentPaymentStatus(
+  id: string,
+  paymentStatus: NonNullable<Appointment['paymentStatus']>
+): Promise<void> {
+  await updateDoc(doc(db, COL, id), { paymentStatus })
+}
+
 export async function createAppointment(data: Omit<Appointment, 'id' | 'createdAt'>): Promise<string> {
   const ref = await addDoc(collection(db, COL), {
     ...data,

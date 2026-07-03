@@ -32,3 +32,10 @@ export async function getOrdersByBarbershop(barbershopId: string): Promise<Order
 export async function updateOrderStatus(id: string, status: Order['status']): Promise<void> {
   await updateDoc(doc(db, COL, id), { status, updatedAt: new Date() })
 }
+
+export async function updateOrderPaymentStatus(
+  id: string,
+  paymentStatus: NonNullable<Order['paymentStatus']>
+): Promise<void> {
+  await updateDoc(doc(db, COL, id), { paymentStatus })
+}
