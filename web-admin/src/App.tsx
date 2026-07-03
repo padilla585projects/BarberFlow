@@ -21,6 +21,7 @@ import ReviewsPage from './pages/owner/ReviewsPage'
 import PromosPage from './pages/owner/PromosPage'
 import FinancePage from './pages/owner/FinancePage'
 import PaymentsPage from './pages/owner/PaymentsPage'
+import ClientPaymentsPage from './pages/owner/ClientPaymentsPage'
 import NotificationsPage from './pages/owner/NotificationsPage'
 import MessagesPage from './pages/owner/MessagesPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
@@ -57,6 +58,7 @@ function AppRoutes() {
                 <Route path="/promos" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><PromosPage /></ProtectedRoute>} />
                 <Route path="/finances" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><FinancePage /></ProtectedRoute>} />
                 <Route path="/payments" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><PaymentsPage /></ProtectedRoute>} />
+                <Route path="/client-payments" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ClientPaymentsPage /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><NotificationsPage /></ProtectedRoute>} />
                 <Route path="/messages" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><MessagesPage /></ProtectedRoute>} />
                 {/* Fallback */}

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
+import { httpsCallable, getFunctions } from 'firebase/functions'
 import { getAllBarbershops } from '../../services/barbershops'
 import { getUsersByBarbershop } from '../../services/users'
 import { getAppointmentsByBarbershop } from '../../services/appointments'
 import { getSalesByBarbershop } from '../../services/sales'
 import { useAuth } from '../../contexts/AuthContext'
 import { Barbershop, User, Appointment, Sale } from '../../types'
+import app from '../../services/firebase'
 import styles from './FinancePage.module.css'
 
 type Period = 'today' | 'week' | 'month' | 'year'
+type ReportPeriod = 'today' | 'week' | 'month'
 
 function getPeriodRange(period: Period): { from: Date; to: Date } {
   const now = new Date()
@@ -43,7 +46,6 @@ interface BarberEarning {
   barber: User
   revenue: number
   tips: number
-  commission: number
 }
 
 interface Transaction {
@@ -64,6 +66,44 @@ export default function FinancePage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<Period>('month')
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    if (!selectedShop || period === 'year') return
+    try {
+      setExporting(true)
+      const functions = getFunctions(app, 'europe-west1')
+      const generate = httpsCallable<
+        { barbershopId: string; period: ReportPeriod },
+        { base64: string; filename: string }
+      >(functions, 'generateReport')
+      const result = await generate({ barbershopId: selectedShop, period: period as ReportPeriod })
+      const { base64, filename } = result.data
+
+      const byteChars = atob(base64)
+      const byteNumbers = new Array(byteChars.length)
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('[FinancePage] Error exporting report:', err)
+      window.alert('No se pudo generar el reporte. Inténtalo de nuevo.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const load = async (shopId: string) => {
     if (!shopId) return
@@ -106,10 +146,7 @@ export default function FinancePage() {
   const salesRevenue = filteredSales.reduce((s, v) => s + v.totalAmount, 0)
   const totalRevenue = appointmentRevenue + salesRevenue
   const totalTips = filteredSales.reduce((s, v) => s + ((v as any).tipAmount ?? 0), 0)
-  // Commission: 10% of appointment revenue as example
-  const commissionRate = 0.10
-  const totalCommissions = appointmentRevenue * commissionRate
-  const netProfit = totalRevenue - totalCommissions
+  const completedAppointments = filteredApps.length
 
   // Revenue breakdown: services vs products
   const serviceRevenue = appointmentRevenue +
@@ -125,8 +162,7 @@ export default function FinancePage() {
     const revenue = barberApps.reduce((s, a) => s + a.totalPrice, 0) +
       barberSales.reduce((s, v) => s + v.totalAmount, 0)
     const tips = barberSales.reduce((s, v) => s + ((v as any).tipAmount ?? 0), 0)
-    const commission = barberApps.reduce((s, a) => s + a.totalPrice, 0) * commissionRate
-    return { barber, revenue, tips, commission }
+    return { barber, revenue, tips }
   }).sort((a, b) => b.revenue - a.revenue)
 
   // Recent transactions (last 20)
@@ -183,6 +219,17 @@ export default function FinancePage() {
             {PERIOD_LABELS[p]}
           </button>
         ))}
+        <button
+          className={styles.exportBtn}
+          onClick={handleExport}
+          disabled={exporting || period === 'year'}
+          title={period === 'year' ? 'Exporta por día, semana o mes' : undefined}
+        >
+          {exporting ? 'Generando...' : '⬇ Exportar Excel'}
+        </button>
+        {period === 'year' && (
+          <span className={styles.exportHint}>Exporta por día, semana o mes</span>
+        )}
       </div>
 
       {loading ? (
@@ -202,14 +249,9 @@ export default function FinancePage() {
               <span className={styles.kpiLabel}>Propinas</span>
             </div>
             <div className={styles.kpi}>
-              <span className={styles.kpiIcon}>📊</span>
-              <span className={styles.kpiVal}>{totalCommissions.toFixed(2)}€</span>
-              <span className={styles.kpiLabel}>Comisiones</span>
-            </div>
-            <div className={styles.kpi}>
               <span className={styles.kpiIcon}>✅</span>
-              <span className={styles.kpiVal}>{netProfit.toFixed(2)}€</span>
-              <span className={styles.kpiLabel}>Beneficio neto</span>
+              <span className={styles.kpiVal}>{completedAppointments}</span>
+              <span className={styles.kpiLabel}>Citas completadas</span>
             </div>
           </div>
 
@@ -253,7 +295,6 @@ export default function FinancePage() {
                     <span>Barbero</span>
                     <span>Ingresos</span>
                     <span>Propinas</span>
-                    <span>Comisión</span>
                   </div>
                   {barberEarnings.map(r => (
                     <div key={r.barber.uid} className={styles.row}>
@@ -266,7 +307,6 @@ export default function FinancePage() {
                       </div>
                       <span className={`${styles.cell} ${styles.bold}`}>{r.revenue.toFixed(2)}€</span>
                       <span className={`${styles.cell} ${styles.gold}`}>{r.tips.toFixed(2)}€</span>
-                      <span className={`${styles.cell} ${styles.muted}`}>{r.commission.toFixed(2)}€</span>
                     </div>
                   ))}
                 </div>

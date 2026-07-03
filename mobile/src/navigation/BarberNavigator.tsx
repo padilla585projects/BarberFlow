@@ -5,6 +5,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { NotificationsScreen } from '../screens/common/NotificationsScreen';
 import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { AgendaScreen } from '../screens/barber/AgendaScreen';
+import { PaymentsScreen } from '../screens/barber/PaymentsScreen';
 import { BarberStatsScreen } from '../screens/barber/BarberStatsScreen';
 import { BarberScheduleScreen } from '../screens/barber/BarberScheduleScreen';
 import { ScheduleTemplatesScreen } from '../screens/barber/ScheduleTemplatesScreen';
@@ -16,6 +17,7 @@ import { BugReportScreen } from '../screens/common/BugReportScreen';
 
 export type BarberStackParamList = {
   Agenda: undefined;
+  Payments: undefined;
   Stats: undefined;
   Reports: undefined;
   Schedule: undefined;
@@ -100,6 +102,11 @@ export function BarberNavigator() {
               )
             : undefined,
         })}
+      />
+      <Stack.Screen
+        name="Payments"
+        component={PaymentsScreen}
+        options={{ title: 'Pagos' }}
       />
       <Stack.Screen
         name="Stats"

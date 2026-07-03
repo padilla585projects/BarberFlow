@@ -25,3 +25,5 @@ device_screenshot.png
 ds_small.png
 rnsettings.xml
 seed.mjs
+mobile/screen_*.png
+.claude/

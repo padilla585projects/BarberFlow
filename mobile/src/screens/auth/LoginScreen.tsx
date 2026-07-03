@@ -197,12 +197,19 @@ export function LoginScreen() {
             >
               Política de Privacidad
             </Text>
-            {' '}y los{' '}
+            {', los '}
             <Text
               style={styles.disclaimerLink}
               onPress={() => Linking.openURL('https://barberflow-2026.web.app/terms.html')}
             >
               Términos de Uso
+            </Text>
+            {' y el '}
+            <Text
+              style={styles.disclaimerLink}
+              onPress={() => Linking.openURL('https://barberflow-2026.web.app/legal.html')}
+            >
+              Aviso Legal
             </Text>
           </Text>
         </ScrollView>

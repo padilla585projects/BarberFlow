@@ -45,10 +45,26 @@
 .periodBtn:hover { color: #fff; border-color: #fff; }
 .periodActive { background: #fff; color: #000; border-color: #fff; }
 
+.exportBtn {
+  background: #C9A84C;
+  border: 1px solid #C9A84C;
+  color: #000;
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-left: auto;
+  transition: opacity 0.15s;
+}
+.exportBtn:hover { opacity: 0.85; }
+.exportBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.exportHint { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
 /* KPI cards */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -135,7 +151,7 @@
 }
 .tableHead {
   display: grid;
-  grid-template-columns: 1.8fr 1fr 0.8fr 1fr;
+  grid-template-columns: 1.8fr 1fr 1fr;
   gap: 12px;
   padding: 13px 20px;
   border-bottom: 1px solid var(--border);
@@ -148,7 +164,7 @@
 }
 .row {
   display: grid;
-  grid-template-columns: 1.8fr 1fr 0.8fr 1fr;
+  grid-template-columns: 1.8fr 1fr 1fr;
   gap: 12px;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);

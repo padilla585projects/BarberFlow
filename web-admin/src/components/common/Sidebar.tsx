@@ -39,8 +39,9 @@ const ownerSections: NavSection[] = [
   {
     title: 'Finanzas',
     items: [
-      { to: '/finances', icon: '\u{1F4B0}', label: 'Finanzas' },
-      { to: '/payments', icon: '\u{1F4B3}', label: 'Pagos' },
+      { to: '/finances',        icon: '\u{1F4B0}', label: 'Finanzas' },
+      { to: '/client-payments', icon: '\u{1F9FE}', label: 'Cobros de clientes' },
+      { to: '/payments',        icon: '\u{1F4B3}', label: 'Pagos' },
     ],
   },
   {
@@ -108,8 +109,9 @@ const developerSections: NavSection[] = [
   {
     title: 'Finanzas',
     items: [
-      { to: '/finances', icon: '\u{1F4B0}', label: 'Finanzas' },
-      { to: '/payments', icon: '\u{1F4B3}', label: 'Pagos' },
+      { to: '/finances',        icon: '\u{1F4B0}', label: 'Finanzas' },
+      { to: '/client-payments', icon: '\u{1F9FE}', label: 'Cobros de clientes' },
+      { to: '/payments',        icon: '\u{1F4B3}', label: 'Pagos' },
     ],
   },
   {
