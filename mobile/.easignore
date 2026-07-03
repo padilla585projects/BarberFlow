@@ -1,0 +1,16 @@
+# Caches de build nativo — no necesarios para EAS Build (los compila en la nube)
+android/app/.cxx/
+android/app/build/
+android/build/
+android/.gradle/
+
+# iOS build cache
+ios/build/
+ios/Pods/
+
+# Node / Metro
+node_modules/.cache/
+.expo/web/cache/
+
+# Screenshots de QA
+screen_*.png
