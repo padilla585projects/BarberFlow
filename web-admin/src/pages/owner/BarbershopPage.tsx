@@ -29,6 +29,7 @@ type FormData = {
   address: string
   phone: string
   photoURL: string
+  instagram: string
   openingHours: OpeningHours
 }
 
@@ -52,6 +53,7 @@ export default function BarbershopPage() {
         address: shop.address,
         phone: shop.phone,
         photoURL: shop.photoURL ?? '',
+        instagram: (shop as any).instagram ?? '',
         openingHours: shop.openingHours ?? DEFAULT_HOURS,
       }
       setForm(f)
@@ -91,13 +93,19 @@ export default function BarbershopPage() {
   const handleSave = async () => {
     if (!form || !selectedShop) return
     setSaving(true)
+    const igHandle = form.instagram.trim()
+      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+      .replace(/^@/, '')
+      .replace(/\/$/, '')
+
     await updateBarbershop(selectedShop, {
       name: form.name,
       address: form.address,
       phone: form.phone,
       photoURL: form.photoURL || undefined,
+      instagram: igHandle,
       openingHours: form.openingHours,
-    })
+    } as any)
     setOriginal(form)
     setSaving(false)
     setSaved(true)
@@ -188,6 +196,28 @@ export default function BarbershopPage() {
                     onChange={e => setField('photoURL', e.target.value)}
                     placeholder="https://..."
                   />
+                </div>
+                <div className={styles.field}>
+                  <label>Instagram</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ color: '#888', fontWeight: 700, fontSize: '15px' }}>@</span>
+                    <input
+                      value={form.instagram}
+                      onChange={e => setField('instagram', e.target.value)}
+                      placeholder="tu_barberia"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                  {form.instagram.trim() && (
+                    <a
+                      href={`https://instagram.com/${form.instagram.trim().replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '12px', color: '#E1306C', marginTop: '4px', display: 'inline-block' }}
+                    >
+                      📸 Ver perfil en Instagram
+                    </a>
+                  )}
                 </div>
               </div>
               {form.photoURL && (

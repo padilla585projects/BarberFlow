@@ -9,6 +9,7 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
@@ -102,6 +103,7 @@ export function ShopSettingsScreen({ navigation }: Props) {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [description, setDescription] = useState('');
+  const [instagram, setInstagram] = useState('');
 
   // Opening hours
   const [hours, setHours] = useState<OpeningHours>(DEFAULT_OPENING);
@@ -139,6 +141,7 @@ export function ShopSettingsScreen({ navigation }: Props) {
       setAddress(data.address ?? '');
       setPhone(data.phone ?? '');
       setDescription(data.description ?? '');
+      setInstagram(data.instagram ?? '');
 
       if (data.openingHours) {
         setHours(data.openingHours as OpeningHours);
@@ -177,11 +180,17 @@ export function ShopSettingsScreen({ navigation }: Props) {
 
     setSaving(true);
     try {
+      const igHandle = instagram.trim()
+        .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+        .replace(/^@/, '')
+        .replace(/\/$/, '');
+
       await updateDoc(doc(db, 'barbershops', activeBarbershopId), {
         name: name.trim(),
         address: address.trim(),
         phone: phone.trim(),
         description: description.trim(),
+        instagram: igHandle,
         openingHours: hours,
         bookingSettings: booking,
         notificationSettings: notifications,
@@ -274,6 +283,35 @@ export function ShopSettingsScreen({ navigation }: Props) {
           multiline
           numberOfLines={3}
         />
+
+        <Text style={styles.label}>Instagram</Text>
+        <View style={igStyles.row}>
+          <Text style={igStyles.at}>@</Text>
+          <TextInput
+            style={[styles.input, igStyles.input]}
+            value={instagram}
+            onChangeText={setInstagram}
+            placeholder="tu_barberia"
+            placeholderTextColor={MUTED}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        {instagram.trim().length > 0 && (
+          <TouchableOpacity
+            style={igStyles.preview}
+            onPress={() => {
+              const handle = instagram.trim()
+                .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+                .replace(/^@/, '')
+                .replace(/\/$/, '');
+              void Linking.openURL(`https://instagram.com/${handle}`);
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={igStyles.previewText}>📸 Ver perfil en Instagram</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Opening Hours ─────────────────────────── */}
@@ -883,5 +921,36 @@ const payStyles = StyleSheet.create({
     color: MUTED,
     marginTop: 4,
     marginLeft: 36,
+  },
+});
+
+const igStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  at: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: MUTED,
+    marginRight: 4,
+    paddingTop: 2,
+  },
+  input: {
+    flex: 1,
+  },
+  preview: {
+    marginTop: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: '#E1306C22',
+    borderWidth: 1,
+    borderColor: '#E1306C55',
+  },
+  previewText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#E1306C',
   },
 });

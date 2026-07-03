@@ -51,6 +51,7 @@ export function ProfileScreen({ navigation }: Props) {
 
   const [displayName, setDisplayName]     = useState(user?.displayName ?? '');
   const [phone, setPhone]                 = useState('');
+  const [instagram, setInstagram]         = useState('');
   const [photoURL, setPhotoURL]           = useState(user?.photoURL ?? '');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications]     = useState(true);
@@ -66,6 +67,7 @@ export function ProfileScreen({ navigation }: Props) {
         const data = snap.data();
         if (data) {
           setPhone(data.phone ?? '');
+          setInstagram(data.instagram ?? '');
           setNotificationsEnabled(data.notificationsEnabled ?? true);
           setEmailNotifications(data.emailNotifications ?? true);
           if (data.displayName) setDisplayName(data.displayName);
@@ -162,8 +164,13 @@ export function ProfileScreen({ navigation }: Props) {
     if (!user) return;
     setSaving(true);
     try {
+      // Normaliza el handle de Instagram (quita @ y URL si pegan el link entero)
+      const igHandle = instagram.trim()
+        .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+        .replace(/^@/, '')
+        .replace(/\/$/, '');
       await updateProfile(user, { displayName });
-      await updateDoc(doc(db, 'users', user.uid), { displayName, phone });
+      await updateDoc(doc(db, 'users', user.uid), { displayName, phone, instagram: igHandle });
       Alert.alert('Guardado', 'Tu perfil se ha actualizado correctamente.');
     } catch (err) {
       console.error('[ProfileScreen] Error saving profile:', err);
@@ -300,6 +307,31 @@ export function ProfileScreen({ navigation }: Props) {
           placeholderTextColor={MUTED}
           keyboardType="phone-pad"
         />
+
+        <Text style={styles.label}>Instagram</Text>
+        <View style={styles.igRow}>
+          <Text style={styles.igAt}>@</Text>
+          <TextInput
+            style={[styles.input, styles.igInput]}
+            value={instagram}
+            onChangeText={setInstagram}
+            placeholder="tu_usuario"
+            placeholderTextColor={MUTED}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        {instagram.trim().length > 0 && (
+          <TouchableOpacity
+            onPress={() => {
+              const handle = instagram.replace(/^@/, '').replace(/\/$/, '');
+              Linking.openURL(`https://instagram.com/${handle}`);
+            }}
+            style={styles.igPreview}
+          >
+            <Text style={styles.igPreviewText}>📸 Ver perfil en Instagram</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
@@ -511,6 +543,29 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: TEXT,
+  },
+  igRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  igAt: {
+    color: MUTED,
+    fontSize: 18,
+    fontWeight: '700',
+    paddingBottom: 2,
+  },
+  igInput: {
+    flex: 1,
+  },
+  igPreview: {
+    marginTop: 6,
+    paddingVertical: 4,
+  },
+  igPreviewText: {
+    color: '#E1306C',
+    fontSize: 13,
+    fontWeight: '600',
   },
   saveBtn: {
     backgroundColor: GOLD,
