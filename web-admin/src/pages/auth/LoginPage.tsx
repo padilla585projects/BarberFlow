@@ -57,8 +57,14 @@ export default function LoginPage() {
     setError('')
     try {
       await loginWithGoogle()
-    } catch {
-      setError('Error al conectar con Google. Inténtalo de nuevo.')
+      // onAuthStateChanged detecta el login y el useEffect navega al dashboard
+    } catch (err: any) {
+      const code: string = err?.code ?? ''
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        // El usuario cerró la ventana — no es un error real
+      } else {
+        setError('Error al conectar con Google. Inténtalo de nuevo.')
+      }
       setLoading(false)
     }
   }

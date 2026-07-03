@@ -28,7 +28,8 @@ function generateCode(): string {
 }
 
 export default function BarberApplicationsPage() {
-  const { barbershopId } = useAuth()
+  const { user } = useAuth()
+  const barbershopId = user?.barbershopId
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)

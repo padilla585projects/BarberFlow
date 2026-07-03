@@ -2,8 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import {
   User as FirebaseUser,
   onAuthStateChanged,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
@@ -49,8 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {})
-
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         setFirebaseUser(fbUser)
@@ -72,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider()
-    await signInWithRedirect(auth, provider)
+    await signInWithPopup(auth, provider)
   }
 
   const loginWithEmail = async (email: string, password: string) => {
