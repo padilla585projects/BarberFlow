@@ -31,18 +31,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_GAP = 10;
 const CARD_WIDTH = (SCREEN_WIDTH - 16 * 2 - CARD_GAP) / 2;
 
-const CATEGORIES = [
-  'Todos',
-  'Cera',
-  'Gel',
-  'Aceite',
-  'Champu',
-  'Aftershave',
-  'Crema',
-  'Perfume',
-  'Accesorios',
-  'Otro',
-];
+// Categories are derived dynamically from the products in the shop (see `categories` useMemo below)
 
 const PLACEHOLDER_COLORS = [
   '#8B4513', '#2E4057', '#5D3A6A', '#2D6A4F',
@@ -133,6 +122,17 @@ export function ShopScreen({ route, navigation }: Props) {
     });
   }, [navigation, cart.totalItems, barbershopId, barbershopName]);
 
+  // Build filter chips dynamically from the actual product categories in this barbershop
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(products.map((p) => p.category).filter(Boolean))).sort();
+    return ['Todos', ...cats];
+  }, [products]);
+
+  // Reset selected category whenever products change (e.g. navigating to a different shop)
+  useEffect(() => {
+    setSelectedCategory('Todos');
+  }, [barbershopId]);
+
   const filtered = useMemo(() => {
     let result = products;
     if (selectedCategory !== 'Todos') {
@@ -184,9 +184,9 @@ export function ShopScreen({ route, navigation }: Props) {
         />
       </View>
 
-      {/* Category chips */}
+      {/* Category chips — generated from actual product categories */}
       <FlatList
-        data={CATEGORIES}
+        data={categories}
         horizontal
         showsHorizontalScrollIndicator={false}
         keyExtractor={(item) => item}

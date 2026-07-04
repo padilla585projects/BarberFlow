@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   updateDoc,
   increment,
 } from 'firebase/firestore';
+import { useFocusEffect } from '@react-navigation/native';
 import { auth, db } from '../../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -75,9 +76,12 @@ export function MyAppointmentsScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
+  // Re-fetch every time this screen comes into focus (e.g. returning from RescheduleScreen)
+  useFocusEffect(
+    useCallback(() => {
+      fetchAppointments();
+    }, []),
+  );
 
   const cancelAppointment = (item: Appointment & { promoCode?: string }) => {
     Alert.alert(
