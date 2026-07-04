@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
-import { collection, getDocs, orderBy, query, doc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
 import type { Barbershop } from '../../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -32,34 +32,52 @@ export function HomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing]   = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
 
-  const fetchBarbershops = async () => {
+  const fetchLoyaltyPoints = async () => {
     try {
-      const q = query(collection(db, 'barbershops'), orderBy('name'));
-      const snap = await getDocs(q);
-      // Filter out barbershops explicitly marked inactive (active: false)
-      // Barbershops without the field are shown (backward-compatible)
-      const data = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() } as Barbershop & { active?: boolean }))
-        .filter((b) => b.active !== false);
-      setBarbershops(data);
-
-      // Fetch loyalty points
       const user = auth.currentUser;
       if (user) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         setLoyaltyPoints(userDoc.data()?.loyaltyPoints ?? 0);
       }
     } catch (err) {
-      console.error('[HomeScreen] Error fetching barbershops:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.error('[HomeScreen] Error fetching loyalty points:', err);
     }
   };
 
-  useEffect(() => { fetchBarbershops(); }, []);
+  useEffect(() => {
+    // Real-time listener: list updates automatically when barbershops are added/changed
+    const q = query(collection(db, 'barbershops'), orderBy('name'));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        // Filter out barbershops explicitly marked inactive (active: false)
+        // Barbershops without the field are shown (backward-compatible)
+        const data = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Barbershop & { active?: boolean }))
+          .filter((b) => b.active !== false);
+        setBarbershops(data);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        console.error('[HomeScreen] Error listening to barbershops:', err);
+        setLoading(false);
+        setRefreshing(false);
+      },
+    );
 
-  const onRefresh = () => { setRefreshing(true); fetchBarbershops(); };
+    fetchLoyaltyPoints();
+
+    return unsub; // cleanup listener on unmount
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchLoyaltyPoints();
+    // onSnapshot already keeps barbershops up-to-date; setRefreshing resets via the listener callback
+    // Give the UI a brief moment to reflect any pending Firestore updates
+    setTimeout(() => setRefreshing(false), 800);
+  };
 
   if (loading) {
     return (
