@@ -68,11 +68,12 @@ export default function PromosPage() {
   const handleSave = async () => {
     if (!form.code.trim() || !selectedShop) return
     setSaving(true)
+    const { expiresAt: _expiresAt, ...formRest } = form
     const data = {
-      ...form,
+      ...formRest,
       code: form.code.toUpperCase().trim(),
       barbershopId: selectedShop,
-      expiresAt: form.expiresAt ? new Date(form.expiresAt) : undefined,
+      ...(form.expiresAt ? { expiresAt: new Date(form.expiresAt) } : {}),
     }
     if (editingId) {
       await updatePromo(editingId, data)
