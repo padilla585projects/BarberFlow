@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,12 @@ import {
   query,
   where,
   orderBy,
+  onSnapshot,
   getDocs,
   doc,
   updateDoc,
   increment,
 } from 'firebase/firestore';
-import { useFocusEffect } from '@react-navigation/native';
 import { auth, db } from '../../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -55,33 +55,36 @@ export function MyAppointmentsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAppointments = async () => {
+  useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
-
-    try {
-      const q = query(
-        collection(db, 'appointments'),
-        where('clientId', '==', user.uid),
-        orderBy('date', 'desc'),
-      );
-      const snap = await getDocs(q);
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
-      setAppointments(data);
-    } catch (err) {
-      console.error('[MyAppointments] Error:', err);
-    } finally {
+    if (!user) {
       setLoading(false);
-      setRefreshing(false);
+      return;
     }
-  };
 
-  // Re-fetch every time this screen comes into focus (e.g. returning from RescheduleScreen)
-  useFocusEffect(
-    useCallback(() => {
-      fetchAppointments();
-    }, []),
-  );
+    const q = query(
+      collection(db, 'appointments'),
+      where('clientId', '==', user.uid),
+      orderBy('date', 'desc'),
+    );
+
+    // Real-time listener: status changes (confirmed, cancelled) appear instantly
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        console.error('[MyAppointments] Error:', err);
+        setLoading(false);
+        setRefreshing(false);
+      },
+    );
+
+    return unsub;
+  }, []);
 
   const cancelAppointment = (item: Appointment & { promoCode?: string }) => {
     Alert.alert(
@@ -127,9 +130,10 @@ export function MyAppointmentsScreen() {
     );
   };
 
+  // onSnapshot keeps data live; pull-to-refresh just resets the spinner
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAppointments();
+    setTimeout(() => setRefreshing(false), 800);
   };
 
   if (loading) {

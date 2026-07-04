@@ -14,7 +14,7 @@ import {
   query,
   where,
   orderBy,
-  getDocs,
+  onSnapshot,
   doc,
   updateDoc,
 } from 'firebase/firestore';
@@ -44,39 +44,45 @@ export function AgendaScreen() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const fetchAgenda = async () => {
+  useEffect(() => {
     const user = auth.currentUser;
-    if (!user || !activeBarbershopId) return;
+    if (!user || !activeBarbershopId) {
+      setLoading(false);
+      return;
+    }
 
-    // Re-compute start-of-today inside fetchAgenda so refreshes after midnight are correct
+    // Re-compute start-of-today so the listener always uses the current day
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    try {
-      const q = query(
-        collection(db, 'appointments'),
-        where('barberId', '==', user.uid),
-        where('barbershopId', '==', activeBarbershopId),
-        where('date', '>=', startOfToday),
-        orderBy('date'),
-      );
-      const snap = await getDocs(q);
-      setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
-    } catch (err) {
-      console.error('[AgendaScreen] Error:', err);
-      Alert.alert(
-        'Error al cargar citas',
-        'No se pudo cargar la agenda. Revisa tu conexión y vuelve a intentarlo.',
-        [{ text: 'OK' }],
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+    const q = query(
+      collection(db, 'appointments'),
+      where('barberId', '==', user.uid),
+      where('barbershopId', '==', activeBarbershopId),
+      where('date', '>=', startOfToday),
+      orderBy('date'),
+    );
 
-  useEffect(() => {
-    fetchAgenda();
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        console.error('[AgendaScreen] Error:', err);
+        Alert.alert(
+          'Error al cargar citas',
+          'No se pudo cargar la agenda. Revisa tu conexión y vuelve a intentarlo.',
+          [{ text: 'OK' }],
+        );
+        setLoading(false);
+        setRefreshing(false);
+      },
+    );
+
+    return unsub;
   }, [activeBarbershopId]);
 
   const updateStatus = async (id: string, status: Appointment['status']) => {
@@ -90,9 +96,10 @@ export function AgendaScreen() {
     }
   };
 
+  // onSnapshot keeps data live; pull-to-refresh just resets the spinner
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAgenda();
+    setTimeout(() => setRefreshing(false), 800);
   };
 
   const STATUS_COLOR: Record<Appointment['status'], string> = {

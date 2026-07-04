@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,11 @@ import {
   query,
   where,
   orderBy,
-  getDocs,
+  onSnapshot,
   doc,
   updateDoc,
   writeBatch,
+  getDocs,
 } from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
@@ -75,38 +76,39 @@ export function ShopAppointmentsScreen({ route }: Props) {
     // 'today' y 'all' usan la tab 'all' pero 'today' filtra por fecha
   }, []);
 
-  const fetchAppointments = useCallback(async () => {
-    if (!activeBarbershopId) return;
-
-    try {
-      const q = query(
-        collection(db, 'appointments'),
-        where('barbershopId', '==', activeBarbershopId),
-        orderBy('date', 'desc'),
-      );
-      const snap = await getDocs(q);
-      setAppointments(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)),
-      );
-    } catch (err) {
-      console.error('[ShopAppointmentsScreen] Error fetching appointments:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [activeBarbershopId]);
-
   useEffect(() => {
-    if (activeBarbershopId) {
-      fetchAppointments();
-    } else {
+    if (!activeBarbershopId) {
       setLoading(false);
+      return;
     }
+
+    const q = query(
+      collection(db, 'appointments'),
+      where('barbershopId', '==', activeBarbershopId),
+      orderBy('date', 'desc'),
+    );
+
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        console.error('[ShopAppointmentsScreen] Error listening to appointments:', err);
+        setLoading(false);
+        setRefreshing(false);
+      },
+    );
+
+    return unsub;
   }, [activeBarbershopId]);
 
+  // onSnapshot keeps data live; pull-to-refresh just resets the spinner
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAppointments();
+    setTimeout(() => setRefreshing(false), 800);
   };
 
   const updateStatus = async (id: string, status: Appointment['status']) => {

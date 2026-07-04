@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   query,
   where,
   orderBy,
-  getDocs,
+  onSnapshot,
   doc,
   deleteDoc,
   updateDoc,
@@ -42,71 +42,77 @@ export function WaitlistScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchWaitlist = useCallback(async () => {
-    if (!activeBarbershopId) return;
+  useEffect(() => {
+    if (!activeBarbershopId) {
+      setLoading(false);
+      return;
+    }
 
-    try {
-      const q = query(
-        collection(db, 'barbershops', activeBarbershopId, 'waitlist'),
-        where('status', '==', 'waiting'),
-        orderBy('date', 'asc'),
-      );
-      const snap = await getDocs(q);
+    const q = query(
+      collection(db, 'barbershops', activeBarbershopId, 'waitlist'),
+      where('status', '==', 'waiting'),
+      orderBy('date', 'asc'),
+    );
 
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
 
-      const items: WaitlistEntry[] = [];
-      const pastIds: string[] = [];
+        const items: WaitlistEntry[] = [];
+        const pastIds: string[] = [];
 
-      snap.docs.forEach((d) => {
-        const data = d.data();
-        const entryDate = data.date?.toDate ? data.date.toDate() : new Date(data.date);
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const entryDate = data.date?.toDate ? data.date.toDate() : new Date(data.date);
 
-        // Auto-clean past entries
-        if (entryDate < now) {
-          pastIds.push(d.id);
-          return;
+          // Auto-clean past entries
+          if (entryDate < now) {
+            pastIds.push(d.id);
+            return;
+          }
+
+          items.push({
+            id: d.id,
+            clientId: data.clientId,
+            clientName: data.clientName ?? 'Cliente',
+            clientEmail: data.clientEmail ?? '',
+            barberId: data.barberId,
+            barberName: data.barberName ?? 'Sin asignar',
+            date: entryDate,
+            services: data.services ?? [],
+            totalPrice: data.totalPrice ?? 0,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+            status: data.status,
+          });
+        });
+
+        // Clean up past entries in background
+        if (pastIds.length > 0) {
+          pastIds.forEach((pid) => {
+            deleteDoc(doc(db, 'barbershops', activeBarbershopId, 'waitlist', pid)).catch(() => {});
+          });
         }
 
-        items.push({
-          id: d.id,
-          clientId: data.clientId,
-          clientName: data.clientName ?? 'Cliente',
-          clientEmail: data.clientEmail ?? '',
-          barberId: data.barberId,
-          barberName: data.barberName ?? 'Sin asignar',
-          date: entryDate,
-          services: data.services ?? [],
-          totalPrice: data.totalPrice ?? 0,
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-          status: data.status,
-        });
-      });
+        setEntries(items);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        console.error('[WaitlistScreen] Error listening to waitlist:', err);
+        setLoading(false);
+        setRefreshing(false);
+      },
+    );
 
-      // Clean up past entries in background
-      if (pastIds.length > 0) {
-        pastIds.forEach((pid) => {
-          deleteDoc(doc(db, 'barbershops', activeBarbershopId, 'waitlist', pid)).catch(() => {});
-        });
-      }
-
-      setEntries(items);
-    } catch (err) {
-      console.error('[WaitlistScreen] Error fetching waitlist:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    return unsub;
   }, [activeBarbershopId]);
 
-  useEffect(() => {
-    fetchWaitlist();
-  }, [fetchWaitlist]);
-
+  // onSnapshot keeps data live; pull-to-refresh just resets the spinner
   const onRefresh = () => {
     setRefreshing(true);
-    fetchWaitlist();
+    setTimeout(() => setRefreshing(false), 800);
   };
 
   const handleNotify = async (entry: WaitlistEntry) => {
