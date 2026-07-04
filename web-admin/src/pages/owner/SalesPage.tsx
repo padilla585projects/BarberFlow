@@ -22,7 +22,8 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true)
 
   // Filters
-  const [barberFilter, setBarberFilter] = useState('all')
+  // Barbers default to seeing only their own sales
+  const [barberFilter, setBarberFilter] = useState(user?.role === 'barber' ? (user?.uid ?? 'all') : 'all')
   const [dateFilter, setDateFilter] = useState('')
 
   // Modal
@@ -60,7 +61,9 @@ export default function SalesPage() {
         const allShops = await getAllBarbershops()
         const shops = user?.role === 'developer'
           ? allShops
-          : allShops.filter(s => s.ownerId === user?.uid)
+          : user?.role === 'barber'
+            ? allShops.filter(s => s.id === user?.barbershopId)
+            : allShops.filter(s => s.ownerId === user?.uid)
         setBarbershops(shops)
         const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
         setSelectedShop(shopId)
@@ -74,7 +77,8 @@ export default function SalesPage() {
 
   const openModal = () => {
     setCart([])
-    setSelectedBarber(barbers[0]?.uid ?? '')
+    // Pre-select the logged-in barber; otherwise default to first in list
+    setSelectedBarber(user?.role === 'barber' ? (user?.uid ?? barbers[0]?.uid ?? '') : barbers[0]?.uid ?? '')
     setCatalogTab('services')
     setModal(true)
   }

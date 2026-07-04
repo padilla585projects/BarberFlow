@@ -34,7 +34,8 @@ export default function AppointmentsPage() {
   const [selectedShop, setSelectedShop] = useState('')
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all')
-  const [barberFilter, setBarberFilter] = useState('all')
+  // Barbers default to seeing only their own appointments
+  const [barberFilter, setBarberFilter] = useState(user?.role === 'barber' ? (user?.uid ?? 'all') : 'all')
   const [dateFilter, setDateFilter] = useState('')
 
   const load = async (shopId: string) => {
@@ -60,7 +61,9 @@ export default function AppointmentsPage() {
         const allShops = await getAllBarbershops()
         const shops = user?.role === 'developer'
           ? allShops
-          : allShops.filter(s => s.ownerId === user?.uid)
+          : user?.role === 'barber'
+            ? allShops.filter(s => s.id === user?.barbershopId)
+            : allShops.filter(s => s.ownerId === user?.uid)
         setBarbershops(shops)
         const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
         setSelectedShop(shopId)

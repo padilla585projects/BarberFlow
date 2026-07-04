@@ -106,12 +106,12 @@ function AppRoutes() {
                 <Route path="/barbershops/:id" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopFormPage /></ProtectedRoute>} />
                 <Route path="/users" element={<ProtectedRoute allowedRoles={['developer']}><UsersPage /></ProtectedRoute>} />
                 <Route path="/inventory" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><InventoryPage /></ProtectedRoute>} />
-                <Route path="/appointments" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><AppointmentsPage /></ProtectedRoute>} />
+                <Route path="/appointments" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><AppointmentsPage /></ProtectedRoute>} />
                 <Route path="/barbers" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><BarbersPage /></ProtectedRoute>} />
                 <Route path="/services" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ServicesPage /></ProtectedRoute>} />
                 <Route path="/barbershop" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><BarbershopPage /></ProtectedRoute>} />
                 <Route path="/reports" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ReportsPage /></ProtectedRoute>} />
-                <Route path="/sales" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><SalesPage /></ProtectedRoute>} />
+                <Route path="/sales" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><SalesPage /></ProtectedRoute>} />
                 <Route path="/orders" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><OrdersPage /></ProtectedRoute>} />
                 <Route path="/reviews" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><ReviewsPage /></ProtectedRoute>} />
                 <Route path="/promos" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><PromosPage /></ProtectedRoute>} />
