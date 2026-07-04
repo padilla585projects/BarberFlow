@@ -46,6 +46,9 @@ export default function BarberApplicationsPage() {
     const unsub = onSnapshot(q, (snap) => {
       setApplications(snap.docs.map(d => ({ id: d.id, ...d.data() } as Application)))
       setLoading(false)
+    }, (err) => {
+      console.error('barber_applications snapshot error:', err)
+      setLoading(false)
     })
     return unsub
   }, [barbershopId])
