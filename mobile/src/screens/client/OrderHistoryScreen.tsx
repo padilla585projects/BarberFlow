@@ -28,7 +28,7 @@ const TEXT    = '#FFFFFF';
 const MUTED   = '#888888';
 const BORDER  = '#282828';
 
-type OrderStatus = 'pending' | 'paid' | 'cancelled';
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 type PaymentMethod = 'cash' | 'bizum' | 'paypal';
 
 interface OrderItem {
@@ -44,24 +44,29 @@ interface Order {
   clientName?: string;
   clientEmail?: string;
   items: OrderItem[];
-  totalPrice: number;
+  totalAmount?: number;
+  totalPrice?: number; // legacy field — use totalAmount ?? totalPrice
   status: OrderStatus;
   paymentMethod: PaymentMethod;
-  paymentStatus: 'pending' | 'paid';
+  paymentStatus: 'pending' | 'client_confirmed' | 'confirmed' | 'paid';
   barbershopId: string;
   createdAt: any;
 }
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: 'Pendiente',
-  paid: 'Pagado',
-  cancelled: 'Cancelado',
+  pending:    'Pendiente',
+  processing: 'En proceso',
+  shipped:    'Enviado',
+  delivered:  'Entregado',
+  cancelled:  'Cancelado',
 };
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
-  pending: '#F59E0B',
-  paid: '#10B981',
-  cancelled: '#EF4444',
+  pending:    '#F59E0B',
+  processing: '#60A5FA',
+  shipped:    '#A78BFA',
+  delivered:  '#10B981',
+  cancelled:  '#EF4444',
 };
 
 const PAYMENT_LABEL: Record<PaymentMethod, string> = {
@@ -186,7 +191,7 @@ export function OrderHistoryScreen() {
 
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>{item.totalPrice?.toFixed(2)} €</Text>
+                <Text style={styles.totalValue}>{(item.totalAmount ?? item.totalPrice ?? 0).toFixed(2)} €</Text>
               </View>
 
               <Text style={styles.paymentMethod}>

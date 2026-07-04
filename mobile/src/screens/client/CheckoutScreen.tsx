@@ -11,7 +11,15 @@ import {
   Modal,
   Linking,
 } from 'react-native';
-import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+  writeBatch,
+  increment,
+} from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
 import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -87,7 +95,11 @@ export function CheckoutScreen({ route, navigation }: Props) {
     setSubmitting(true);
 
     try {
-      const orderData = {
+      const batch = writeBatch(db);
+
+      // Create order doc with auto-generated ID
+      const orderRef = doc(collection(db, 'orders'));
+      batch.set(orderRef, {
         clientId: user.uid,
         clientName: user.displayName || 'Cliente',
         clientEmail: user.email || '',
@@ -97,22 +109,25 @@ export function CheckoutScreen({ route, navigation }: Props) {
           price: item.price,
           quantity: item.quantity,
         })),
-        totalPrice: cart.totalPrice,
+        totalAmount: cart.totalPrice,
         notes: notes.trim() || null,
         status: 'pending',
         paymentMethod: selectedPayment,
         paymentStatus: 'pending',
         createdAt: serverTimestamp(),
         barbershopId,
-      };
+      });
 
-      const docRef = await addDoc(
-        collection(db, 'orders'),
-        orderData,
-      );
+      // Decrement stock for each purchased product (atomic)
+      for (const item of cart.items) {
+        const productRef = doc(db, 'products', item.productId);
+        batch.update(productRef, { stock: increment(-item.quantity) });
+      }
 
-      setOrderId(docRef.id);
-      setCreatedOrderId(docRef.id);
+      await batch.commit();
+
+      setOrderId(orderRef.id);
+      setCreatedOrderId(orderRef.id);
       cart.clearCart();
 
       if (selectedPayment === 'bizum' || selectedPayment === 'paypal') {

@@ -144,7 +144,13 @@ service cloud.firestore {
       allow create: if isAuth() && (
         isOwnerOf(request.resource.data.barbershopId) || isDeveloper()
       );
-      allow update, delete: if isAuth() && (
+      allow update: if isAuth() && (
+        isOwnerOf(resource.data.barbershopId) || isDeveloper() ||
+        // Clients can only decrement stock (atomic checkout)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']) &&
+         request.resource.data.stock < resource.data.stock)
+      );
+      allow delete: if isAuth() && (
         isOwnerOf(resource.data.barbershopId) || isDeveloper()
       );
     }
@@ -173,7 +179,9 @@ service cloud.firestore {
       );
       allow create: if isAuth();
       allow update: if isAuth() && (
-        isOwnerOf(resource.data.barbershopId) || isDeveloper()
+        resource.data.clientId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
       );
       allow delete: if isDeveloper();
     }
