@@ -27,10 +27,12 @@ import NotificationsPage from './pages/owner/NotificationsPage'
 import MessagesPage from './pages/owner/MessagesPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivacyPage from './pages/PrivacyPage'
+import LandingPage from './pages/LandingPage'
 
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
