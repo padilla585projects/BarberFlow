@@ -238,7 +238,14 @@ export default function LoginPage() {
                           className={`${styles.roleTab} ${registerRole === 'owner' ? styles.roleTabActive : ''}`}
                           onClick={() => setRegisterRole('owner')}
                         >
-                          🏪 Dueño / Barbero
+                          🏪 Dueño
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.roleTab} ${registerRole === 'barber' ? styles.roleTabActive : ''}`}
+                          onClick={() => setRegisterRole('barber')}
+                        >
+                          ✂️ Barbero
                         </button>
                         <button
                           type="button"
@@ -248,6 +255,15 @@ export default function LoginPage() {
                           👤 Cliente
                         </button>
                       </div>
+                      {registerRole === 'owner' && (
+                        <p className={styles.roleHint}>Crea y gestiona tu propia barbería</p>
+                      )}
+                      {registerRole === 'barber' && (
+                        <p className={styles.roleHint}>Necesitarás un código de invitación del dueño</p>
+                      )}
+                      {registerRole === 'client' && (
+                        <p className={styles.roleHint}>Reserva citas y compra productos en tu barbería</p>
+                      )}
                     </div>
                     <div className={styles.field}>
                       <label>Nombre completo</label>

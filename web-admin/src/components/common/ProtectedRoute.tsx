@@ -20,6 +20,24 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
     return <Navigate to="/client/home" replace />
   }
 
+  // Onboarding: dueño sin barbería → /onboarding/owner
+  if (
+    user.role === 'owner' &&
+    !user.barbershopId &&
+    !location.pathname.startsWith('/onboarding')
+  ) {
+    return <Navigate to="/onboarding/owner" replace />
+  }
+
+  // Onboarding: barbero sin barbería asignada → /onboarding/barber
+  if (
+    user.role === 'barber' &&
+    !user.barbershopId &&
+    !location.pathname.startsWith('/onboarding')
+  ) {
+    return <Navigate to="/onboarding/barber" replace />
+  }
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/unauthorized" replace />
   }

@@ -23,6 +23,7 @@ interface AuthContextType {
   signUpWithEmail: (name: string, email: string, password: string, role?: UserRole) => Promise<void>
   resetPassword: (email: string) => Promise<void>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -95,8 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth)
   }
 
+  const refreshUser = async () => {
+    if (!firebaseUser) return
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+    if (userDoc.exists()) setUser(userDoc.data() as User)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -66,7 +66,8 @@ service cloud.firestore {
     // Barbershops
     match /barbershops/{barbershopId} {
       allow read: if isAuth();
-      allow create: if isDeveloper();
+      // Owners can create their own barbershop (onboarding) + developers
+      allow create: if isDeveloper() || (isAuth() && getRole() == 'owner');
       allow update: if isDeveloper() || isOwnerOf(barbershopId);
       allow delete: if isDeveloper();
 
@@ -251,6 +252,23 @@ service cloud.firestore {
       allow create: if isDeveloper();
       allow update: if isAuth() && resource.data.userId == request.auth.uid;
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+
+    // Barber applications (barber submits, owner reviews)
+    match /barber_applications/{appId} {
+      // The applicant can read their own; owner of the target barbershop can read all theirs
+      allow read: if isAuth() && (
+        resource.data.userId == request.auth.uid ||
+        isOwnerOf(resource.data.barbershopId) ||
+        isDeveloper()
+      );
+      // Any authenticated barber can create an application
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      // Owner updates status (approve/reject); developer can too
+      allow update: if isAuth() && (
+        isOwnerOf(resource.data.barbershopId) || isDeveloper()
+      );
+      allow delete: if isDeveloper();
     }
 
     // Analytics events (cualquier usuario autenticado puede escribir eventos)

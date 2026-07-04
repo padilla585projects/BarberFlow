@@ -28,6 +28,9 @@ import MessagesPage from './pages/owner/MessagesPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivacyPage from './pages/PrivacyPage'
 import LandingPage from './pages/LandingPage'
+// Onboarding
+import OnboardingOwnerPage from './pages/onboarding/OnboardingOwnerPage'
+import OnboardingBarberPage from './pages/onboarding/OnboardingBarberPage'
 // Client portal
 import { WebCartProvider } from './contexts/WebCartContext'
 import ClientLayout from './components/client/ClientLayout'
@@ -47,6 +50,24 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+
+      {/* Onboarding (requiere auth, sin Layout principal) */}
+      <Route
+        path="/onboarding/owner"
+        element={
+          <ProtectedRoute allowedRoles={['owner', 'developer']}>
+            <OnboardingOwnerPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/onboarding/barber"
+        element={
+          <ProtectedRoute allowedRoles={['barber']}>
+            <OnboardingBarberPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Rutas cliente */}
       <Route
