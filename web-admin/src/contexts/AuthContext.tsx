@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 const DEVELOPER_EMAILS = ['padilla585.projects@gmail.com']
 
 async function createUserDoc(fbUser: FirebaseUser, overrideName?: string): Promise<User> {
-  const role: UserRole = DEVELOPER_EMAILS.includes(fbUser.email ?? '') ? 'developer' : 'client'
+  const role: UserRole = DEVELOPER_EMAILS.includes(fbUser.email ?? '') ? 'developer' : 'owner'
   const newUser: User = {
     uid: fbUser.uid,
     email: fbUser.email ?? '',
