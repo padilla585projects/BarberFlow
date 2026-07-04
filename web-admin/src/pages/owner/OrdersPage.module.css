@@ -20,7 +20,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .stats {
   display: grid;
@@ -60,8 +60,8 @@
   gap: 6px;
   transition: all 0.15s;
 }
-.filterBtn:hover { border-color: #fff; color: #fff; }
-.filterActive { border-color: #fff !important; color: #fff !important; }
+.filterBtn:hover { border-color: rgba(201,168,76,0.3); color: #c9a84c; }
+.filterActive { background: rgba(201,168,76,0.12) !important; border-color: rgba(201,168,76,0.4) !important; color: #c9a84c !important; }
 .filterCount {
   background: var(--border);
   border-radius: 10px;

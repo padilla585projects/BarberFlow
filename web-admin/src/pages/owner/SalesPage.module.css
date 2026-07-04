@@ -21,7 +21,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .addBtn {
   background: #fff;
@@ -66,7 +66,7 @@
   font-family: inherit;
   min-width: 180px;
 }
-.filterSelect:focus { outline: none; border-color: #fff; }
+.filterSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .filterDate {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -77,7 +77,7 @@
   font-family: inherit;
   color-scheme: dark;
 }
-.filterDate:focus { outline: none; border-color: #fff; }
+.filterDate:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .clearBtn {
   background: transparent;
   border: 1px solid var(--border);
@@ -88,7 +88,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.clearBtn:hover { color: #fff; border-color: #fff; }
+.clearBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 /* Table */
 .loading { color: var(--text-muted); padding: 60px 0; text-align: center; }
@@ -196,7 +196,7 @@
   justify-content: center;
   transition: all 0.15s;
 }
-.closeBtn:hover { color: #fff; border-color: #fff; }
+.closeBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 .barberSelect {
   display: flex;
@@ -225,7 +225,7 @@
   flex: 1;
   max-width: 280px;
 }
-.barberSelect select:focus { outline: none; border-color: #fff; }
+.barberSelect select:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .tpvBody {
   display: grid;
@@ -280,8 +280,8 @@
   transition: all 0.15s;
   width: 100%;
 }
-.catalogItem:hover:not(:disabled) { border-color: #fff; }
-.catalogItemActive { border-color: #fff !important; background: rgba(255,255,255,0.05); }
+.catalogItem:hover:not(:disabled) { border-color: rgba(201,168,76,0.55); }
+.catalogItemActive { border-color: rgba(201,168,76,0.5) !important; background: rgba(201,168,76,0.06); }
 .catalogItemOut { opacity: 0.35; cursor: not-allowed; }
 
 .catalogName { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
@@ -368,7 +368,7 @@
   line-height: 1;
   transition: all 0.15s;
 }
-.qtyBtn:hover { background: #fff; color: #000; border-color: #fff; }
+.qtyBtn:hover { background: #fff; color: #000; border-color: rgba(201,168,76,0.55); }
 .qtyNum { font-size: 14px; font-weight: 700; min-width: 20px; text-align: center; }
 .ticketItemPrice { font-size: 13px; font-weight: 700; margin-left: auto; }
 .removeBtn {

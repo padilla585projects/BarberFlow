@@ -21,7 +21,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .exportBtn {
   background: #fff;
@@ -55,8 +55,8 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.periodBtn:hover { color: #fff; border-color: #fff; }
-.periodActive { background: #fff; color: #000; border-color: #fff; }
+.periodBtn:hover { color: #c9a84c; border-color: rgba(201,168,76,0.3); }
+.periodActive { background: rgba(201,168,76,0.12); color: #c9a84c; border-color: rgba(201,168,76,0.4); }
 
 .customRange {
   display: flex;
@@ -75,7 +75,7 @@
   font-family: inherit;
   color-scheme: dark;
 }
-.dateInput:focus { outline: none; border-color: #fff; }
+.dateInput:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* Totals */
 .totals {

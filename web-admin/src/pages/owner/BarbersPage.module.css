@@ -33,7 +33,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* Info banner */
 .infoBanner {
@@ -188,7 +188,7 @@
   transition: all 0.15s;
   flex-shrink: 0;
 }
-.capBtn:hover:not(:disabled) { background: #fff; color: #000; border-color: #fff; }
+.capBtn:hover:not(:disabled) { background: #fff; color: #000; border-color: rgba(201,168,76,0.55); }
 .capBtn:disabled { opacity: 0.25; cursor: not-allowed; }
 
 .capDisplay {
@@ -208,11 +208,11 @@
   font-weight: 700;
   transition: all 0.15s;
 }
-.capOption:hover { color: #fff; border-color: #fff; }
+.capOption:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 .capActive {
   background: #fff;
   color: #000;
-  border-color: #fff;
+  border-color: rgba(201,168,76,0.55);
 }
 
 /* Slots preview */
@@ -262,7 +262,7 @@
   padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
   transition: all 0.15s;
 }
-.confirmNo:hover { color: #fff; border-color: #fff; }
+.confirmNo:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 /* Rename slotLabel → slotLabelBadge to avoid conflict */
 .slotLabelBadge {
@@ -303,7 +303,7 @@
   display: flex; align-items: center; justify-content: center;
   transition: all 0.15s;
 }
-.closeBtn:hover { color: #fff; border-color: #fff; }
+.closeBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 .modalDesc { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
 
@@ -315,7 +315,7 @@
   font-size: 14px; font-family: inherit;
   transition: border-color 0.15s;
 }
-.searchInput:focus { outline: none; border-color: #fff; }
+.searchInput:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .searchInput::placeholder { color: var(--text-muted); }
 .searchBtn {
   background: #fff; color: #000;

@@ -20,7 +20,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* Tabs Citas / Pedidos */
 .tabs { display: flex; gap: 6px; margin-bottom: 20px; }
@@ -34,8 +34,8 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.tab:hover { color: #fff; border-color: #fff; }
-.tabActive { background: #fff; color: #000; border-color: #fff; }
+.tab:hover { color: #c9a84c; border-color: rgba(201,168,76,0.3); }
+.tabActive { background: rgba(201,168,76,0.12); color: #c9a84c; border-color: rgba(201,168,76,0.4); }
 
 /* Stats */
 .stats {

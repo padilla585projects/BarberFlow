@@ -109,7 +109,7 @@
   font-size: 12px;
   cursor: pointer;
 }
-.editBtn:hover { border-color: #fff; }
+.editBtn:hover { border-color: rgba(201,168,76,0.55); }
 .deleteBtn {
   background: none;
   border: 1px solid var(--border);
@@ -154,7 +154,7 @@
   font-size: 14px;
   font-family: inherit;
 }
-.field input:focus, .field select:focus { outline: none; border-color: #fff; }
+.field input:focus, .field select:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .checkLabel {
   display: flex;

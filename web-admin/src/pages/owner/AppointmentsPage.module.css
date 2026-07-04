@@ -20,7 +20,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* Stats */
 .stats {
@@ -57,8 +57,8 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.tab:hover { color: #fff; border-color: #fff; }
-.tabActive { background: #fff; color: #000; border-color: #fff; }
+.tab:hover { color: #c9a84c; border-color: rgba(201,168,76,0.3); }
+.tabActive { background: rgba(201,168,76,0.12); color: #c9a84c; border-color: rgba(201,168,76,0.4); }
 
 .filterRow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
@@ -72,7 +72,7 @@
   font-family: inherit;
   min-width: 180px;
 }
-.filterSelect:focus { outline: none; border-color: #fff; }
+.filterSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .filterDate {
   background: var(--surface);
@@ -84,7 +84,7 @@
   font-family: inherit;
   color-scheme: dark;
 }
-.filterDate:focus { outline: none; border-color: #fff; }
+.filterDate:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .clearDate {
   background: transparent;
@@ -96,7 +96,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.clearDate:hover { color: #fff; border-color: #fff; }
+.clearDate:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 /* Table */
 .loading { color: var(--text-muted); padding: 60px 0; text-align: center; }
@@ -170,7 +170,7 @@
   transition: border-color 0.15s;
   width: 100%;
 }
-.statusSelect:focus { outline: none; border-color: #fff; }
+.statusSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* ── Mobile responsive ── */
 @media (max-width: 768px) {

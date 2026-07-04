@@ -71,7 +71,7 @@
 }
 .field input:focus {
   outline: none;
-  border-color: #fff;
+  border-color: rgba(201,168,76,0.55);
   background: var(--surface3);
 }
 .field input::placeholder { color: var(--text-subtle); }
@@ -116,7 +116,7 @@
 }
 .serviceInput { flex: 1; }
 .serviceInputSm { width: 72px; text-align: center; }
-.serviceInput:focus, .serviceInputSm:focus { outline: none; border-color: #fff; }
+.serviceInput:focus, .serviceInputSm:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .serviceInput::placeholder { color: var(--text-subtle); }
 
 .addServiceBtn {
@@ -131,7 +131,7 @@
   transition: all 0.15s;
   letter-spacing: 0.02em;
 }
-.addServiceBtn:hover { background: #fff; color: #000; border-color: #fff; }
+.addServiceBtn:hover { background: #fff; color: #000; border-color: rgba(201,168,76,0.55); }
 
 .actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 4px; }
 
@@ -145,7 +145,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.cancelBtn:hover { color: #fff; border-color: #fff; }
+.cancelBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 .saveBtn {
   background: #fff;

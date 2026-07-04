@@ -21,7 +21,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* Summary stats */
 .stats {
@@ -60,7 +60,7 @@
   font-family: inherit;
   min-width: 200px;
 }
-.filterSelect:focus { outline: none; border-color: #fff; }
+.filterSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 /* Table */
 .table {

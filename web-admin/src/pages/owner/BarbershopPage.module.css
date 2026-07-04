@@ -21,7 +21,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .resetBtn {
   background: transparent;
@@ -33,7 +33,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.resetBtn:hover { color: #fff; border-color: #fff; }
+.resetBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 .saveBtn {
   background: #fff;
@@ -94,7 +94,7 @@
   font-family: inherit;
   transition: border-color 0.15s;
 }
-.field input:focus { outline: none; border-color: #fff; }
+.field input:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .field input::placeholder { color: var(--text-muted); }
 
 /* Photo preview */
@@ -188,7 +188,7 @@
   color-scheme: dark;
   width: 90px;
 }
-.timeInput:focus { outline: none; border-color: #fff; }
+.timeInput:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .timeSep { color: var(--text-muted); font-size: 13px; }
 .dayHours {
   font-size: 12px;

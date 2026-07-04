@@ -22,7 +22,7 @@
   font-size: 13px;
   font-family: inherit;
 }
-.shopSelect:focus { outline: none; border-color: #fff; }
+.shopSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 
 .addBtn {
   background: #fff;
@@ -132,7 +132,7 @@
   width: 100%;
   transition: border-color 0.15s;
 }
-.search:focus { outline: none; border-color: #fff; }
+.search:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .search::placeholder { color: var(--text-muted); }
 .searchClear {
   position: absolute;
@@ -164,7 +164,7 @@
   font-size: 12px;
   font-family: inherit;
 }
-.sortSelect:focus { outline: none; border-color: #fff; color: #fff; }
+.sortSelect:focus { outline: none; border-color: rgba(201,168,76,0.55); color: #fff; }
 
 .viewToggle {
   display: flex;
@@ -200,8 +200,8 @@
   align-items: center;
   gap: 5px;
 }
-.catBtn:hover { color: #fff; border-color: #fff; }
-.catActive { background: #fff; color: #000; border-color: #fff; }
+.catBtn:hover { color: #c9a84c; border-color: rgba(201,168,76,0.3); }
+.catActive { background: rgba(201,168,76,0.12); color: #c9a84c; border-color: rgba(201,168,76,0.4); }
 .catIcon { font-size: 13px; }
 .catCount {
   font-size: 10px;
@@ -358,7 +358,7 @@
   transition: all 0.15s;
   flex-shrink: 0;
 }
-.stockBtn:hover:not(:disabled) { background: #fff; color: #000; border-color: #fff; }
+.stockBtn:hover:not(:disabled) { background: #fff; color: #000; border-color: rgba(201,168,76,0.55); }
 .stockBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 .stockBar {
   flex: 1;
@@ -391,7 +391,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.editBtn:hover { color: #fff; border-color: #fff; }
+.editBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 .deleteBtn {
   flex: 1;
   background: transparent;
@@ -494,7 +494,7 @@
   justify-content: center;
   transition: all 0.15s;
 }
-.stockBtnSm:hover:not(:disabled) { background: #fff; color: #000; border-color: #fff; }
+.stockBtnSm:hover:not(:disabled) { background: #fff; color: #000; border-color: rgba(201,168,76,0.55); }
 .stockBtnSm:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .stockNum { font-size: 15px; font-weight: 700; min-width: 28px; text-align: center; }
@@ -514,7 +514,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.editBtnSm:hover { color: #fff; border-color: #fff; }
+.editBtnSm:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 .deleteBtnSm {
   background: transparent;
   color: var(--text-muted);
@@ -621,7 +621,7 @@
   font-family: inherit;
   transition: border-color 0.15s;
 }
-.field input:focus, .field select:focus { outline: none; border-color: #fff; }
+.field input:focus, .field select:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .field input::placeholder { color: var(--text-subtle); }
 
 .modalActions {
@@ -642,7 +642,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.cancelBtn:hover { color: #fff; border-color: #fff; }
+.cancelBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 .saveBtn {
   background: #fff;
@@ -711,7 +711,7 @@
   flex-shrink: 0;
 }
 .wizStepLineDone { background: var(--success); }
-.wizStepActive .wizStepCircle { border-color: #fff; background: var(--surface3); box-shadow: 0 0 16px rgba(255,255,255,0.1); }
+.wizStepActive .wizStepCircle { border-color: rgba(201,168,76,0.55); background: var(--surface3); box-shadow: 0 0 16px rgba(255,255,255,0.1); }
 .wizStepActive .wizStepLabel { color: #fff; }
 .wizStepDone .wizStepCircle { border-color: var(--success); background: rgba(74,222,128,0.1); color: var(--success); }
 .wizStepDone .wizStepLabel { color: var(--success); }
@@ -770,7 +770,7 @@
 }
 .categoryCard:hover { border-color: var(--border-light); color: #fff; }
 .categoryCardActive {
-  border-color: #fff;
+  border-color: rgba(201,168,76,0.55);
   color: #fff;
   background: var(--surface3);
   box-shadow: 0 0 12px rgba(255,255,255,0.05);
@@ -790,7 +790,7 @@
   min-height: 70px;
   transition: border-color 0.15s;
 }
-.textarea:focus { outline: none; border-color: #fff; }
+.textarea:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .textarea::placeholder { color: var(--text-subtle); }
 
 /* Image section in wizard */
@@ -847,7 +847,7 @@
   width: 100%;
   transition: border-color 0.15s;
 }
-.imageUrlInput:focus { outline: none; border-color: #fff; }
+.imageUrlInput:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .imageUrlInput::placeholder { color: var(--text-subtle); }
 
 /* Price & stock inputs */
@@ -868,7 +868,7 @@
   width: 100%;
   transition: border-color 0.15s;
 }
-.priceInput input:focus { outline: none; border-color: #fff; }
+.priceInput input:focus { outline: none; border-color: rgba(201,168,76,0.55); }
 .priceSuffix {
   position: absolute;
   right: 14px;
@@ -1005,7 +1005,7 @@
   font-weight: 600;
   transition: all 0.15s;
 }
-.wizBackBtn:hover { color: #fff; border-color: #fff; }
+.wizBackBtn:hover { color: #fff; border-color: rgba(201,168,76,0.55); }
 
 .wizNextBtn {
   background: #fff;
@@ -1261,7 +1261,7 @@
   transition: all 0.15s;
   cursor: pointer;
 }
-.catalogStockBtn:hover:not(:disabled) { background: #fff; color: #000; border-color: #fff; }
+.catalogStockBtn:hover:not(:disabled) { background: #fff; color: #000; border-color: rgba(201,168,76,0.55); }
 .catalogStockBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .catalogEditBtn {
