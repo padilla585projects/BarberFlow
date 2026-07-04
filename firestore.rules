@@ -29,7 +29,20 @@ service cloud.firestore {
       // Barber/owner profiles are public to any authenticated user (clients need them for booking)
       allow read: if isAuth() && (request.auth.uid == userId || isDeveloper() || getRole() == 'owner' || getRole() == 'barber' || resource.data.role in ['barber', 'owner']);
       allow create: if isAuth() && request.auth.uid == userId;
-      allow update: if isAuth() && (request.auth.uid == userId || isDeveloper());
+      allow update: if isAuth() && (
+        request.auth.uid == userId ||
+        isDeveloper() ||
+        // Owner can manage barbers in their shop:
+        // (a) update settings for users already assigned to their shop
+        // (b) assign a new user to their shop (only role + barbershopId fields)
+        (getRole() == 'owner' && (
+          resource.data.get('barbershopId', '') ==
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barbershopId ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'barbershopId']) &&
+           request.resource.data.get('barbershopId', '') ==
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barbershopId)
+        ))
+      );
       allow delete: if isDeveloper();
 
       // Points history subcollection — user reads their own; only Cloud Functions can write
@@ -160,6 +173,7 @@ service cloud.firestore {
     match /sales/{saleId} {
       allow read: if isAuth() && (
         resource.data.barberId == request.auth.uid ||
+        isBarberOf(resource.data.barbershopId) ||
         isOwnerOf(resource.data.barbershopId) ||
         isDeveloper()
       );

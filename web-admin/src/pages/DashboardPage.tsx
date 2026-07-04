@@ -83,7 +83,7 @@ export default function DashboardPage() {
         }
         if (!shopId) { setLoading(false); return }
 
-        const [shop, users, apps, salesData, products] = await Promise.all([
+        const [shopRes, usersRes, appsRes, salesRes, productsRes] = await Promise.allSettled([
           getBarbershopById(shopId),
           getUsersByBarbershop(shopId),
           getAppointmentsByBarbershop(shopId),
@@ -91,11 +91,11 @@ export default function DashboardPage() {
           getProductsByBarbershop(shopId),
         ])
 
-        setShopName(shop?.name ?? '')
-        setBarbers(users.filter(u => u.role === 'barber' || u.role === 'owner'))
-        setAppointments(apps)
-        setSales(salesData)
-        setLowStock(products.filter(p => p.stock <= 3).length)
+        if (shopRes.status === 'fulfilled') setShopName(shopRes.value?.name ?? '')
+        if (usersRes.status === 'fulfilled') setBarbers(usersRes.value.filter(u => u.role === 'barber' || u.role === 'owner'))
+        if (appsRes.status === 'fulfilled') setAppointments(appsRes.value)
+        if (salesRes.status === 'fulfilled') setSales(salesRes.value)
+        if (productsRes.status === 'fulfilled') setLowStock(productsRes.value.filter(p => p.stock <= 3).length)
       } finally {
         setLoading(false)
       }
