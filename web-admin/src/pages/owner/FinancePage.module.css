@@ -178,7 +178,8 @@
 .rowAvatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .rowAvatarFallback {
   width: 30px; height: 30px; border-radius: 50%;
-  background: var(--surface2); border: 1px solid var(--border);
+  background: rgba(201,168,76,0.15); border: 2px solid rgba(201,168,76,0.4);
+  color: #c9a84c;
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 800; flex-shrink: 0;
 }

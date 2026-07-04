@@ -13,7 +13,8 @@
 .headerActions { display: flex; gap: 10px; align-items: center; }
 
 .addBtn {
-  background: #fff;
+  background: #c9a84c;
+  border: 1px solid #c9a84c;
   color: #000;
   padding: 10px 18px;
   border-radius: var(--radius);
@@ -22,7 +23,7 @@
   transition: all 0.15s;
   white-space: nowrap;
 }
-.addBtn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.addBtn:hover { opacity: 0.85; transform: translateY(-1px); }
 
 .shopSelect {
   background: var(--surface);
@@ -93,8 +94,9 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  background: rgba(201,168,76,0.15);
+  border: 2px solid rgba(201,168,76,0.4);
+  color: #c9a84c;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,17 +372,18 @@
 
 /* Save button */
 .saveBtn {
-  background: #fff;
+  background: #c9a84c;
+  border: 1px solid #c9a84c;
   color: #000;
   padding: 10px;
   border-radius: var(--radius);
   font-size: 13px;
   font-weight: 700;
   width: 100%;
-  transition: all 0.15s;
+  transition: opacity 0.15s;
   letter-spacing: 0.02em;
 }
-.saveBtn:hover:not(:disabled) { background: var(--accent-hover); }
+.saveBtn:hover:not(:disabled) { opacity: 0.85; }
 .saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Mobile responsive ── */
