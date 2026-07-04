@@ -28,6 +28,17 @@ import MessagesPage from './pages/owner/MessagesPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivacyPage from './pages/PrivacyPage'
 import LandingPage from './pages/LandingPage'
+// Client portal
+import { WebCartProvider } from './contexts/WebCartContext'
+import ClientLayout from './components/client/ClientLayout'
+import ClientHomePage from './pages/client/ClientHomePage'
+import ClientShopPage from './pages/client/ClientShopPage'
+import ClientCartPage from './pages/client/ClientCartPage'
+import ClientCheckoutPage from './pages/client/ClientCheckoutPage'
+import ClientOrdersPage from './pages/client/ClientOrdersPage'
+import ClientBookPage from './pages/client/ClientBookPage'
+import ClientAppointmentsPage from './pages/client/ClientAppointmentsPage'
+import ClientProfilePage from './pages/client/ClientProfilePage'
 
 function AppRoutes() {
   return (
@@ -36,6 +47,30 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+
+      {/* Rutas cliente */}
+      <Route
+        path="/client/*"
+        element={
+          <ProtectedRoute allowedRoles={['client']}>
+            <WebCartProvider>
+              <ClientLayout>
+                <Routes>
+                  <Route path="home"         element={<ClientHomePage />} />
+                  <Route path="shop"         element={<ClientShopPage />} />
+                  <Route path="cart"         element={<ClientCartPage />} />
+                  <Route path="checkout"     element={<ClientCheckoutPage />} />
+                  <Route path="orders"       element={<ClientOrdersPage />} />
+                  <Route path="book"         element={<ClientBookPage />} />
+                  <Route path="appointments" element={<ClientAppointmentsPage />} />
+                  <Route path="profile"      element={<ClientProfilePage />} />
+                  <Route path="*"            element={<Navigate to="home" replace />} />
+                </Routes>
+              </ClientLayout>
+            </WebCartProvider>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Rutas protegidas con layout */}
       <Route

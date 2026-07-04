@@ -155,6 +155,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     barber: 'Barbero',
     owner: 'Dueño',
     developer: 'Developer',
+    client: 'Cliente',
   }
 
   const handleLogout = async () => {

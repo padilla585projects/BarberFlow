@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { UserRole } from '../../types'
 import styles from './LoginPage.module.css'
 
 type Method = 'google' | 'email'
@@ -24,13 +25,20 @@ export default function LoginPage() {
   const { user, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword } = useAuth()
   const navigate = useNavigate()
 
-  // Redirigir al dashboard en cuanto el usuario queda autenticado
+  // Redirigir según rol cuando el usuario queda autenticado
   useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true })
+    if (user) {
+      if (user.role === 'client') {
+        navigate('/client/home', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
+    }
   }, [user])
 
   const [method, setMethod] = useState<Method>('google')
   const [mode, setMode] = useState<Mode>('login')
+  const [registerRole, setRegisterRole] = useState<UserRole>('owner')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -101,7 +109,7 @@ export default function LoginPage() {
       if (mode === 'login') {
         await loginWithEmail(email, password)
       } else {
-        await signUpWithEmail(name.trim(), email, password)
+        await signUpWithEmail(name.trim(), email, password, registerRole)
       }
       // El useEffect se encarga de navegar cuando user quede seteado
     } catch (err: any) {
@@ -221,11 +229,32 @@ export default function LoginPage() {
               {/* ── Login / Register fields ── */}
               {mode !== 'forgot' && (<>
                 {mode === 'register' && (
-                  <div className={styles.field}>
-                    <label>Nombre completo</label>
-                    <input type="text" placeholder="Juan García" value={name}
-                      onChange={e => setName(e.target.value)} autoComplete="name" required />
-                  </div>
+                  <>
+                    <div className={styles.field}>
+                      <label>Tipo de cuenta</label>
+                      <div className={styles.roleTabs}>
+                        <button
+                          type="button"
+                          className={`${styles.roleTab} ${registerRole === 'owner' ? styles.roleTabActive : ''}`}
+                          onClick={() => setRegisterRole('owner')}
+                        >
+                          🏪 Dueño / Barbero
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.roleTab} ${registerRole === 'client' ? styles.roleTabActive : ''}`}
+                          onClick={() => setRegisterRole('client')}
+                        >
+                          👤 Cliente
+                        </button>
+                      </div>
+                    </div>
+                    <div className={styles.field}>
+                      <label>Nombre completo</label>
+                      <input type="text" placeholder="Juan García" value={name}
+                        onChange={e => setName(e.target.value)} autoComplete="name" required />
+                    </div>
+                  </>
                 )}
 
                 <div className={styles.field}>
@@ -286,8 +315,7 @@ export default function LoginPage() {
           {error && <p className={styles.error}>{error}</p>}
 
           <p className={styles.footer}>
-            Acceso para barberos, dueños y administradores.<br />
-            ¿Eres cliente? Usa la app móvil BarberFlow.
+            Acceso para barberos, dueños, clientes y administradores.
           </p>
         </div>
       </div>

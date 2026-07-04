@@ -425,6 +425,41 @@
   border-top: 1px solid rgba(201,168,76,0.1);
 }
 
+/* Selector de rol */
+.roleTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #0c0c0c;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.roleTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.roleTab:hover { color: #aaa; }
+.roleTabActive {
+  background: rgba(201,168,76,0.12);
+  color: #c9a84c;
+  border-color: rgba(201,168,76,0.3);
+}
+
 @media (max-width: 900px) {
   .container { grid-template-columns: 1fr; }
   .brand { display: none; }

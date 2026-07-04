@@ -1,0 +1,128 @@
+.page {
+  padding: 20px 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  margin-bottom: 24px;
+}
+
+.avatarSection {
+  background: var(--surface, #141414);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-lg, 14px);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent, #c9a84c);
+  flex-shrink: 0;
+}
+
+.avatarFallback {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent, #c9a84c);
+  color: #000;
+  font-size: 26px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.displayName {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.email {
+  font-size: 13px;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
+}
+
+.roleBadge {
+  display: inline-block;
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--accent, #c9a84c);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-top: 6px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: var(--surface, #141414);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-lg, 14px);
+  padding: 16px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statIcon { font-size: 24px; }
+
+.statValue {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent, #c9a84c);
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.logoutBtn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #f87171;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.logoutBtn:hover {
+  background: rgba(248, 113, 113, 0.06);
+}

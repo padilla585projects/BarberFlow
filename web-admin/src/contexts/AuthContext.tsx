@@ -20,7 +20,7 @@ interface AuthContextType {
   loading: boolean
   loginWithGoogle: () => Promise<void>
   loginWithEmail: (email: string, password: string) => Promise<void>
-  signUpWithEmail: (name: string, email: string, password: string) => Promise<void>
+  signUpWithEmail: (name: string, email: string, password: string, role?: UserRole) => Promise<void>
   resetPassword: (email: string) => Promise<void>
   logout: () => Promise<void>
 }
@@ -29,8 +29,8 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 const DEVELOPER_EMAILS = ['padilla585.projects@gmail.com']
 
-async function createUserDoc(fbUser: FirebaseUser, overrideName?: string): Promise<User> {
-  const role: UserRole = DEVELOPER_EMAILS.includes(fbUser.email ?? '') ? 'developer' : 'owner'
+async function createUserDoc(fbUser: FirebaseUser, overrideName?: string, overrideRole?: UserRole): Promise<User> {
+  const role: UserRole = overrideRole ?? (DEVELOPER_EMAILS.includes(fbUser.email ?? '') ? 'developer' : 'owner')
   const newUser: User = {
     uid: fbUser.uid,
     email: fbUser.email ?? '',
@@ -77,13 +77,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // onAuthStateChanged se encarga del resto
   }
 
-  const signUpWithEmail = async (name: string, email: string, password: string) => {
+  const signUpWithEmail = async (name: string, email: string, password: string, role?: UserRole) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
     // Actualizar displayName en Firebase Auth
     await updateProfile(result.user, { displayName: name })
     // Crear doc en Firestore directamente con el nombre correcto
     // (no esperamos a onAuthStateChanged para evitar que se cree sin nombre)
-    const newUser = await createUserDoc(result.user, name)
+    const newUser = await createUserDoc(result.user, name, role)
     setUser(newUser)
   }
 

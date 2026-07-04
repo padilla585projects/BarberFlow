@@ -1,0 +1,171 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg, #0a0a0a);
+  position: relative;
+}
+
+/* ── Navbar superior ── */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 56px;
+  background: var(--surface, #141414);
+  border-bottom: 1px solid var(--border, #2a2a2a);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.navbarLogo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.logoImg {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.logoText {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent, #c9a84c);
+  letter-spacing: -0.02em;
+}
+
+.navbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cartBtn {
+  position: relative;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.cartBadge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  background: #c9a84c;
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent, #c9a84c);
+}
+
+.avatarFallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent, #c9a84c);
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  display: none;
+}
+
+@media (min-width: 420px) {
+  .userName { display: block; }
+}
+
+/* ── Contenido principal ── */
+.main {
+  flex: 1;
+  padding-top: calc(56px + env(safe-area-inset-top, 0px));
+  padding-bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 64px));
+  overflow-y: auto;
+}
+
+/* ── Tab bar inferior ── */
+.tabBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 60px;
+  background: var(--surface, #141414);
+  border-top: 1px solid var(--border, #2a2a2a);
+  display: flex;
+  align-items: stretch;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--text-muted, #888);
+  transition: color 0.15s;
+  padding: 6px 4px;
+}
+
+.tab:hover {
+  color: #bbb;
+}
+
+.tabActive {
+  color: var(--accent, #c9a84c);
+}
+
+.tabIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tabLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}

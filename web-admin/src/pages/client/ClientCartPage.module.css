@@ -1,0 +1,196 @@
+.page {
+  padding: 20px 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+
+.clearBtn {
+  background: transparent;
+  border: 1px solid var(--border, #2a2a2a);
+  color: var(--text-muted, #888);
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.clearBtn:hover {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.item {
+  background: var(--surface, #141414);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-lg, 14px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemPrice {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
+}
+
+.itemControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.qtyBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface2, #1e1e1e);
+  border: 1px solid var(--border, #2a2a2a);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: border-color 0.15s;
+}
+
+.qtyBtn:hover:not(:disabled) {
+  border-color: var(--accent, #c9a84c);
+}
+
+.qtyBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.qty {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 20px;
+  text-align: center;
+}
+
+.itemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.itemSubtotal {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent, #c9a84c);
+}
+
+.removeBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #888);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px;
+  transition: color 0.15s;
+}
+
+.removeBtn:hover { color: #f87171; }
+
+.footer {
+  background: var(--surface, #141414);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-lg, 14px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.totalLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+}
+
+.totalValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent, #c9a84c);
+}
+
+.btnPrimary {
+  background: var(--accent, #c9a84c);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.btnPrimary:hover { opacity: 0.85; }
+
+.empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted, #888);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.empty span { font-size: 56px; }
+.empty p { font-size: 15px; }

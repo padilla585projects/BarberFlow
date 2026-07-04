@@ -1,0 +1,141 @@
+.page {
+  padding: 20px 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+
+.refreshBtn {
+  background: transparent;
+  border: 1px solid var(--border, #2a2a2a);
+  color: var(--text-muted, #888);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  border-color: var(--accent, #c9a84c);
+  color: var(--accent, #c9a84c);
+}
+
+.refreshBtn:disabled { opacity: 0.4; }
+
+.muted {
+  color: var(--text-muted, #888);
+  font-size: 14px;
+  padding: 20px 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--surface, #141414);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-lg, 14px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.orderId {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.barbershopName {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.statusPending    { background: rgba(250,204,21,0.12); color: #fbbf24; }
+.statusProcessing { background: rgba(59,130,246,0.12); color: #60a5fa; }
+.statusShipped    { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.statusDelivered  { background: rgba(74,222,128,0.12); color: #4ade80; }
+.statusCancelled  { background: rgba(248,113,113,0.12); color: #f87171; }
+
+.itemsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.itemChip {
+  background: var(--surface2, #1e1e1e);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #2a2a2a);
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+}
+
+.total {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent, #c9a84c);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 20px;
+  gap: 12px;
+}
+
+.empty span { font-size: 56px; }
+.empty p { font-size: 14px; color: var(--text-muted, #888); }

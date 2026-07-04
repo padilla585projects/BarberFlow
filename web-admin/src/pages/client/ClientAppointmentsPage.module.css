@@ -1,0 +1,132 @@
+.page {
+  padding: 20px 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+}
+
+.refreshBtn {
+  background: transparent;
+  border: 1px solid var(--border, #2a2a2a);
+  color: var(--text-muted, #888);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  border-color: var(--accent, #c9a84c);
+  color: var(--accent, #c9a84c);
+}
+
+.refreshBtn:disabled { opacity: 0.4; }
+
+.muted {
+  color: var(--text-muted, #888);
+  font-size: 14px;
+  padding: 20px 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--surface, #141414);
+  border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-lg, 14px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.serviceName {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.barbershopName {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.statusPending    { background: rgba(250,204,21,0.12); color: #fbbf24; }
+.statusConfirmed  { background: rgba(74,222,128,0.12); color: #4ade80; }
+.statusCompleted  { background: rgba(59,130,246,0.12); color: #60a5fa; }
+.statusCancelled  { background: rgba(248,113,113,0.12); color: #f87171; }
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12px;
+  color: var(--text-muted, #888);
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #f87171;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+  align-self: flex-start;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.cancelBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 20px;
+  gap: 12px;
+}
+
+.empty span { font-size: 56px; }
+.empty p { font-size: 14px; color: var(--text-muted, #888); }
