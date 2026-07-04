@@ -327,15 +327,15 @@ export default function DashboardPage() {
                 <AreaChart data={revenueData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ffffff" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#c9a84c" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#c9a84c" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
                   <XAxis dataKey="day" tick={{ fill: '#666', fontSize: 11 }} tickLine={false} axisLine={false} interval={1} />
                   <YAxis tick={{ fill: '#666', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}€`} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke="#fff" strokeWidth={2} fill="url(#gradRevenue)" dot={false} activeDot={{ r: 4, fill: '#fff' }} />
+                  <Area type="monotone" dataKey="ingresos" name="Ingresos" stroke="#c9a84c" strokeWidth={2} fill="url(#gradRevenue)" dot={false} activeDot={{ r: 4, fill: '#c9a84c' }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
