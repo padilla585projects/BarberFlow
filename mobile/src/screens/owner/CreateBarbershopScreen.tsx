@@ -12,6 +12,7 @@ import {
   Animated,
 } from 'react-native';
 import { collection, addDoc, doc, updateDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -37,6 +38,7 @@ const DEFAULT_OPENING_HOURS = {
 };
 
 export function CreateBarbershopScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [nombre, setNombre]      = useState('');
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono]   = useState('');
@@ -161,7 +163,7 @@ export function CreateBarbershopScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Text style={styles.titleBadge}>Nuevo negocio</Text>
           <Text style={styles.title}>Crea tu barbería</Text>
           <Text style={styles.subtitle}>
@@ -304,7 +306,7 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 8,
-    paddingTop: 12,
+    paddingTop: 12, // base; safe-area top inset added dynamically
   },
   titleBadge: {
     fontSize: 11,

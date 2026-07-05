@@ -20,6 +20,7 @@ import {
   updateDoc,
   getDoc,
 } from 'firebase/firestore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
 import { useNavigation } from '@react-navigation/native';
@@ -40,6 +41,7 @@ export function AgendaScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<BarberStackParamList>>();
   const { activeBarbershopId } = useAuthContext();
   const unreadCount = useUnreadCount();
+  const insets = useSafeAreaInsets();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [clientNames, setClientNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -144,7 +146,7 @@ export function AgendaScreen() {
   return (
     <View style={styles.container}>
       {/* Header outside FlatList to avoid nested ScrollView touch conflicts */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
           <Text style={styles.heading}>Mi agenda</Text>
           <Text style={styles.sub}>
@@ -288,7 +290,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,   // base padding; safe-area top inset added dynamically
     paddingBottom: 12,
   },
   heading: { fontSize: 26, fontWeight: '800', color: TEXT },
