@@ -41,10 +41,10 @@ interface TierInfo {
 }
 
 const TIERS: TierInfo[] = [
-  { name: 'Bronze',   emoji: '\u{1F949}', min: 0,   max: 99 },
-  { name: 'Silver',   emoji: '\u{1F948}', min: 100, max: 299 },
-  { name: 'Gold',     emoji: '\u{1F947}', min: 300, max: 599 },
-  { name: 'Platinum', emoji: '\u{1F48E}', min: 600, max: Infinity },
+  { name: 'Bronce',   emoji: '\u{1F949}', min: 0,   max: 99 },
+  { name: 'Plata',    emoji: '\u{1F948}', min: 100, max: 299 },
+  { name: 'Oro',      emoji: '\u{1F947}', min: 300, max: 599 },
+  { name: 'Platino',  emoji: '\u{1F48E}', min: 600, max: Infinity },
 ];
 
 const DEFAULT_REWARDS: LoyaltyReward[] = [
