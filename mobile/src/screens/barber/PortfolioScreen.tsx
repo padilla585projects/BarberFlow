@@ -195,6 +195,7 @@ export function PortfolioScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        style={{ flex: 1, backgroundColor: BG }}
         data={photos}
         keyExtractor={(item) => item.id}
         numColumns={3}
@@ -240,7 +241,11 @@ export function PortfolioScreen() {
             onPress={() => setPreviewUrl(item.imageUrl)}
             onLongPress={() => confirmDelete(item)}
           >
-            <Image source={{ uri: item.imageUrl }} style={styles.tile} />
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.tile}
+              onError={() => console.warn('[PortfolioScreen] Failed to load image:', item.imageUrl)}
+            />
           </TouchableOpacity>
         )}
         columnWrapperStyle={{ gap: TILE_GAP }}
