@@ -570,7 +570,7 @@ export function BookScreen({ route, navigation }: Props) {
       const data = promoDoc.data();
 
       if (!data.active) {
-        setPromoError('Este codigo ya no esta activo.');
+        setPromoError('Este código ya no está activo.');
         setPromoApplied(null);
         setPromoLoading(false);
         return;
@@ -578,14 +578,14 @@ export function BookScreen({ route, navigation }: Props) {
 
       const expiry = data.expiryDate?.toDate?.();
       if (expiry && expiry < new Date()) {
-        setPromoError('Este codigo ha expirado.');
+        setPromoError('Este código ha expirado.');
         setPromoApplied(null);
         setPromoLoading(false);
         return;
       }
 
       if (data.maxUses > 0 && (data.currentUses ?? 0) >= data.maxUses) {
-        setPromoError('Este codigo ha alcanzado el limite de usos.');
+        setPromoError('Este código ha alcanzado el límite de usos.');
         setPromoApplied(null);
         setPromoLoading(false);
         return;
@@ -595,13 +595,13 @@ export function BookScreen({ route, navigation }: Props) {
       if (data.singleUse) {
         const uid = auth.currentUser?.uid;
         if (data.linkedClientId && data.linkedClientId !== uid) {
-          setPromoError('Este codigo no es valido para tu cuenta.');
+          setPromoError('Este código no es válido para tu cuenta.');
           setPromoApplied(null);
           setPromoLoading(false);
           return;
         }
         if ((data.currentUses ?? 0) > 0) {
-          setPromoError('Este codigo de puntos ya ha sido utilizado.');
+          setPromoError('Este código de puntos ya ha sido utilizado.');
           setPromoApplied(null);
           setPromoLoading(false);
           return;
@@ -617,7 +617,7 @@ export function BookScreen({ route, navigation }: Props) {
       setPromoError('');
     } catch (err) {
       console.error('[BookScreen] Error validating promo:', err);
-      setPromoError('Error al validar el codigo.');
+      setPromoError('Error al validar el código.');
       setPromoApplied(null);
     } finally {
       setPromoLoading(false);
@@ -1038,7 +1038,7 @@ export function BookScreen({ route, navigation }: Props) {
         activeOpacity={0.8}
       >
         <Text style={styles.promoToggleText}>
-          {promoExpanded ? '▾' : '▸'} Tienes un codigo promocional?
+          {promoExpanded ? '▾' : '▸'} ¿Tienes un código promocional?
         </Text>
       </TouchableOpacity>
 
@@ -1113,7 +1113,7 @@ export function BookScreen({ route, navigation }: Props) {
       {/* ─── 6. Payment method ──────────────────────────────────────── */}
       {selectedSlot && paymentConfig && (
         <>
-          <Text style={styles.sectionLabel}>Metodo de pago</Text>
+          <Text style={styles.sectionLabel}>Método de pago</Text>
           <View style={styles.paymentList}>
             {paymentConfig.paymentMethods.cash && (
               <TouchableOpacity

@@ -83,7 +83,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
 
   const handleConfirm = async () => {
     if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesion para reservar.');
+      Alert.alert('Error', 'Debes iniciar sesión para reservar.');
       return;
     }
 

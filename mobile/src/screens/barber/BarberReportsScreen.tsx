@@ -58,8 +58,7 @@ interface BarberReport {
 type Period = 'today' | 'week' | 'month';
 
 export function BarberReportsScreen() {
-  const { activeBarbershopId } = useAuthContext();
-  const user = auth.currentUser;
+  const { activeBarbershopId, firebaseUser } = useAuthContext();
   const [report, setReport] = useState<BarberReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,7 +66,11 @@ export function BarberReportsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
 
   const fetchReport = useCallback(async () => {
-    if (!user || !activeBarbershopId) return;
+    if (!firebaseUser || !activeBarbershopId) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     try {
       const now = new Date();
@@ -84,7 +87,7 @@ export function BarberReportsScreen() {
       // Fetch appointments
       const apptSnap = await getDocs(query(
         collection(db, 'appointments'),
-        where('barberId', '==', user.uid),
+        where('barberId', '==', firebaseUser.uid),
         where('barbershopId', '==', activeBarbershopId),
         where('date', '>=', start),
       ));
@@ -92,7 +95,7 @@ export function BarberReportsScreen() {
       // Fetch sales
       const salesSnap = await getDocs(query(
         collection(db, 'sales'),
-        where('barberId', '==', user.uid),
+        where('barberId', '==', firebaseUser.uid),
         where('barbershopId', '==', activeBarbershopId),
         where('date', '>=', start),
       ));
@@ -171,7 +174,7 @@ export function BarberReportsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, activeBarbershopId, selectedPeriod]);
+  }, [firebaseUser, activeBarbershopId, selectedPeriod]);
 
   useEffect(() => {
     setLoading(true);
@@ -179,7 +182,7 @@ export function BarberReportsScreen() {
   }, [fetchReport]);
 
   const handleExport = async () => {
-    if (!activeBarbershopId || !user) {
+    if (!activeBarbershopId || !firebaseUser) {
       Alert.alert('Error', 'No se encontró tu barbería');
       return;
     }
@@ -195,7 +198,7 @@ export function BarberReportsScreen() {
       const result = await generate({
         barbershopId: activeBarbershopId,
         period: selectedPeriod,
-        barberId: user.uid,
+        barberId: firebaseUser.uid,
       });
       const { base64, filename } = result.data;
 

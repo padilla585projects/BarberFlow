@@ -232,7 +232,7 @@ export function ShopScreen({ route, navigation }: Props) {
             <Text style={styles.emptyIcon}>{'🛍'}</Text>
             <Text style={styles.emptyTitle}>No hay productos</Text>
             <Text style={styles.emptySub}>
-              Esta barberia aun no tiene productos a la venta
+              Esta barbería aún no tiene productos a la venta
             </Text>
           </View>
         }

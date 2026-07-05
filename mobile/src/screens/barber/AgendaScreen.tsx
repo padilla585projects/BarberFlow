@@ -181,7 +181,7 @@ export function AgendaScreen() {
             <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
+            <TouchableOpacity onPress={() => Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
               { text: 'Cancelar', style: 'cancel' },
               { text: 'Salir', style: 'destructive', onPress: signOut },
             ])}>
