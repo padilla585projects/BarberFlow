@@ -18,6 +18,7 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  getDoc,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { signOut } from '../../services/auth';
@@ -26,6 +27,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { BarberStackParamList } from '../../navigation/BarberNavigator';
 import type { Appointment } from '../../types';
+import { useUnreadCount } from '../common/NotificationsScreen';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -37,7 +39,9 @@ const BORDER  = '#282828';
 export function AgendaScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<BarberStackParamList>>();
   const { activeBarbershopId } = useAuthContext();
+  const unreadCount = useUnreadCount();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [clientNames, setClientNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -66,10 +70,28 @@ export function AgendaScreen() {
 
     const unsub = onSnapshot(
       q,
-      (snap) => {
-        setAppointments(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment)));
+      async (snap) => {
+        const appts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
+        setAppointments(appts);
         setLoading(false);
         setRefreshing(false);
+
+        // Resolve client display names (batch, no duplicates)
+        const uniqueIds = [...new Set(appts.map((a) => a.clientId).filter(Boolean))];
+        const resolved: Record<string, string> = {};
+        await Promise.all(
+          uniqueIds.map(async (uid) => {
+            try {
+              const snap = await getDoc(doc(db, 'users', uid));
+              if (snap.exists()) {
+                resolved[uid] = (snap.data() as any).displayName ?? uid;
+              }
+            } catch {
+              // non-critical — fallback shows clientId
+            }
+          }),
+        );
+        setClientNames((prev) => ({ ...prev, ...resolved }));
       },
       (err) => {
         console.error('[AgendaScreen] Error:', err);
@@ -121,49 +143,56 @@ export function AgendaScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header outside FlatList to avoid nested ScrollView touch conflicts */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.heading}>Mi agenda</Text>
+          <Text style={styles.sub}>
+            {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: '60%' }}>
+          <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
+            <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Payments')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💳</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Portfolio')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📸</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={{ position: 'relative' }}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Salir', style: 'destructive', onPress: signOut },
+            ])}>
+              <Text style={styles.logoutBtn}>Salir</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
       <FlatList
         data={appointments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.heading}>Mi agenda</Text>
-              <Text style={styles.sub}>
-                {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: '60%' }}>
-              <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
-                <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
-                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('Payments')}>
-                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💳</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('Portfolio')}>
-                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📸</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
-                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
-                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
-                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
-                  { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Salir', style: 'destructive', onPress: signOut },
-                ])}>
-                  <Text style={styles.logoutBtn}>Salir</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🗓️</Text>
@@ -178,7 +207,9 @@ export function AgendaScreen() {
               <Text style={styles.cardTimeText}>{item.timeSlot}</Text>
             </View>
             <View style={styles.cardInfo}>
-              <Text style={styles.cardClient}>{(item as any).clientName ?? 'Cliente'}</Text>
+              <Text style={styles.cardClient}>
+                {clientNames[item.clientId] ?? (item as any).clientName ?? 'Cliente'}
+              </Text>
               <Text style={styles.cardEmail}>{(item as any).clientEmail ?? ''}</Text>
               {item.services && item.services.length > 0 && (
                 <Text style={styles.cardServices} numberOfLines={2}>
@@ -251,8 +282,15 @@ export function AgendaScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
-  list: { padding: 16, gap: 12 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  list: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
   heading: { fontSize: 26, fontWeight: '800', color: TEXT },
   sub: { fontSize: 14, color: MUTED, marginTop: 2 },
   logoutBtn: { fontSize: 14, color: '#EF4444', fontWeight: '600', marginTop: 4 },
@@ -290,4 +328,17 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 8 },
   actionBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   actionBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  notifBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
 });

@@ -123,9 +123,21 @@ export function PortfolioScreen() {
       const storagePath = `portfolios/${barberId}/${filename}`;
       const storageRef = ref(storage, storagePath);
 
-      const resp = await fetch(asset.uri);
-      const blob = await resp.blob();
-      await uploadBytes(storageRef, blob);
+      // Hermes doesn't support new Blob([uint8Array]) — that path is used by both
+      // uploadBytes(uint8) and uploadString(base64) internally inside the Firebase SDK.
+      // The safe alternative in React Native is XHR with responseType='blob': the blob
+      // is created by the native networking layer (BlobManager) without any
+      // ArrayBuffer/Uint8Array in JS, so Hermes handles it correctly.
+      const blob: Blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = () => resolve(xhr.response as Blob);
+        xhr.onerror = () => reject(new Error('Failed to read image file'));
+        xhr.responseType = 'blob';
+        xhr.open('GET', asset.uri, true);
+        xhr.send(null);
+      });
+      await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+      (blob as any).close?.();
 
       const imageUrl = await getDownloadURL(storageRef);
 
