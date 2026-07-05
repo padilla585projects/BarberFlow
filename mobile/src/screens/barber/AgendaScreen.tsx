@@ -6,6 +6,7 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
   TouchableOpacity,
   Alert,
 } from 'react-native';
@@ -133,32 +134,34 @@ export function AgendaScreen() {
                 {today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
             </View>
-            <View style={{ flexDirection: 'row', gap: 16 }}>
-              <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
-                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('Payments')}>
-                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💳</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('Portfolio')}>
-                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📸</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
-                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
-                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
-                <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Salir', style: 'destructive', onPress: signOut },
-              ])}>
-                <Text style={styles.logoutBtn}>Salir</Text>
-              </TouchableOpacity>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: '60%' }}>
+              <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
+                <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
+                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Payments')}>
+                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💳</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Portfolio')}>
+                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📸</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
+                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
+                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
+                  <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => Alert.alert('Cerrar sesion', 'Seguro que quieres salir?', [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Salir', style: 'destructive', onPress: signOut },
+                ])}>
+                  <Text style={styles.logoutBtn}>Salir</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         }
         ListEmptyComponent={
