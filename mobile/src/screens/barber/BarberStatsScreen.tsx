@@ -74,7 +74,7 @@ export function BarberStatsScreen() {
       const now = new Date();
       const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
       const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
+      weekStart.setDate(weekStart.getDate() - (weekStart.getDay() || 7) + 1); // Monday (Sunday=0 treated as 7)
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
       let today = 0, thisWeek = 0, thisMonth = 0;
