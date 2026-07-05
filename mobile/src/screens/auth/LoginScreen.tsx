@@ -93,6 +93,18 @@ export function LoginScreen() {
     }
   };
 
+  // ── Dev-only quick login (never shown in production builds) ──────────────────
+  const devLogin = async (testEmail: string, testPassword: string) => {
+    try {
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, testEmail, testPassword);
+    } catch (err: any) {
+      Alert.alert('Dev login error', err?.message ?? 'Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEmailSignIn = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Campos requeridos', 'Ingresa tu email y contraseña');
@@ -216,6 +228,26 @@ export function LoginScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowEmail(false)} style={styles.cancelBtn}>
                   <Text style={styles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {/* ── Dev quick-login (only in __DEV__ builds) ─────────────────── */}
+            {__DEV__ && (
+              <View style={styles.devPanel}>
+                <Text style={styles.devLabel}>🧪 Dev login</Text>
+                <TouchableOpacity
+                  style={styles.devBtn}
+                  onPress={() => devLogin('cliente@barberflow.dev', 'TestPass123')}
+                  disabled={loading}
+                >
+                  <Text style={styles.devBtnText}>👤 Cliente Test</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.devBtn}
+                  onPress={() => devLogin('barbero@barberflow.dev', 'TestPass123')}
+                  disabled={loading}
+                >
+                  <Text style={styles.devBtnText}>✂️ Barbero Test</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -462,6 +494,34 @@ const styles = StyleSheet.create({
   registerLinkBold: {
     color: GOLD,
     fontWeight: '700',
+  },
+
+  // Dev panel
+  devPanel: {
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A2A',
+    paddingTop: 12,
+    gap: 8,
+  },
+  devLabel: {
+    fontSize: 11,
+    color: '#555',
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  devBtn: {
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  devBtnText: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   disclaimer: {
