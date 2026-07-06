@@ -5,8 +5,7 @@ import styles from './LandingPage.module.css'
 const PLAY_STORE_URL: string | null = null
 
 // Descarga directa APK (mientras no está en Play Store)
-// Actualizar con la URL de Firebase Storage cuando se suba el APK
-const APK_DIRECT_URL: string | null = null
+const APK_DIRECT_URL: string | null = 'https://github.com/padilla585projects/BarberFlow/releases/download/v1.5.0-beta/BarberFlow-1.5.0.apk'
 
 type PhoneScreen = 'home' | 'booking' | 'history' | 'profile' | 'shop' | 'notifications'
 type BrowserView = 'dashboard' | 'agenda' | 'inventory' | 'pos' | 'reports'
