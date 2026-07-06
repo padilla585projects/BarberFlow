@@ -4,7 +4,7 @@
     "slug": "barberflow",
     "version": "1.5.0",
     "orientation": "portrait",
-    "icon": "./assets/logo-login-icon.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
@@ -17,7 +17,18 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.barberflow.app",
-      "googleServicesFile": "./google-services.json"
+      "versionCode": 15,
+      "googleServicesFile": "./google-services.json",
+      "allowBackup": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.USE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
