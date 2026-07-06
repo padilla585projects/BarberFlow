@@ -165,7 +165,18 @@ export function MyAppointmentsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />}
-        ListHeaderComponent={<Text style={styles.heading}>Mis citas</Text>}
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            <Text style={styles.heading}>Mis citas</Text>
+            <TouchableOpacity
+              style={styles.timelineBtn}
+              onPress={() => navigation.navigate('VisitTimeline')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.timelineBtnText}>📅 Historial</Text>
+            </TouchableOpacity>
+          </View>
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>📅</Text>
@@ -269,7 +280,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
   list: { padding: 16, gap: 12 },
-  heading: { fontSize: 26, fontWeight: '800', color: TEXT, marginBottom: 8 },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  heading: { fontSize: 26, fontWeight: '800', color: TEXT },
+  timelineBtn: {
+    borderWidth: 1,
+    borderColor: GOLD + '55',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  timelineBtnText: { fontSize: 12, color: GOLD, fontWeight: '700' },
   empty: { alignItems: 'center', paddingTop: 64, gap: 12 },
   emptyEmoji: { fontSize: 56 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: TEXT },

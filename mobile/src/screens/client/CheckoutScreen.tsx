@@ -16,6 +16,9 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
+  where,
   updateDoc,
   serverTimestamp,
   writeBatch,
@@ -54,6 +57,16 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const [paymentConfig, setPaymentConfig] = useState<BarbershopPaymentConfig | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+
+  // Tarjeta regalo
+  const [giftCode, setGiftCode] = useState('');
+  const [giftCardLoading, setGiftCardLoading] = useState(false);
+  const [giftCard, setGiftCard] = useState<{
+    id: string;
+    balance: number;
+    applied: number;
+  } | null>(null);
+  const [giftError, setGiftError] = useState('');
 
   // Dirección de envío
   const [wantsDelivery, setWantsDelivery] = useState(false);
@@ -106,6 +119,54 @@ export function CheckoutScreen({ route, navigation }: Props) {
     fetchData();
   }, [barbershopId, user]);
 
+  const effectiveTotal = giftCard
+    ? Math.max(0, cart.totalPrice - giftCard.applied)
+    : cart.totalPrice;
+
+  const applyGiftCard = async () => {
+    const code = giftCode.trim().toUpperCase();
+    if (!code) return;
+    setGiftError('');
+    setGiftCardLoading(true);
+    try {
+      const q = query(
+        collection(db, 'giftCards'),
+        where('code', '==', code),
+        where('barbershopId', '==', barbershopId),
+        where('status', '==', 'active'),
+      );
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        setGiftError('Código no válido o ya utilizado.');
+        setGiftCard(null);
+        setGiftCardLoading(false);
+        return;
+      }
+      const cardDoc = snap.docs[0];
+      const balance: number = cardDoc.data().balance ?? 0;
+      if (balance <= 0) {
+        setGiftError('Esta tarjeta no tiene saldo disponible.');
+        setGiftCard(null);
+        setGiftCardLoading(false);
+        return;
+      }
+      const applied = Math.min(balance, cart.totalPrice);
+      setGiftCard({ id: cardDoc.id, balance, applied });
+      setGiftError('');
+    } catch (err) {
+      console.error('[CheckoutScreen] applyGiftCard error:', err);
+      setGiftError('Error al validar la tarjeta. Inténtalo de nuevo.');
+    } finally {
+      setGiftCardLoading(false);
+    }
+  };
+
+  const removeGiftCard = () => {
+    setGiftCard(null);
+    setGiftCode('');
+    setGiftError('');
+  };
+
   const handleConfirm = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para reservar.');
@@ -150,7 +211,10 @@ export function CheckoutScreen({ route, navigation }: Props) {
           price: item.price,
           quantity: item.quantity,
         })),
-        totalAmount: cart.totalPrice,
+        totalAmount: effectiveTotal,
+        originalAmount: cart.totalPrice,
+        giftCardId: giftCard?.id ?? null,
+        giftCardApplied: giftCard?.applied ?? 0,
         notes: notes.trim() || null,
         status: 'pending',
         paymentMethod: selectedPayment,
@@ -159,6 +223,15 @@ export function CheckoutScreen({ route, navigation }: Props) {
         createdAt: serverTimestamp(),
         barbershopId,
       });
+
+      // Actualizar saldo de tarjeta regalo si se aplicó una
+      if (giftCard) {
+        const newBalance = giftCard.balance - giftCard.applied;
+        batch.update(doc(db, 'giftCards', giftCard.id), {
+          balance: newBalance,
+          status: newBalance <= 0 ? 'used' : 'active',
+        });
+      }
 
       // Decrement stock for each purchased product (atomic)
       for (const item of cart.items) {
@@ -332,6 +405,58 @@ export function CheckoutScreen({ route, navigation }: Props) {
           />
         </View>
 
+        {/* Tarjeta regalo */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🎁 Tarjeta regalo</Text>
+          {!giftCard ? (
+            <View style={styles.giftRow}>
+              <TextInput
+                style={[styles.giftInput, { flex: 1 }]}
+                placeholder="XXXX-XXXX-XXXX"
+                placeholderTextColor={MUTED}
+                value={giftCode}
+                onChangeText={(t) => { setGiftCode(t.toUpperCase()); setGiftError(''); }}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={14}
+              />
+              <TouchableOpacity
+                style={[styles.giftApplyBtn, giftCardLoading && { opacity: 0.6 }]}
+                onPress={applyGiftCard}
+                disabled={giftCardLoading || giftCode.trim().length === 0}
+                activeOpacity={0.8}
+              >
+                {giftCardLoading
+                  ? <ActivityIndicator size="small" color={BG} />
+                  : <Text style={styles.giftApplyBtnText}>Aplicar</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.giftAppliedRow}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.giftAppliedCode}>{giftCode}</Text>
+                <Text style={styles.giftAppliedAmount}>
+                  -{giftCard.applied.toFixed(2)} € aplicados
+                  {giftCard.balance > giftCard.applied
+                    ? `  (saldo restante: ${(giftCard.balance - giftCard.applied).toFixed(2)} €)`
+                    : ''}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={removeGiftCard} activeOpacity={0.7}>
+                <Text style={styles.giftRemoveBtn}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {!!giftError && <Text style={styles.giftError}>{giftError}</Text>}
+          {giftCard && (
+            <View style={styles.giftSummaryRow}>
+              <Text style={styles.giftSummaryLabel}>Total original</Text>
+              <Text style={styles.giftSummaryOld}>{cart.totalPrice.toFixed(2)} €</Text>
+            </View>
+          )}
+        </View>
+
         {/* Payment method */}
         {paymentConfig && (
           <View style={styles.section}>
@@ -459,7 +584,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
             <ActivityIndicator size="small" color={BG} />
           ) : (
             <Text style={styles.confirmBtnText}>
-              Confirmar reserva - {cart.totalPrice.toFixed(2)} {'€'}
+              Confirmar reserva · {effectiveTotal.toFixed(2)} {'€'}
             </Text>
           )}
         </TouchableOpacity>
@@ -483,7 +608,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
             {selectedPayment === 'bizum' && (
               <>
                 <Text style={styles.modalDesc}>
-                  Envia {cart.totalPrice.toFixed(2)}{'€'} al numero
+                  Envia {effectiveTotal.toFixed(2)}{'€'} al numero
                 </Text>
                 <Text style={styles.modalHighlight}>
                   {paymentConfig?.bizumPhone ?? ''}
@@ -495,12 +620,12 @@ export function CheckoutScreen({ route, navigation }: Props) {
             {selectedPayment === 'paypal' && (
               <>
                 <Text style={styles.modalDesc}>
-                  Paga {cart.totalPrice.toFixed(2)}{'€'} por PayPal
+                  Paga {effectiveTotal.toFixed(2)}{'€'} por PayPal
                 </Text>
                 <TouchableOpacity
                   style={styles.modalPaypalBtn}
                   onPress={() => {
-                    const url = `https://paypal.me/${paymentConfig?.paypalUsername ?? ''}/${cart.totalPrice.toFixed(2)}`;
+                    const url = `https://paypal.me/${paymentConfig?.paypalUsername ?? ''}/${effectiveTotal.toFixed(2)}`;
                     Linking.openURL(url);
                   }}
                   activeOpacity={0.8}
@@ -693,6 +818,55 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   successBtnText: { color: BG, fontSize: 15, fontWeight: '700' },
+
+  /* Gift card */
+  giftRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  giftInput: {
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: TEXT_C,
+    fontSize: 15,
+    letterSpacing: 1,
+    fontWeight: '700' as const,
+  },
+  giftApplyBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    minWidth: 80,
+  },
+  giftApplyBtnText: { color: BG, fontWeight: '700' as const, fontSize: 14 },
+  giftAppliedRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: GOLD + '18',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: GOLD + '44',
+    padding: 12,
+    gap: 10,
+  },
+  giftAppliedCode: { fontSize: 14, fontWeight: '700' as const, color: GOLD, letterSpacing: 1 },
+  giftAppliedAmount: { fontSize: 12, color: TEXT_C },
+  giftRemoveBtn: { color: MUTED, fontSize: 18, fontWeight: '700' as const, paddingHorizontal: 4 },
+  giftError: { fontSize: 12, color: '#EF4444', fontWeight: '600' as const },
+  giftSummaryRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  giftSummaryLabel: { fontSize: 13, color: MUTED },
+  giftSummaryOld: { fontSize: 14, color: MUTED, textDecorationLine: 'line-through' as const },
 
   /* Payment method */
   paymentList: { gap: 10 },

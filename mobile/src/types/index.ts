@@ -127,6 +127,8 @@ export interface Product {
   stock: number;
   category: string;
   photoURL?: string;
+  totalRatings?: number; // número de reseñas
+  ratingSum?: number;    // suma de todas las puntuaciones (avg = ratingSum / totalRatings)
 }
 
 export interface Sale {

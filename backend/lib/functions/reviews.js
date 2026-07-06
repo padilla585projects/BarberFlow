@@ -33,15 +33,50 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onReviewCreatedPush = void 0;
+exports.onReviewCreatedPush = exports.onProductReviewCreated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
 const push_1 = require("../utils/push");
 const notificationStore_1 = require("../utils/notificationStore");
 if (!admin.apps.length)
     admin.initializeApp();
+const db = admin.firestore();
 const REGION = 'europe-west1';
-// New review → update rating aggregates + notify barber
+// ── Product review created → aggregate rating on the product doc ──────────
+exports.onProductReviewCreated = (0, firestore_1.onDocumentCreated)({ document: 'products/{productId}/reviews/{reviewId}', region: REGION }, async (event) => {
+    var _a, _b, _c;
+    const review = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
+    if (!review)
+        return;
+    const productId = event.params.productId;
+    const rating = review.rating;
+    const barbershopId = review.barbershopId;
+    // Aggregate rating on product document
+    await db.collection('products').doc(productId).update({
+        totalRatings: admin.firestore.FieldValue.increment(1),
+        ratingSum: admin.firestore.FieldValue.increment(rating),
+    });
+    // Notify barbershop owner about new product review
+    if (!barbershopId)
+        return;
+    const shopSnap = await db.collection('barbershops').doc(barbershopId).get();
+    const ownerId = (_b = shopSnap.data()) === null || _b === void 0 ? void 0 : _b.ownerId;
+    if (!ownerId)
+        return;
+    const clientName = review.clientName || 'Un cliente';
+    const productSnap = await db.collection('products').doc(productId).get();
+    const productName = ((_c = productSnap.data()) === null || _c === void 0 ? void 0 : _c.name) || 'un producto';
+    const stars = '⭐'.repeat(Math.min(Math.max(rating, 1), 5));
+    const title = 'Nueva reseña de producto';
+    const body = `${clientName} ha valorado "${productName}" con ${stars}`;
+    const pushData = { productId, barbershopId, type: 'new_product_review' };
+    const token = await (0, push_1.getExpoPushToken)(ownerId);
+    if (token) {
+        await (0, push_1.sendPushNotification)(token, title, body, pushData);
+    }
+    await (0, notificationStore_1.storeNotification)(ownerId, { title, body, type: 'review', data: pushData });
+});
+// ── Barbershop review created → update rating aggregates + notify barber ──
 exports.onReviewCreatedPush = (0, firestore_1.onDocumentCreated)({ document: 'barbershops/{barbershopId}/reviews/{reviewId}', region: REGION }, async (event) => {
     var _a, _b;
     const review = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();

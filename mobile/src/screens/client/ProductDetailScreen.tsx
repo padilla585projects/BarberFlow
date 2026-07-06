@@ -161,6 +161,26 @@ export function ProductDetailScreen({ route, navigation }: Props) {
           </Text>
         </View>
 
+        {/* Rating */}
+        {(product.totalRatings ?? 0) > 0 && (
+          <View style={styles.ratingRow}>
+            {[1,2,3,4,5].map((s) => {
+              const avg = (product.ratingSum ?? 0) / product.totalRatings!;
+              return (
+                <Text key={s} style={[styles.ratingStar, { opacity: s <= Math.round(avg) ? 1 : 0.25 }]}>
+                  ⭐
+                </Text>
+              );
+            })}
+            <Text style={styles.ratingValue}>
+              {((product.ratingSum ?? 0) / product.totalRatings!).toFixed(1)}
+            </Text>
+            <Text style={styles.ratingCount}>
+              ({product.totalRatings} {product.totalRatings === 1 ? 'valoración' : 'valoraciones'})
+            </Text>
+          </View>
+        )}
+
         {/* Category badge */}
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryText}>{product.category}</Text>
@@ -280,6 +300,10 @@ const styles = StyleSheet.create({
   stockRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stockDot: { width: 10, height: 10, borderRadius: 5 },
   stockLabel: { fontSize: 14, fontWeight: '600' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  ratingStar: { fontSize: 16 },
+  ratingValue: { fontSize: 15, fontWeight: '700', color: GOLD, marginLeft: 4 },
+  ratingCount: { fontSize: 13, color: MUTED },
   categoryBadge: {
     alignSelf: 'flex-start',
     borderWidth: 1,

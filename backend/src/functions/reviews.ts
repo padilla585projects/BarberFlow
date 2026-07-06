@@ -5,9 +5,50 @@ import { storeNotification } from '../utils/notificationStore'
 
 if (!admin.apps.length) admin.initializeApp()
 
+const db = admin.firestore()
 const REGION = 'europe-west1'
 
-// New review → update rating aggregates + notify barber
+// ── Product review created → aggregate rating on the product doc ──────────
+export const onProductReviewCreated = onDocumentCreated(
+  { document: 'products/{productId}/reviews/{reviewId}', region: REGION },
+  async (event) => {
+    const review = event.data?.data()
+    if (!review) return
+
+    const productId = event.params.productId
+    const rating = review.rating as number
+    const barbershopId = review.barbershopId as string | undefined
+
+    // Aggregate rating on product document
+    await db.collection('products').doc(productId).update({
+      totalRatings: admin.firestore.FieldValue.increment(1),
+      ratingSum: admin.firestore.FieldValue.increment(rating),
+    })
+
+    // Notify barbershop owner about new product review
+    if (!barbershopId) return
+    const shopSnap = await db.collection('barbershops').doc(barbershopId).get()
+    const ownerId = shopSnap.data()?.ownerId as string | undefined
+    if (!ownerId) return
+
+    const clientName = (review.clientName as string) || 'Un cliente'
+    const productSnap = await db.collection('products').doc(productId).get()
+    const productName = (productSnap.data()?.name as string) || 'un producto'
+    const stars = '⭐'.repeat(Math.min(Math.max(rating, 1), 5))
+
+    const title = 'Nueva reseña de producto'
+    const body = `${clientName} ha valorado "${productName}" con ${stars}`
+    const pushData = { productId, barbershopId, type: 'new_product_review' }
+
+    const token = await getExpoPushToken(ownerId)
+    if (token) {
+      await sendPushNotification(token, title, body, pushData)
+    }
+    await storeNotification(ownerId, { title, body, type: 'review', data: pushData })
+  },
+)
+
+// ── Barbershop review created → update rating aggregates + notify barber ──
 export const onReviewCreatedPush = onDocumentCreated(
   { document: 'barbershops/{barbershopId}/reviews/{reviewId}', region: REGION },
   async (event) => {

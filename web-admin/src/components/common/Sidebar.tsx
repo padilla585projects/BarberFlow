@@ -48,8 +48,9 @@ const ownerSections: NavSection[] = [
   {
     title: 'Marketing',
     items: [
-      { to: '/promos',  icon: '\u{1F39F}️', label: 'Promociones' },
-      { to: '/reviews', icon: '⭐', label: 'Reseñas' },
+      { to: '/promos',      icon: '\u{1F39F}️', label: 'Promociones' },
+      { to: '/reviews',     icon: '⭐',          label: 'Reseñas' },
+      { to: '/gift-cards',  icon: '🎁',          label: 'Tarjetas regalo' },
     ],
   },
   {
@@ -118,8 +119,9 @@ const developerSections: NavSection[] = [
   {
     title: 'Marketing',
     items: [
-      { to: '/promos',  icon: '\u{1F39F}️', label: 'Promociones' },
-      { to: '/reviews', icon: '⭐', label: 'Reseñas' },
+      { to: '/promos',      icon: '\u{1F39F}️', label: 'Promociones' },
+      { to: '/reviews',     icon: '⭐',          label: 'Reseñas' },
+      { to: '/gift-cards',  icon: '🎁',          label: 'Tarjetas regalo' },
     ],
   },
   {

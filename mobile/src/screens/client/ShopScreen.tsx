@@ -274,6 +274,13 @@ export function ShopScreen({ route, navigation }: Props) {
                 {item.name}
               </Text>
               <Text style={styles.cardPrice}>{item.price.toFixed(2)} {'€'}</Text>
+              {(item.totalRatings ?? 0) > 0 && (
+                <Text style={styles.cardRating}>
+                  {'⭐'} {((item.ratingSum ?? 0) / item.totalRatings!).toFixed(1)}
+                  {' '}
+                  <Text style={styles.cardRatingCount}>({item.totalRatings})</Text>
+                </Text>
+              )}
               <StockBadge stock={item.stock} />
               <TouchableOpacity
                 style={[
@@ -392,6 +399,8 @@ const styles = StyleSheet.create({
   cardBody: { padding: 10, gap: 4 },
   cardName: { color: TEXT_C, fontSize: 13, fontWeight: '600' },
   cardPrice: { color: GOLD, fontSize: 15, fontWeight: '700' },
+  cardRating: { fontSize: 11, color: GOLD, fontWeight: '600' },
+  cardRatingCount: { fontSize: 10, color: MUTED, fontWeight: '400' },
   stockText: { fontSize: 11, fontWeight: '600' },
   addBtn: {
     backgroundColor: GOLD,

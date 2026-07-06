@@ -10,6 +10,7 @@ import { BarberStatsScreen } from '../screens/barber/BarberStatsScreen';
 import { BarberScheduleScreen } from '../screens/barber/BarberScheduleScreen';
 import { ScheduleTemplatesScreen } from '../screens/barber/ScheduleTemplatesScreen';
 import { PortfolioScreen } from '../screens/barber/PortfolioScreen';
+import { BeforeAfterScreen } from '../screens/barber/BeforeAfterScreen';
 import { BarberReportsScreen } from '../screens/barber/BarberReportsScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
@@ -23,6 +24,7 @@ export type BarberStackParamList = {
   Schedule: undefined;
   ScheduleTemplates: undefined;
   Portfolio: undefined;
+  BeforeAfter: undefined;
   Messages: undefined;
   Notifications: undefined;
   NotificationSettings: undefined;
@@ -132,6 +134,11 @@ export function BarberNavigator() {
         name="Portfolio"
         component={PortfolioScreen}
         options={{ title: 'Mi Portfolio' }}
+      />
+      <Stack.Screen
+        name="BeforeAfter"
+        component={BeforeAfterScreen}
+        options={{ title: 'Antes / Después' }}
       />
       <Stack.Screen
         name="Messages"

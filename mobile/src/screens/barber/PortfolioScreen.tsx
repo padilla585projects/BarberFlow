@@ -25,6 +25,9 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../../services/firebase';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { BarberStackParamList } from '../../navigation/BarberNavigator';
 
 const BG      = '#0A0A0A';
 const SURFACE = '#141414';
@@ -46,6 +49,7 @@ interface PortfolioItem {
 }
 
 export function PortfolioScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<BarberStackParamList>>();
   const [photos, setPhotos] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -203,23 +207,33 @@ export function PortfolioScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.heading}>Mi Portfolio</Text>
-              <Text style={styles.sub}>
-                {photos.length} {photos.length === 1 ? 'foto' : 'fotos'}
-              </Text>
+          <View style={styles.headerWrap}>
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.heading}>Mi Portfolio</Text>
+                <Text style={styles.sub}>
+                  {photos.length} {photos.length === 1 ? 'foto' : 'fotos'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={pickAndUpload}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color={BG} />
+                ) : (
+                  <Text style={styles.addBtnText}>+ Agregar</Text>
+                )}
+              </TouchableOpacity>
             </View>
+            {/* Quick link to Before/After section */}
             <TouchableOpacity
-              style={styles.addBtn}
-              onPress={pickAndUpload}
-              disabled={uploading}
+              style={styles.beforeAfterBanner}
+              onPress={() => navigation.navigate('BeforeAfter')}
+              activeOpacity={0.85}
             >
-              {uploading ? (
-                <ActivityIndicator size="small" color={BG} />
-              ) : (
-                <Text style={styles.addBtnText}>+ Agregar</Text>
-              )}
+              <Text style={styles.beforeAfterBannerText}>✂️ Ver / gestionar Antes & Después →</Text>
             </TouchableOpacity>
           </View>
         }
@@ -279,13 +293,29 @@ export function PortfolioScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
-  header: {
+  headerWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+    gap: 12,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+  },
+  beforeAfterBanner: {
+    backgroundColor: GOLD + '18',
+    borderWidth: 1,
+    borderColor: GOLD + '44',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  beforeAfterBannerText: {
+    color: GOLD,
+    fontSize: 13,
+    fontWeight: '700',
   },
   heading: { fontSize: 24, fontWeight: '800', color: TEXT_C },
   sub: { fontSize: 14, color: MUTED, marginTop: 2 },

@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = void 0;
+exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChangedPush = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
 const push_1 = require("../utils/push");
@@ -62,6 +62,48 @@ async function notifyUser(uid, title, body, pushData) {
     }
     await (0, notificationStore_1.storeNotification)(uid, { title, body, type: 'appointment', data: pushData });
 }
+// ── Order status change → notify client ──────────────────────────────────
+const ORDER_STATUS_MSG = {
+    processing: {
+        title: '📦 Pedido en preparación',
+        body: (shop) => `${shop} está preparando tu pedido`,
+    },
+    shipped: {
+        title: '🚚 Pedido enviado',
+        body: (shop) => `Tu pedido de ${shop} está en camino`,
+    },
+    delivered: {
+        title: '✅ Pedido entregado',
+        body: (shop) => `Tu pedido de ${shop} ha sido entregado`,
+    },
+    cancelled: {
+        title: '❌ Pedido cancelado',
+        body: (shop) => `Tu pedido de ${shop} ha sido cancelado`,
+    },
+};
+exports.onOrderStatusChangedPush = (0, firestore_1.onDocumentUpdated)({ document: 'orders/{orderId}', region: REGION }, async (event) => {
+    var _a, _b;
+    const before = (_a = event.data) === null || _a === void 0 ? void 0 : _a.before.data();
+    const after = (_b = event.data) === null || _b === void 0 ? void 0 : _b.after.data();
+    if (!before || !after)
+        return;
+    if (before.status === after.status)
+        return;
+    const newStatus = after.status;
+    const clientId = after.clientId;
+    const shopName = after.barbershopName || 'la barbería';
+    const template = ORDER_STATUS_MSG[newStatus];
+    if (!template)
+        return; // no notificamos estados intermedios sin mensaje definido
+    const title = template.title;
+    const body = template.body(shopName);
+    const pushData = { orderId: event.params.orderId, type: 'order_status_changed', status: newStatus };
+    const token = await (0, push_1.getExpoPushToken)(clientId);
+    if (token) {
+        await (0, push_1.sendPushNotification)(token, title, body, pushData);
+    }
+    await (0, notificationStore_1.storeNotification)(clientId, { title, body, type: 'order', data: pushData });
+});
 // New appointment → notify barber AND owner
 exports.onAppointmentCreatedPush = (0, firestore_1.onDocumentCreated)({ document: 'appointments/{appointmentId}', region: REGION }, async (event) => {
     var _a;

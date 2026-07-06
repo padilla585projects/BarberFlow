@@ -44,11 +44,18 @@ if (!admin.apps.length)
     admin.initializeApp();
 const db = admin.firestore();
 const REGION = 'europe-west1';
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getPeriodStart(period) {
+    if (period === 'today') {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }
     const now = new Date();
     const days = period === 'week' ? 7 : 30;
     return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+}
+function periodLabelOf(period) {
+    return period === 'today' ? 'Diario' : period === 'week' ? 'Semanal' : 'Mensual';
 }
 function fmtDate(ts) {
     return ts.toDate().toLocaleDateString('es-ES', {
@@ -57,8 +64,7 @@ function fmtDate(ts) {
 }
 function buildFilename(period) {
     const today = new Date().toISOString().slice(0, 10);
-    const label = period === 'week' ? 'Semanal' : 'Mensual';
-    return `BarberFlow_Reporte_${label}_${today}.xlsx`;
+    return `BarberFlow_Reporte_${periodLabelOf(period)}_${today}.xlsx`;
 }
 function applyHeaderStyle(row) {
     row.eachCell((cell) => {
@@ -99,8 +105,8 @@ exports.generateReport = (0, https_1.onCall)({ region: REGION }, async (request)
         throw new https_1.HttpsError('unauthenticated', 'Debes iniciar sesión para generar reportes.');
     }
     const { barbershopId, period } = request.data;
-    if (!barbershopId || !period || !['week', 'month'].includes(period)) {
-        throw new https_1.HttpsError('invalid-argument', 'Se requiere barbershopId y period ("week" | "month").');
+    if (!barbershopId || !period || !['today', 'week', 'month'].includes(period)) {
+        throw new https_1.HttpsError('invalid-argument', 'Se requiere barbershopId y period ("today" | "week" | "month").');
     }
     // ── Authorization: caller must be the shop owner or a developer ──
     const callerUid = request.auth.uid;
@@ -219,7 +225,7 @@ exports.generateReport = (0, https_1.onCall)({ region: REGION }, async (request)
             });
         }
     };
-    const periodLabel = validPeriod === 'week' ? 'Semanal' : 'Mensual';
+    const periodLabel = periodLabelOf(validPeriod);
     // ── Sheet 1: Resumen General ─────────────────────────────────────────
     const ws1 = workbook.addWorksheet('Resumen General');
     addSheetTitle(ws1, `Reporte ${periodLabel}`, 9);
@@ -342,7 +348,7 @@ exports.generateBarberReport = (0, https_1.onCall)({ region: REGION }, async (re
         throw new https_1.HttpsError('unauthenticated', 'Debes iniciar sesión para generar reportes.');
     }
     const { barbershopId, period, barberId } = request.data;
-    if (!barbershopId || !period || !['week', 'month'].includes(period) || !barberId) {
+    if (!barbershopId || !period || !['today', 'week', 'month'].includes(period) || !barberId) {
         throw new https_1.HttpsError('invalid-argument', 'Se requiere barbershopId, barberId y period ("week" | "month").');
     }
     // Authorization: caller must be the barber themselves, the shop owner, or a developer
@@ -431,7 +437,7 @@ exports.generateBarberReport = (0, https_1.onCall)({ region: REGION }, async (re
     const workbook = new exceljs_1.default.Workbook();
     workbook.creator = 'BarberFlow';
     workbook.created = new Date();
-    const periodLabel = validPeriod === 'week' ? 'Semanal' : 'Mensual';
+    const periodLabel = periodLabelOf(validPeriod);
     const addSheetTitle = (ws, text, colCount) => {
         const lastCol = String.fromCharCode(64 + colCount);
         ws.mergeCells(`A1:${lastCol}1`);
@@ -453,7 +459,7 @@ exports.generateBarberReport = (0, https_1.onCall)({ region: REGION }, async (re
     addSheetTitle(ws1, `Reporte ${periodLabel} — ${barberName}`, 2);
     const summaryData = [
         ['Barbero', barberName],
-        ['Periodo', validPeriod === 'week' ? 'Última semana' : 'Último mes'],
+        ['Periodo', validPeriod === 'today' ? 'Hoy' : validPeriod === 'week' ? 'Última semana' : 'Último mes'],
         ['', ''],
         ['Total de citas', appointmentsSnap.size],
         ['Completadas', completedCount],

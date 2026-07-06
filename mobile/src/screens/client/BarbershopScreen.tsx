@@ -151,6 +151,13 @@ export function BarbershopScreen({ route, navigation }: Props) {
           <Text style={styles.shopBtnText}>Tienda</Text>
         </TouchableOpacity>
       </View>
+      <TouchableOpacity
+        style={styles.giftBtn}
+        onPress={() => navigation.navigate('PurchaseGiftCard', { barbershopId, barbershopName: displayName })}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.giftBtnText}>🎁 Regalar tarjeta</Text>
+      </TouchableOpacity>
 
       {/* Services */}
       <View style={styles.section}>
@@ -331,6 +338,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shopBtnText: { color: GOLD, fontSize: 16, fontWeight: '700' },
+  giftBtn: {
+    borderWidth: 1.5,
+    borderColor: '#C9A84C' + '66',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  giftBtnText: { color: '#C9A84C', fontSize: 14, fontWeight: '700' },
 
   serviceRow: {
     flexDirection: 'row',

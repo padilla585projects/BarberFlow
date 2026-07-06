@@ -25,6 +25,7 @@ import ClientPaymentsPage from './pages/owner/ClientPaymentsPage'
 import BarberApplicationsPage from './pages/owner/BarberApplicationsPage'
 import NotificationsPage from './pages/owner/NotificationsPage'
 import MessagesPage from './pages/owner/MessagesPage'
+import GiftCardsPage from './pages/owner/GiftCardsPage'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivacyPage from './pages/PrivacyPage'
 import LandingPage from './pages/LandingPage'
@@ -121,6 +122,7 @@ function AppRoutes() {
                 <Route path="/barber-applications" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><BarberApplicationsPage /></ProtectedRoute>} />
                 <Route path="/notifications" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><NotificationsPage /></ProtectedRoute>} />
                 <Route path="/messages" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><MessagesPage /></ProtectedRoute>} />
+                <Route path="/gift-cards" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><GiftCardsPage /></ProtectedRoute>} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

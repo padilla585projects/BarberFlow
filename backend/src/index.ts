@@ -7,7 +7,7 @@ export { onAppointmentCreatedPush, onAppointmentStatusChangedPush, onOrderStatus
 export { generateReport, generateBarberReport } from './functions/reports'
 export { sendAppointmentReminders } from './functions/reminders'
 export { onAppointmentCompletedLoyalty } from './functions/loyalty'
-export { onReviewCreatedPush } from './functions/reviews'
+export { onReviewCreatedPush, onProductReviewCreated } from './functions/reviews'
 export { sendDailySummary } from './functions/dailySummary'
 export { sendWeeklySummary } from './functions/weeklySummary'
 export { onMessageCreated } from './functions/messages'

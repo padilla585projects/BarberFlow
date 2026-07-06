@@ -19,6 +19,7 @@ import {
   doc,
   getDoc,
 } from 'firebase/firestore';
+
 import { auth, db } from '../../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import * as Print from 'expo-print';
@@ -65,6 +66,7 @@ interface Order {
   barbershopId: string;
   shippingAddress?: ShippingAddress;
   notes?: string;
+  reviewedProducts?: string[]; // productIds ya valorados por este cliente en este pedido
   createdAt: any;
 }
 
@@ -356,15 +358,37 @@ export function OrderHistoryScreen() {
 
               <View style={styles.divider} />
 
-              {item.items && item.items.map((it, idx) => (
-                <View key={idx} style={styles.itemRow}>
-                  <Text style={styles.itemName} numberOfLines={1}>
-                    {it.name}
-                  </Text>
-                  <Text style={styles.itemQty}>x{it.quantity}</Text>
-                  <Text style={styles.itemPrice}>{(it.price * it.quantity).toFixed(2)} €</Text>
-                </View>
-              ))}
+              {item.items && item.items.map((it, idx) => {
+                const isDelivered = status === 'delivered';
+                const alreadyReviewed = item.reviewedProducts?.includes(it.productId) ?? false;
+                return (
+                  <View key={idx} style={styles.itemRow}>
+                    <Text style={styles.itemName} numberOfLines={1}>
+                      {it.name}
+                    </Text>
+                    <Text style={styles.itemQty}>x{it.quantity}</Text>
+                    <Text style={styles.itemPrice}>{(it.price * it.quantity).toFixed(2)} €</Text>
+                    {isDelivered && (
+                      alreadyReviewed ? (
+                        <Text style={styles.reviewedTag}>✓</Text>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.reviewItemBtn}
+                          onPress={() => navigation.navigate('ProductReview', {
+                            orderId: item.id,
+                            productId: it.productId,
+                            productName: it.name,
+                            barbershopId: item.barbershopId,
+                          })}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.reviewItemBtnText}>⭐</Text>
+                        </TouchableOpacity>
+                      )
+                    )}
+                  </View>
+                );
+              })}
 
               <View style={styles.divider} />
 
@@ -462,6 +486,15 @@ const styles = StyleSheet.create({
   itemName: { flex: 1, fontSize: 14, color: TEXT },
   itemQty: { fontSize: 13, color: MUTED },
   itemPrice: { fontSize: 14, color: TEXT, fontWeight: '600' },
+  reviewItemBtn: {
+    borderWidth: 1,
+    borderColor: GOLD + '66',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  reviewItemBtnText: { fontSize: 13 },
+  reviewedTag: { fontSize: 13, color: '#10B981', fontWeight: '700' },
 
   // Total
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

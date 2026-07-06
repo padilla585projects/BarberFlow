@@ -490,6 +490,11 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.linkText}>Mis pedidos</Text>
           <Text style={styles.linkArrow}>›</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('MyGiftCards')} activeOpacity={0.8}>
+          <Text style={styles.linkIcon}>{'🎁'}</Text>
+          <Text style={styles.linkText}>Mis tarjetas regalo</Text>
+          <Text style={styles.linkArrow}>›</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('MyAppointments')} activeOpacity={0.7}>
           <Text style={styles.linkIcon}>📋</Text>
           <Text style={styles.linkText}>Mis citas</Text>

@@ -21,6 +21,10 @@ import { JoinBarbershopScreen } from '../screens/client/JoinBarbershopScreen';
 import { OrderHistoryScreen } from '../screens/client/OrderHistoryScreen';
 import { RescheduleScreen } from '../screens/client/RescheduleScreen';
 import { WorkWithUsScreen } from '../screens/client/WorkWithUsScreen';
+import { ProductReviewScreen } from '../screens/client/ProductReviewScreen';
+import { VisitTimelineScreen } from '../screens/client/VisitTimelineScreen';
+import { PurchaseGiftCardScreen } from '../screens/client/PurchaseGiftCardScreen';
+import { MyGiftCardsScreen } from '../screens/client/MyGiftCardsScreen';
 import { auth, db } from '../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
@@ -45,6 +49,10 @@ export type ClientStackParamList = {
   OrderHistory: undefined;
   Reschedule: { appointmentId: string; barberId: string; barbershopId: string; totalDuration: number };
   WorkWithUs: undefined;
+  ProductReview: { orderId: string; productId: string; productName: string; barbershopId: string };
+  VisitTimeline: undefined;
+  PurchaseGiftCard: { barbershopId: string; barbershopName: string };
+  MyGiftCards: undefined;
 };
 
 const Stack = createNativeStackNavigator<ClientStackParamList>();
@@ -249,6 +257,26 @@ export function ClientNavigator() {
         name="WorkWithUs"
         component={WorkWithUsScreen}
         options={{ title: 'Trabaja con nosotros' }}
+      />
+      <Stack.Screen
+        name="ProductReview"
+        component={ProductReviewScreen}
+        options={{ title: 'Valorar producto' }}
+      />
+      <Stack.Screen
+        name="VisitTimeline"
+        component={VisitTimelineScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PurchaseGiftCard"
+        component={PurchaseGiftCardScreen}
+        options={{ title: 'Tarjeta regalo' }}
+      />
+      <Stack.Screen
+        name="MyGiftCards"
+        component={MyGiftCardsScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
