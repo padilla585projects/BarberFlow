@@ -1,7 +1,12 @@
 import { Link } from 'react-router-dom'
 import styles from './LandingPage.module.css'
 
-const PLAY_STORE_URL: string | null = null // TODO: pegar el enlace real cuando se publique en Google Play
+// Play Store: pegar el enlace real cuando se publique
+const PLAY_STORE_URL: string | null = null
+
+// Descarga directa APK (mientras no está en Play Store)
+// Actualizar con la URL de Firebase Storage cuando se suba el APK
+const APK_DIRECT_URL: string | null = null
 
 type PhoneScreen = 'home' | 'booking' | 'history' | 'profile' | 'shop' | 'notifications'
 type BrowserView = 'dashboard' | 'agenda' | 'inventory' | 'pos' | 'reports'
@@ -219,28 +224,57 @@ export default function LandingPage() {
         {/* ── Descarga / Play Store ────────────────── */}
         <section id="descarga" className={styles.download}>
           <div className={styles.downloadInner}>
-            <span className={styles.eyebrow}>Próximamente</span>
+            <span className={styles.eyebrow}>Descarga la app</span>
             <h2 className={styles.sectionTitle}>Llévate BarberFlow contigo</h2>
             <p className={styles.sectionLead}>
-              Estamos finalizando la publicación en Google Play. En cuanto esté disponible,
-              podrás reservar tus citas desde el móvil en un par de toques.
+              Disponible en Android. Descárgala directamente o espera a la versión oficial en Google Play.
             </p>
-            {PLAY_STORE_URL ? (
-              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className={styles.playBadge}>
-                <PlayStoreIcon />
-                <div>
-                  <span>Disponible en</span>
-                  <strong>Google Play</strong>
+
+            <div className={styles.downloadBtns}>
+              {/* Botón Play Store */}
+              {PLAY_STORE_URL ? (
+                <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className={styles.playBadge}>
+                  <PlayStoreIcon />
+                  <div>
+                    <span>Disponible en</span>
+                    <strong>Google Play</strong>
+                  </div>
+                </a>
+              ) : (
+                <div className={`${styles.playBadge} ${styles.playBadgeDisabled}`}>
+                  <PlayStoreIcon />
+                  <div>
+                    <span>Muy pronto en</span>
+                    <strong>Google Play</strong>
+                  </div>
                 </div>
-              </a>
-            ) : (
-              <div className={`${styles.playBadge} ${styles.playBadgeDisabled}`}>
-                <PlayStoreIcon />
-                <div>
-                  <span>Muy pronto en</span>
-                  <strong>Google Play</strong>
+              )}
+
+              {/* Botón APK directo */}
+              {APK_DIRECT_URL ? (
+                <a href={APK_DIRECT_URL} className={styles.apkBadge} download="BarberFlow.apk">
+                  <ApkIcon />
+                  <div>
+                    <span>Descarga directa</span>
+                    <strong>APK para Android</strong>
+                  </div>
+                </a>
+              ) : (
+                <div className={`${styles.apkBadge} ${styles.apkBadgeDisabled}`}>
+                  <ApkIcon />
+                  <div>
+                    <span>En preparación</span>
+                    <strong>APK para Android</strong>
+                  </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Nota instalación manual — visible cuando hay APK */}
+            {APK_DIRECT_URL && (
+              <p className={styles.apkNote}>
+                ⚠️ Versión beta · Requiere activar <em>«Instalar apps de fuentes desconocidas»</em> en Ajustes de Android
+              </p>
             )}
           </div>
         </section>
@@ -683,6 +717,15 @@ function BellIcon() {
 function MapPinIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><circle cx="12" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.7"/></svg>
 }
+function ApkIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.7"/>
+      <path d="M12 16v-6M9 13l3 3 3-3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 function PlayStoreIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 512 512">
