@@ -12,7 +12,7 @@ firebase-debug.log
 firestore-debug.log
 .gstack/
 
-# Debug screenshots
+# Debug / QA screenshots (sesiones de desarrollo)
 phone_*.png
 phone_*.jpg
 ph.png
@@ -27,3 +27,39 @@ rnsettings.xml
 seed.mjs
 mobile/screen_*.png
 .claude/
+
+# Archivos temporales QA session
+screen*.png
+s[0-9]*.png
+qa_*.png
+app_*.png
+state_*.png
+tab_*.png
+triple_*.png
+after_*.png
+before_*.png
+booking.png
+header_zoom.png
+login*.png
+pass*.png
+show_pass*.png
+fresh*.png
+form_*.png
+clear*.png
+final_*.png
+mobile_*.png
+verify_users.mjs
+testlogin.mjs
+change_pass.mjs
+ui*.xml
+users_export.json
+enable-wifi-adb.bat
+test_*.png
+test_*.jpg
+test_product_image.jpg
+barber_detail*.png
+barber_detail*.jpg
+booking_small.png
+sc.png
+sc_*.png
+barber_*.png
