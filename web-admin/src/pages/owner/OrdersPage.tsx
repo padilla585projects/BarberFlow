@@ -23,7 +23,47 @@ const STATUS_COLORS: Record<Order['status'], string> = {
 
 const STATUS_ORDER: Order['status'][] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
-// ── Shipping Label Modal ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared print helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+function openPrintWindow(title: string, html: string, css: string) {
+  const win = window.open('', '_blank', 'width=720,height=620')
+  if (!win) return
+  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+    <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { font-family: Arial, sans-serif; background: #fff; }
+    ${css}</style></head><body>${html}</body></html>`)
+  win.document.close()
+  win.focus()
+  setTimeout(() => { win.print(); win.close() }, 400)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 🏷️  ETIQUETA DE ENVÍO — solo remitente / destinatario / nº pedido
+//     Sin precio, sin productos. Va pegada en el exterior del paquete.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LABEL_CSS = `
+  body { padding: 28px 32px; }
+  .brand { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+           color: #6b7280; padding-bottom: 10px; border-bottom: 2px solid #111; margin-bottom: 14px; }
+  .boxes { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid #111;
+           border-radius: 4px; overflow: hidden; margin-bottom: 14px; min-height: 130px; }
+  .box { padding: 14px 16px; }
+  .box + .box { border-left: 2px solid #111; }
+  .box-title { font-size: 8px; font-weight: 800; text-transform: uppercase;
+               letter-spacing: 0.14em; color: #9ca3af; margin-bottom: 8px; }
+  .name { font-size: 15px; font-weight: 800; color: #111; margin-bottom: 4px; }
+  .addr { font-size: 12px; color: #374151; line-height: 1.65; }
+  .barcode { font-size: 26px; letter-spacing: 0.06em; font-family: monospace;
+             text-align: center; margin: 12px 0 10px; color: #111; }
+  .order-strip { display: flex; justify-content: space-between; align-items: center;
+                 padding: 8px 12px; background: #f3f4f6; border: 1px solid #e5e7eb;
+                 border-radius: 4px; font-size: 11px; color: #6b7280; }
+  .order-id { font-family: monospace; font-size: 14px; font-weight: 800;
+              color: #111; letter-spacing: 0.1em; }
+  .note { font-size: 10px; color: #9ca3af; margin-top: 10px; text-align: center; }
+`
 
 interface LabelProps {
   order: Order
@@ -35,77 +75,56 @@ function ShippingLabelModal({ order, barbershop, onClose }: LabelProps) {
   const printRef = useRef<HTMLDivElement>(null)
   const addr = order.shippingAddress as ShippingAddress
 
-  const handlePrint = () => {
-    const content = printRef.current?.innerHTML
-    if (!content) return
-    const win = window.open('', '_blank', 'width=700,height=600')
-    if (!win) return
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Etiqueta #${order.id.slice(-8).toUpperCase()}</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; background: #fff; padding: 32px; }
-            .brand { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-                     color: #6b7280; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #111; }
-            .boxes { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid #111;
-                     border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
-            .box { padding: 16px; }
-            .box + .box { border-left: 2px solid #111; }
-            .box-title { font-size: 9px; font-weight: 800; text-transform: uppercase;
-                         letter-spacing: 0.12em; color: #6b7280; margin-bottom: 8px; }
-            .name { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 4px; }
-            .addr { font-size: 12px; color: #374151; line-height: 1.6; }
-            .order-info { display: flex; justify-content: space-between; align-items: center;
-                          padding: 10px 12px; background: #f9fafb; border: 1px solid #e5e7eb;
-                          border-radius: 4px; font-size: 11px; color: #6b7280; }
-            .order-id { font-family: monospace; font-size: 13px; font-weight: 700;
-                        color: #111; letter-spacing: 0.08em; }
-            .barcode { font-size: 28px; letter-spacing: 0.05em; color: #111;
-                       font-family: monospace; text-align: center; margin: 12px 0 4px; }
-            .items { margin-top: 12px; font-size: 11px; color: #374151; line-height: 1.7; }
-            .items-title { font-size: 9px; font-weight: 800; text-transform: uppercase;
-                           letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 4px; }
-          </style>
-        </head>
-        <body>${content}</body>
-      </html>
-    `)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 400)
-  }
-
   const dateStr = order.createdAt instanceof Date
     ? order.createdAt.toLocaleDateString('es-ES')
     : new Date((order.createdAt as any).seconds * 1000).toLocaleDateString('es-ES')
 
+  const labelHtml = `
+    <div class="brand">BarberFlow · Etiqueta de envío</div>
+    <div class="boxes">
+      <div class="box">
+        <div class="box-title">Remitente (FROM)</div>
+        <div class="name">${barbershop?.name ?? order.barbershopName ?? '—'}</div>
+        <div class="addr">${barbershop?.address ?? '—'}${barbershop?.phone ? `<br>${barbershop.phone}` : ''}</div>
+      </div>
+      <div class="box">
+        <div class="box-title">Destinatario (TO)</div>
+        <div class="name">${order.clientName}</div>
+        <div class="addr">
+          ${addr.street}<br>
+          ${addr.postalCode} ${addr.city}<br>
+          ${addr.province}${addr.country ? `, ${addr.country}` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="barcode">|||&nbsp;&nbsp;${order.id.slice(-10).toUpperCase()}&nbsp;&nbsp;|||</div>
+    <div class="order-strip">
+      <div>Pedido <span class="order-id">#${order.id.slice(-8).toUpperCase()}</span></div>
+      <div>${dateStr}</div>
+    </div>
+    <div class="note">No indica contenido ni valor — etiqueta de transporte</div>
+  `
+
   return (
-    <div className={styles.labelOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className={styles.labelOverlay} onClick={e => e.target === e.currentTarget && onClose()}>
       <div className={styles.labelModal}>
         <div className={styles.labelModalHeader}>
           <span className={styles.labelModalTitle}>🏷️ Etiqueta de envío — #{order.id.slice(-8).toUpperCase()}</span>
           <button className={styles.labelModalClose} onClick={onClose}>✕</button>
         </div>
 
-        {/* Printable content */}
-        <div ref={printRef} className={styles.labelSheet}>
-          <div className={styles.labelBrand}>BarberFlow — Etiqueta de envío</div>
-
+        {/* Preview */}
+        <div ref={printRef} className={styles.labelSheet} style={{ background: '#fff', color: '#000' }}>
+          <div className={styles.labelBrand}>BarberFlow · Etiqueta de envío</div>
           <div className={styles.labelBoxes}>
-            {/* FROM */}
             <div className={styles.labelBox}>
               <div className={styles.labelBoxTitle}>Remitente (FROM)</div>
               <div className={styles.labelName}>{barbershop?.name ?? order.barbershopName ?? '—'}</div>
               <div className={styles.labelAddr}>
                 {barbershop?.address ?? '—'}
-                {barbershop?.phone ? <><br />{barbershop.phone}</> : null}
+                {barbershop?.phone && <><br />{barbershop.phone}</>}
               </div>
             </div>
-
-            {/* TO */}
             <div className={styles.labelBox}>
               <div className={styles.labelBoxTitle}>Destinatario (TO)</div>
               <div className={styles.labelName}>{order.clientName}</div>
@@ -116,59 +135,270 @@ function ShippingLabelModal({ order, barbershop, onClose }: LabelProps) {
               </div>
             </div>
           </div>
-
           <div className={styles.labelBarcode}>
-            {'|'.repeat(3)} &nbsp; {order.id.slice(-10).toUpperCase()} &nbsp; {'|'.repeat(3)}
+            {'|'.repeat(3)}&nbsp;&nbsp;{order.id.slice(-10).toUpperCase()}&nbsp;&nbsp;{'|'.repeat(3)}
           </div>
-
           <div className={styles.labelOrderInfo}>
             <div>
-              <div style={{ marginBottom: 2 }}>Pedido</div>
-              <div className={styles.labelOrderId}>#{order.id.slice(-8).toUpperCase()}</div>
+              <span style={{ fontSize: 11, color: '#6b7280' }}>Pedido&nbsp;</span>
+              <span className={styles.labelOrderId}>#{order.id.slice(-8).toUpperCase()}</span>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div>{dateStr}</div>
-              <div style={{ marginTop: 2, fontWeight: 700, color: '#111' }}>
-                {order.totalAmount.toFixed(2)} €
-              </div>
-            </div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>{dateStr}</div>
           </div>
-
-          {/* Items */}
-          <div className={styles.labelSheet} style={{ padding: '10px 0 0' }}>
-            <div className={`${styles.labelBoxTitle} ${styles.labelOrderInfo}`}
-                 style={{ background: 'none', border: 'none', padding: 0 }}>
-              Contenido
-            </div>
-            {order.items.map((item, i) => (
-              <div key={i} style={{ fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
-                {item.quantity}x {item.name}
-              </div>
-            ))}
+          <div style={{ fontSize: 10, color: '#9ca3af', textAlign: 'center', marginTop: 10 }}>
+            No indica contenido ni valor — etiqueta de transporte
           </div>
         </div>
 
         <div className={styles.labelModalActions}>
           <button className={styles.cancelBtn} onClick={onClose}>Cerrar</button>
-          <button className={styles.printBtn} onClick={handlePrint}>🖨️ Imprimir etiqueta</button>
+          <button className={styles.printBtn}
+            onClick={() => openPrintWindow(`Etiqueta #${order.id.slice(-8).toUpperCase()}`, labelHtml, LABEL_CSS)}>
+            🖨️ Imprimir etiqueta
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// 🧾  ALBARÁN DE ENTREGA — va dentro del paquete
+//     Incluye productos, cantidades, precios y total.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ALBARAN_CSS = `
+  body { padding: 32px 36px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start;
+            padding-bottom: 14px; border-bottom: 2px solid #111; margin-bottom: 20px; }
+  .brand { font-size: 20px; font-weight: 800; color: #111; }
+  .brand-sub { font-size: 10px; color: #6b7280; text-transform: uppercase;
+               letter-spacing: 0.1em; margin-top: 2px; }
+  .doc-title { font-size: 13px; font-weight: 800; color: #6b7280; text-align: right;
+               text-transform: uppercase; letter-spacing: 0.08em; }
+  .doc-id { font-family: monospace; font-size: 18px; font-weight: 800; color: #111; }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .meta-block { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 14px; }
+  .meta-title { font-size: 9px; font-weight: 800; text-transform: uppercase;
+                letter-spacing: 0.12em; color: #9ca3af; margin-bottom: 6px; }
+  .meta-name { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 2px; }
+  .meta-line { font-size: 12px; color: #374151; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  thead th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+             color: #6b7280; padding: 8px 10px; border-bottom: 2px solid #111; text-align: left; }
+  thead th:last-child { text-align: right; }
+  tbody td { font-size: 13px; color: #111; padding: 10px 10px; border-bottom: 1px solid #e5e7eb; }
+  tbody td:last-child { text-align: right; font-weight: 600; }
+  tbody td:nth-child(2) { text-align: center; color: #6b7280; }
+  tbody td:nth-child(3) { text-align: right; color: #6b7280; }
+  .total-row { display: flex; justify-content: flex-end; }
+  .total-box { background: #111; color: #fff; border-radius: 6px; padding: 10px 16px;
+               display: flex; gap: 20px; align-items: center; }
+  .total-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
+  .total-value { font-size: 20px; font-weight: 800; }
+  .footer { margin-top: 24px; padding-top: 14px; border-top: 1px solid #e5e7eb;
+            font-size: 10px; color: #9ca3af; text-align: center; line-height: 1.8; }
+`
+
+interface AlbaranProps {
+  order: Order
+  barbershop: Barbershop | undefined
+  onClose: () => void
+}
+
+function AlbaranModal({ order, barbershop, onClose }: AlbaranProps) {
+  const addr = order.shippingAddress as ShippingAddress
+
+  const dateStr = order.createdAt instanceof Date
+    ? order.createdAt.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+    : new Date((order.createdAt as any).seconds * 1000).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const itemRows = order.items.map(item => `
+    <tr>
+      <td>${item.name}</td>
+      <td>${item.quantity}</td>
+      <td>${item.price.toFixed(2)} €</td>
+      <td>${(item.price * item.quantity).toFixed(2)} €</td>
+    </tr>
+  `).join('')
+
+  const albaranHtml = `
+    <div class="header">
+      <div>
+        <div class="brand">${barbershop?.name ?? order.barbershopName ?? 'BarberFlow'}</div>
+        <div class="brand-sub">Nota de entrega · Albarán</div>
+      </div>
+      <div style="text-align:right">
+        <div class="doc-title">Albarán nº</div>
+        <div class="doc-id">#${order.id.slice(-8).toUpperCase()}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:4px">${dateStr}</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div class="meta-block">
+        <div class="meta-title">Vendedor</div>
+        <div class="meta-name">${barbershop?.name ?? '—'}</div>
+        <div class="meta-line">${barbershop?.address ?? '—'}</div>
+        ${barbershop?.phone ? `<div class="meta-line">${barbershop.phone}</div>` : ''}
+      </div>
+      <div class="meta-block">
+        <div class="meta-title">Cliente</div>
+        <div class="meta-name">${order.clientName}</div>
+        <div class="meta-line">${order.clientEmail}</div>
+        ${addr ? `<div class="meta-line">${addr.street}<br>${addr.postalCode} ${addr.city}<br>${addr.province}</div>` : '<div class="meta-line">Recogida en tienda</div>'}
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Producto</th><th style="text-align:center">Cant.</th>
+        <th style="text-align:right">Precio unit.</th><th style="text-align:right">Total</th>
+      </tr></thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+    <div class="total-row">
+      <div class="total-box">
+        <span class="total-label">Total</span>
+        <span class="total-value">${order.totalAmount.toFixed(2)} €</span>
+      </div>
+    </div>
+    ${order.notes ? `<div style="margin-top:14px;font-size:12px;color:#6b7280">📝 Nota: ${order.notes}</div>` : ''}
+    <div class="footer">
+      Gracias por tu compra · ${barbershop?.name ?? 'BarberFlow'}<br>
+      Conserva este albarán como justificante de tu pedido
+    </div>
+  `
+
+  return (
+    <div className={styles.labelOverlay} onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className={styles.labelModal} style={{ maxWidth: 560 }}>
+        <div className={styles.labelModalHeader}>
+          <span className={styles.labelModalTitle}>🧾 Albarán de entrega — #{order.id.slice(-8).toUpperCase()}</span>
+          <button className={styles.labelModalClose} onClick={onClose}>✕</button>
+        </div>
+
+        {/* Preview */}
+        <div className={styles.labelSheet} style={{ background: '#fff', color: '#000' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+            paddingBottom: 12, borderBottom: '2px solid #111', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#111' }}>
+                {barbershop?.name ?? order.barbershopName ?? 'BarberFlow'}
+              </div>
+              <div style={{ fontSize: 10, color: '#6b7280', textTransform: 'uppercase',
+                letterSpacing: '0.1em', marginTop: 2 }}>Nota de entrega · Albarán</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase',
+                letterSpacing: '0.08em' }}>Albarán nº</div>
+              <div style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 800, color: '#111' }}>
+                #{order.id.slice(-8).toUpperCase()}
+              </div>
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{dateStr}</div>
+            </div>
+          </div>
+
+          {/* Meta */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+            {[
+              { title: 'Vendedor', name: barbershop?.name ?? '—',
+                lines: [barbershop?.address ?? '—', barbershop?.phone ?? ''].filter(Boolean) },
+              { title: 'Cliente', name: order.clientName,
+                lines: addr
+                  ? [order.clientEmail, addr.street, `${addr.postalCode} ${addr.city}`, addr.province]
+                  : [order.clientEmail, 'Recogida en tienda'] },
+            ].map(block => (
+              <div key={block.title} style={{ background: '#f9fafb', border: '1px solid #e5e7eb',
+                borderRadius: 6, padding: '10px 12px' }}>
+                <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase',
+                  letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 6 }}>{block.title}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 2 }}>{block.name}</div>
+                {block.lines.map((l, i) => (
+                  <div key={i} style={{ fontSize: 11, color: '#374151', lineHeight: 1.6 }}>{l}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Items table */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #111' }}>
+                {['Producto', 'Cant.', 'Precio unit.', 'Total'].map((h, i) => (
+                  <th key={h} style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em',
+                    color: '#6b7280', padding: '6px 8px', textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {order.items.map((item, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ fontSize: 12, color: '#111', padding: '8px 8px' }}>{item.name}</td>
+                  <td style={{ fontSize: 12, color: '#6b7280', textAlign: 'right', padding: '8px 8px' }}>{item.quantity}</td>
+                  <td style={{ fontSize: 12, color: '#6b7280', textAlign: 'right', padding: '8px 8px' }}>{item.price.toFixed(2)} €</td>
+                  <td style={{ fontSize: 12, fontWeight: 600, color: '#111', textAlign: 'right', padding: '8px 8px' }}>
+                    {(item.price * item.quantity).toFixed(2)} €
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Total */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ background: '#111', color: '#fff', borderRadius: 6, padding: '8px 14px',
+              display: 'flex', gap: 16, alignItems: 'center' }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.6 }}>Total</span>
+              <span style={{ fontSize: 18, fontWeight: 800 }}>{order.totalAmount.toFixed(2)} €</span>
+            </div>
+          </div>
+
+          {order.notes && (
+            <div style={{ marginTop: 10, fontSize: 11, color: '#6b7280' }}>📝 {order.notes}</div>
+          )}
+
+          <div style={{ marginTop: 16, paddingTop: 10, borderTop: '1px solid #e5e7eb',
+            fontSize: 10, color: '#9ca3af', textAlign: 'center', lineHeight: 1.8 }}>
+            Gracias por tu compra · {barbershop?.name ?? 'BarberFlow'}<br />
+            Conserva este albarán como justificante de tu pedido
+          </div>
+        </div>
+
+        <div className={styles.labelModalActions}>
+          <button className={styles.cancelBtn} onClick={onClose}>Cerrar</button>
+          <button className={styles.printBtn}
+            onClick={() => openPrintWindow(`Albarán #${order.id.slice(-8).toUpperCase()}`, albaranHtml, ALBARAN_CSS)}>
+            🖨️ Imprimir albarán
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main page
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
   const { user } = useAuth()
-  const [orders, setOrders]           = useState<Order[]>([])
-  const [barbershops, setBarbershops] = useState<Barbershop[]>([])
+  const [orders, setOrders]             = useState<Order[]>([])
+  const [barbershops, setBarbershops]   = useState<Barbershop[]>([])
   const [selectedShop, setSelectedShop] = useState('')
-  const [loading, setLoading]         = useState(true)
+  const [loading, setLoading]           = useState(true)
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all')
-  const [updating, setUpdating]       = useState<string | null>(null)
-  const [expanded, setExpanded]       = useState<string | null>(null)
-  const [labelOrder, setLabelOrder]   = useState<Order | null>(null)
+  const [updating, setUpdating]         = useState<string | null>(null)
+  const [expanded, setExpanded]         = useState<string | null>(null)
+  const [labelOrder, setLabelOrder]     = useState<Order | null>(null)
+  const [albaranOrder, setAlbaranOrder] = useState<Order | null>(null)
+
+  // ── Future courier integration hook ───────────────────────────────────────
+  // When integrating a carrier (SEUR, Correos, MRW, GLS...):
+  // 1. Add `courierService?: string` and `trackingNumber?: string` to the Order type
+  // 2. Add a service in /services/courier.ts that calls their API to create a shipment
+  // 3. The API will return the official label PDF/ZPL and a tracking number
+  // 4. Store the tracking number on the order doc and show it here
+  // 5. Replace the custom label with the carrier's official label
 
   const load = async (shopId: string) => {
     if (!shopId) return
@@ -313,7 +543,7 @@ export default function OrdersPage() {
                     ))}
                   </div>
 
-                  {/* Dirección de envío */}
+                  {/* Envío / recogida */}
                   {order.shippingAddress ? (
                     <div className={styles.shippingBlock}>
                       <div className={styles.shippingInfo}>
@@ -327,15 +557,22 @@ export default function OrdersPage() {
                           {order.shippingAddress.country ? `, ${order.shippingAddress.country}` : ''}
                         </div>
                       </div>
-                      <button
-                        className={styles.labelBtn}
-                        onClick={() => setLabelOrder(order)}
-                      >
-                        🏷️ Generar etiqueta
-                      </button>
+                      <div className={styles.labelBtns}>
+                        <button className={styles.labelBtn} onClick={() => setLabelOrder(order)}>
+                          🏷️ Etiqueta
+                        </button>
+                        <button className={styles.albaranBtn} onClick={() => setAlbaranOrder(order)}>
+                          🧾 Albarán
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <p className={styles.address}>🏠 Recogida en tienda</p>
+                    <div className={styles.pickupRow}>
+                      <span>🏠 Recogida en tienda</span>
+                      <button className={styles.albaranBtn} onClick={() => setAlbaranOrder(order)}>
+                        🧾 Albarán
+                      </button>
+                    </div>
                   )}
 
                   {order.notes && (
@@ -363,12 +600,18 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Shipping label modal */}
       {labelOrder && (
         <ShippingLabelModal
           order={labelOrder}
           barbershop={barbershops.find(b => b.id === labelOrder.barbershopId)}
           onClose={() => setLabelOrder(null)}
+        />
+      )}
+      {albaranOrder && (
+        <AlbaranModal
+          order={albaranOrder}
+          barbershop={barbershops.find(b => b.id === albaranOrder.barbershopId)}
+          onClose={() => setAlbaranOrder(null)}
         />
       )}
     </div>

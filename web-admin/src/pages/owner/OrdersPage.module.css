@@ -159,6 +159,11 @@
   margin-bottom: 6px;
 }
 .shippingLine { font-size: 13px; color: #fff; line-height: 1.5; }
+.labelBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .labelBtn {
   background: #c9a84c;
   color: #000;
@@ -171,8 +176,31 @@
   white-space: nowrap;
   transition: opacity 0.15s;
   font-family: inherit;
+  text-align: center;
 }
 .labelBtn:hover { opacity: 0.85; }
+.albaranBtn {
+  background: transparent;
+  color: #c9a84c;
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: inherit;
+  text-align: center;
+}
+.albaranBtn:hover { background: rgba(201,168,76,0.1); }
+.pickupRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+}
 
 /* ── Shipping Label Modal ─────────────────────────── */
 .labelOverlay {
