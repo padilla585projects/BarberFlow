@@ -86,7 +86,21 @@ export function MyAppointmentsScreen() {
     return unsub;
   }, []);
 
+  const MIN_CANCEL_HOURS = 2; // mínimo de horas de antelación para cancelar
+
   const cancelAppointment = (item: Appointment & { promoCode?: string }) => {
+    const aptDate = item.date instanceof Date ? item.date : (item.date as any)?.toDate?.() ?? new Date();
+    const hoursUntil = (aptDate.getTime() - Date.now()) / (1000 * 60 * 60);
+
+    if (hoursUntil < MIN_CANCEL_HOURS) {
+      Alert.alert(
+        'No se puede cancelar',
+        `Solo puedes cancelar con al menos ${MIN_CANCEL_HOURS} horas de antelación. Para cancelaciones de última hora contacta directamente con la barbería.`,
+        [{ text: 'Entendido' }],
+      );
+      return;
+    }
+
     Alert.alert(
       'Cancelar cita',
       '¿Seguro que quieres cancelar esta cita?',
@@ -162,6 +176,9 @@ export function MyAppointmentsScreen() {
         renderItem={({ item }) => {
           const date = item.date instanceof Date ? item.date : (item.date as any)?.toDate?.() ?? new Date();
           const dateStr = date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+          const hoursUntil = (date.getTime() - Date.now()) / (1000 * 60 * 60);
+          const isCancellable = (item.status === 'pending' || item.status === 'confirmed') && hoursUntil > 0;
+          const tooLateToCancel = isCancellable && hoursUntil < MIN_CANCEL_HOURS;
 
           return (
             <View style={styles.card}>
@@ -207,14 +224,22 @@ export function MyAppointmentsScreen() {
                   <Text style={[styles.actionBtnText, { color: '#000' }]}>✎ Reprogramar</Text>
                 </TouchableOpacity>
               )}
-              {(item.status === 'pending' || item.status === 'confirmed') && (
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => cancelAppointment(item as Appointment & { promoCode?: string })}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.cancelBtnText}>Cancelar cita</Text>
-                </TouchableOpacity>
+              {isCancellable && (
+                tooLateToCancel ? (
+                  <View style={styles.lateCancelNote}>
+                    <Text style={styles.lateCancelText}>
+                      ⚠️ Menos de {MIN_CANCEL_HOURS}h — contacta con la barbería para cancelar
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => cancelAppointment(item as Appointment & { promoCode?: string })}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancelar cita</Text>
+                  </TouchableOpacity>
+                )
               )}
               {item.status === 'completed' && !item.reviewed && (
                 <TouchableOpacity
@@ -282,6 +307,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelBtnText: { color: '#EF4444', fontSize: 13, fontWeight: '700' },
+  lateCancelNote: {
+    marginTop: 8,
+    backgroundColor: '#F59E0B' + '18',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#F59E0B' + '55',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  lateCancelText: { color: '#F59E0B', fontSize: 12, fontWeight: '600', textAlign: 'center' },
   reviewBtn: {
     marginTop: 8,
     paddingVertical: 8,

@@ -34,6 +34,54 @@ async function notifyUser(
   await storeNotification(uid, { title, body, type: 'appointment', data: pushData })
 }
 
+// ── Order status change → notify client ──────────────────────────────────
+
+const ORDER_STATUS_MSG: Record<string, { title: string; body: (shopName: string) => string }> = {
+  processing: {
+    title: '📦 Pedido en preparación',
+    body: (shop) => `${shop} está preparando tu pedido`,
+  },
+  shipped: {
+    title: '🚚 Pedido enviado',
+    body: (shop) => `Tu pedido de ${shop} está en camino`,
+  },
+  delivered: {
+    title: '✅ Pedido entregado',
+    body: (shop) => `Tu pedido de ${shop} ha sido entregado`,
+  },
+  cancelled: {
+    title: '❌ Pedido cancelado',
+    body: (shop) => `Tu pedido de ${shop} ha sido cancelado`,
+  },
+}
+
+export const onOrderStatusChangedPush = onDocumentUpdated(
+  { document: 'orders/{orderId}', region: REGION },
+  async (event) => {
+    const before = event.data?.before.data()
+    const after  = event.data?.after.data()
+    if (!before || !after) return
+    if (before.status === after.status) return
+
+    const newStatus  = after.status as string
+    const clientId   = after.clientId as string
+    const shopName   = (after.barbershopName as string) || 'la barbería'
+
+    const template = ORDER_STATUS_MSG[newStatus]
+    if (!template) return   // no notificamos estados intermedios sin mensaje definido
+
+    const title = template.title
+    const body  = template.body(shopName)
+    const pushData = { orderId: event.params.orderId, type: 'order_status_changed', status: newStatus }
+
+    const token = await getExpoPushToken(clientId)
+    if (token) {
+      await sendPushNotification(token, title, body, pushData)
+    }
+    await storeNotification(clientId, { title, body, type: 'order', data: pushData })
+  },
+)
+
 // New appointment → notify barber AND owner
 export const onAppointmentCreatedPush = onDocumentCreated(
   { document: 'appointments/{appointmentId}', region: REGION },
