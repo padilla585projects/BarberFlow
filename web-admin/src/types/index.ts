@@ -1,5 +1,13 @@
 export type UserRole = 'client' | 'barber' | 'owner' | 'developer';
 
+export interface ShippingAddress {
+  street: string;
+  city: string;
+  postalCode: string;
+  province: string;
+  country?: string;
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -125,7 +133,8 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  address?: string;
+  address?: string;            // legacy (no usado)
+  shippingAddress?: ShippingAddress;
   notes?: string;
   createdAt: Date;
   paymentMethod?: 'cash' | 'bizum' | 'paypal';

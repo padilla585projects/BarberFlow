@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getOrdersByBarbershop, updateOrderStatus } from '../../services/orders'
 import { getAllBarbershops } from '../../services/barbershops'
 import { useAuth } from '../../contexts/AuthContext'
-import { Order, Barbershop } from '../../types'
+import { Order, Barbershop, ShippingAddress } from '../../types'
 import styles from './OrdersPage.module.css'
 
 const STATUS_LABELS: Record<Order['status'], string> = {
@@ -23,6 +23,142 @@ const STATUS_COLORS: Record<Order['status'], string> = {
 
 const STATUS_ORDER: Order['status'][] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
+// ── Shipping Label Modal ───────────────────────────────────────────────────
+
+interface LabelProps {
+  order: Order
+  barbershop: Barbershop | undefined
+  onClose: () => void
+}
+
+function ShippingLabelModal({ order, barbershop, onClose }: LabelProps) {
+  const printRef = useRef<HTMLDivElement>(null)
+  const addr = order.shippingAddress as ShippingAddress
+
+  const handlePrint = () => {
+    const content = printRef.current?.innerHTML
+    if (!content) return
+    const win = window.open('', '_blank', 'width=700,height=600')
+    if (!win) return
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Etiqueta #${order.id.slice(-8).toUpperCase()}</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; background: #fff; padding: 32px; }
+            .brand { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+                     color: #6b7280; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #111; }
+            .boxes { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid #111;
+                     border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
+            .box { padding: 16px; }
+            .box + .box { border-left: 2px solid #111; }
+            .box-title { font-size: 9px; font-weight: 800; text-transform: uppercase;
+                         letter-spacing: 0.12em; color: #6b7280; margin-bottom: 8px; }
+            .name { font-size: 16px; font-weight: 800; color: #111; margin-bottom: 4px; }
+            .addr { font-size: 12px; color: #374151; line-height: 1.6; }
+            .order-info { display: flex; justify-content: space-between; align-items: center;
+                          padding: 10px 12px; background: #f9fafb; border: 1px solid #e5e7eb;
+                          border-radius: 4px; font-size: 11px; color: #6b7280; }
+            .order-id { font-family: monospace; font-size: 13px; font-weight: 700;
+                        color: #111; letter-spacing: 0.08em; }
+            .barcode { font-size: 28px; letter-spacing: 0.05em; color: #111;
+                       font-family: monospace; text-align: center; margin: 12px 0 4px; }
+            .items { margin-top: 12px; font-size: 11px; color: #374151; line-height: 1.7; }
+            .items-title { font-size: 9px; font-weight: 800; text-transform: uppercase;
+                           letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 4px; }
+          </style>
+        </head>
+        <body>${content}</body>
+      </html>
+    `)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 400)
+  }
+
+  const dateStr = order.createdAt instanceof Date
+    ? order.createdAt.toLocaleDateString('es-ES')
+    : new Date((order.createdAt as any).seconds * 1000).toLocaleDateString('es-ES')
+
+  return (
+    <div className={styles.labelOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={styles.labelModal}>
+        <div className={styles.labelModalHeader}>
+          <span className={styles.labelModalTitle}>🏷️ Etiqueta de envío — #{order.id.slice(-8).toUpperCase()}</span>
+          <button className={styles.labelModalClose} onClick={onClose}>✕</button>
+        </div>
+
+        {/* Printable content */}
+        <div ref={printRef} className={styles.labelSheet}>
+          <div className={styles.labelBrand}>BarberFlow — Etiqueta de envío</div>
+
+          <div className={styles.labelBoxes}>
+            {/* FROM */}
+            <div className={styles.labelBox}>
+              <div className={styles.labelBoxTitle}>Remitente (FROM)</div>
+              <div className={styles.labelName}>{barbershop?.name ?? order.barbershopName ?? '—'}</div>
+              <div className={styles.labelAddr}>
+                {barbershop?.address ?? '—'}
+                {barbershop?.phone ? <><br />{barbershop.phone}</> : null}
+              </div>
+            </div>
+
+            {/* TO */}
+            <div className={styles.labelBox}>
+              <div className={styles.labelBoxTitle}>Destinatario (TO)</div>
+              <div className={styles.labelName}>{order.clientName}</div>
+              <div className={styles.labelAddr}>
+                {addr.street}<br />
+                {addr.postalCode} {addr.city}<br />
+                {addr.province}{addr.country ? `, ${addr.country}` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.labelBarcode}>
+            {'|'.repeat(3)} &nbsp; {order.id.slice(-10).toUpperCase()} &nbsp; {'|'.repeat(3)}
+          </div>
+
+          <div className={styles.labelOrderInfo}>
+            <div>
+              <div style={{ marginBottom: 2 }}>Pedido</div>
+              <div className={styles.labelOrderId}>#{order.id.slice(-8).toUpperCase()}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div>{dateStr}</div>
+              <div style={{ marginTop: 2, fontWeight: 700, color: '#111' }}>
+                {order.totalAmount.toFixed(2)} €
+              </div>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className={styles.labelSheet} style={{ padding: '10px 0 0' }}>
+            <div className={`${styles.labelBoxTitle} ${styles.labelOrderInfo}`}
+                 style={{ background: 'none', border: 'none', padding: 0 }}>
+              Contenido
+            </div>
+            {order.items.map((item, i) => (
+              <div key={i} style={{ fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
+                {item.quantity}x {item.name}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.labelModalActions}>
+          <button className={styles.cancelBtn} onClick={onClose}>Cerrar</button>
+          <button className={styles.printBtn} onClick={handlePrint}>🖨️ Imprimir etiqueta</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
+
 export default function OrdersPage() {
   const { user } = useAuth()
   const [orders, setOrders]           = useState<Order[]>([])
@@ -32,6 +168,7 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all')
   const [updating, setUpdating]       = useState<string | null>(null)
   const [expanded, setExpanded]       = useState<string | null>(null)
+  const [labelOrder, setLabelOrder]   = useState<Order | null>(null)
 
   const load = async (shopId: string) => {
     if (!shopId) return
@@ -71,12 +208,14 @@ export default function OrdersPage() {
     revenue:   orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.totalAmount ?? 0), 0),
   }
 
+  const currentBarbershop = barbershops.find(b => b.id === selectedShop)
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
           <h1>Pedidos Shop</h1>
-          <p className={styles.sub}>{orders.length} pedidos · {barbershops.find(b => b.id === selectedShop)?.name}</p>
+          <p className={styles.sub}>{orders.length} pedidos · {currentBarbershop?.name}</p>
         </div>
         {user?.role === 'developer' && (
           <select
@@ -174,8 +313,33 @@ export default function OrdersPage() {
                     ))}
                   </div>
 
-                  {order.address && (
-                    <p className={styles.address}>📍 {order.address}</p>
+                  {/* Dirección de envío */}
+                  {order.shippingAddress ? (
+                    <div className={styles.shippingBlock}>
+                      <div className={styles.shippingInfo}>
+                        <div className={styles.shippingTitle}>📦 Dirección de envío</div>
+                        <div className={styles.shippingLine}>{order.shippingAddress.street}</div>
+                        <div className={styles.shippingLine}>
+                          {order.shippingAddress.postalCode} {order.shippingAddress.city}
+                        </div>
+                        <div className={styles.shippingLine}>
+                          {order.shippingAddress.province}
+                          {order.shippingAddress.country ? `, ${order.shippingAddress.country}` : ''}
+                        </div>
+                      </div>
+                      <button
+                        className={styles.labelBtn}
+                        onClick={() => setLabelOrder(order)}
+                      >
+                        🏷️ Generar etiqueta
+                      </button>
+                    </div>
+                  ) : (
+                    <p className={styles.address}>🏠 Recogida en tienda</p>
+                  )}
+
+                  {order.notes && (
+                    <p className={styles.address}>📝 {order.notes}</p>
                   )}
 
                   <div className={styles.actions}>
@@ -197,6 +361,15 @@ export default function OrdersPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Shipping label modal */}
+      {labelOrder && (
+        <ShippingLabelModal
+          order={labelOrder}
+          barbershop={barbershops.find(b => b.id === labelOrder.barbershopId)}
+          onClose={() => setLabelOrder(null)}
+        />
       )}
     </div>
   )

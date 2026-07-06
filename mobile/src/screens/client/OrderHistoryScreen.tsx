@@ -38,6 +38,14 @@ interface OrderItem {
   quantity: number;
 }
 
+interface ShippingAddress {
+  street: string;
+  city: string;
+  postalCode: string;
+  province: string;
+  country?: string;
+}
+
 interface Order {
   id: string;
   clientId: string;
@@ -50,6 +58,8 @@ interface Order {
   paymentMethod: PaymentMethod;
   paymentStatus: 'pending' | 'client_confirmed' | 'confirmed' | 'paid';
   barbershopId: string;
+  shippingAddress?: ShippingAddress;
+  notes?: string;
   createdAt: any;
 }
 
@@ -197,6 +207,21 @@ export function OrderHistoryScreen() {
               <Text style={styles.paymentMethod}>
                 Pago: {PAYMENT_LABEL[method] ?? method}
               </Text>
+
+              {item.shippingAddress && (
+                <View style={styles.addrBlock}>
+                  <Text style={styles.addrBlockTitle}>📦 Dirección de envío</Text>
+                  <Text style={styles.addrBlockText}>{item.shippingAddress.street}</Text>
+                  <Text style={styles.addrBlockText}>
+                    {item.shippingAddress.postalCode} {item.shippingAddress.city}
+                  </Text>
+                  <Text style={styles.addrBlockText}>{item.shippingAddress.province}</Text>
+                </View>
+              )}
+
+              {!item.shippingAddress && (
+                <Text style={styles.pickupTag}>🏠 Recogida en tienda</Text>
+              )}
             </View>
           );
         }}
@@ -263,4 +288,19 @@ const styles = StyleSheet.create({
 
   // Payment
   paymentMethod: { fontSize: 12, color: MUTED },
+
+  // Address block
+  addrBlock: {
+    backgroundColor: BG,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: GOLD + '33',
+    padding: 10,
+    gap: 2,
+    marginTop: 4,
+  },
+  addrBlockTitle: { fontSize: 11, fontWeight: '700', color: GOLD, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  addrBlockText: { fontSize: 12, color: TEXT },
+
+  pickupTag: { fontSize: 12, color: MUTED, fontStyle: 'italic' },
 });

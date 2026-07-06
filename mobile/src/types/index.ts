@@ -9,6 +9,14 @@ export interface Membership {
   joinedAt: Date;
 }
 
+export interface ShippingAddress {
+  street: string;      // Calle y número
+  city: string;        // Ciudad
+  postalCode: string;  // Código postal
+  province: string;    // Provincia/Comunidad autónoma
+  country?: string;    // País (por defecto España)
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -18,6 +26,7 @@ export interface User {
   barbershopId?: string;        // barbería activa (backward compat)
   activeBarbershopId?: string;  // barbería seleccionada actualmente
   memberships?: Membership[];   // todas las barberías donde trabaja
+  shippingAddress?: ShippingAddress; // dirección de envío del cliente
 }
 
 export interface BookingSettings {

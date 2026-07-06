@@ -56,8 +56,15 @@ export function ProfileScreen({ navigation }: Props) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailNotifications, setEmailNotifications]     = useState(true);
   const [saving, setSaving]               = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading]             = useState(true);
+
+  // Dirección de envío
+  const [addrStreet, setAddrStreet]         = useState('');
+  const [addrCity, setAddrCity]             = useState('');
+  const [addrPostalCode, setAddrPostalCode] = useState('');
+  const [addrProvince, setAddrProvince]     = useState('');
 
   useEffect(() => {
     async function load() {
@@ -72,6 +79,12 @@ export function ProfileScreen({ navigation }: Props) {
           setEmailNotifications(data.emailNotifications ?? true);
           if (data.displayName) setDisplayName(data.displayName);
           if (data.photoURL) setPhotoURL(data.photoURL);
+          if (data.shippingAddress) {
+            setAddrStreet(data.shippingAddress.street ?? '');
+            setAddrCity(data.shippingAddress.city ?? '');
+            setAddrPostalCode(data.shippingAddress.postalCode ?? '');
+            setAddrProvince(data.shippingAddress.province ?? '');
+          }
         }
       } catch (err) {
         console.error('[ProfileScreen] Error loading user doc:', err);
@@ -177,6 +190,33 @@ export function ProfileScreen({ navigation }: Props) {
       Alert.alert('Error', 'No se pudo guardar. Intenta de nuevo.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Save address ─────────────────────────────────────────────────────────
+  const handleSaveAddress = async () => {
+    if (!user) return;
+    if (!addrStreet.trim() || !addrCity.trim() || !addrPostalCode.trim() || !addrProvince.trim()) {
+      Alert.alert('Campos incompletos', 'Completa todos los campos de la dirección para guardarla.');
+      return;
+    }
+    setSavingAddress(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        shippingAddress: {
+          street: addrStreet.trim(),
+          city: addrCity.trim(),
+          postalCode: addrPostalCode.trim(),
+          province: addrProvince.trim(),
+          country: 'España',
+        },
+      });
+      Alert.alert('Dirección guardada', 'Tu dirección de envío se ha actualizado correctamente.');
+    } catch (err) {
+      console.error('[ProfileScreen] Error saving address:', err);
+      Alert.alert('Error', 'No se pudo guardar la dirección. Intenta de nuevo.');
+    } finally {
+      setSavingAddress(false);
     }
   };
 
@@ -343,6 +383,73 @@ export function ProfileScreen({ navigation }: Props) {
             <ActivityIndicator size="small" color={BG} />
           ) : (
             <Text style={styles.saveBtnText}>Guardar cambios</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Dirección de envío ──────────────────────────────────────────── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Dirección de envío</Text>
+        <Text style={[styles.label, { marginBottom: -4, fontSize: 12, fontStyle: 'italic' }]}>
+          Se usa al hacer pedidos en la tienda
+        </Text>
+
+        <Text style={styles.label}>Calle y número</Text>
+        <TextInput
+          style={styles.input}
+          value={addrStreet}
+          onChangeText={setAddrStreet}
+          placeholder="Ej: Calle Mayor 12, 3ºA"
+          placeholderTextColor={MUTED}
+          autoCapitalize="words"
+        />
+
+        <Text style={styles.label}>Ciudad</Text>
+        <TextInput
+          style={styles.input}
+          value={addrCity}
+          onChangeText={setAddrCity}
+          placeholder="Ej: Madrid"
+          placeholderTextColor={MUTED}
+          autoCapitalize="words"
+        />
+
+        <View style={styles.addrRow}>
+          <View style={styles.addrColShort}>
+            <Text style={styles.label}>Código postal</Text>
+            <TextInput
+              style={styles.input}
+              value={addrPostalCode}
+              onChangeText={setAddrPostalCode}
+              placeholder="28001"
+              placeholderTextColor={MUTED}
+              keyboardType="numeric"
+              maxLength={5}
+            />
+          </View>
+          <View style={styles.addrColLong}>
+            <Text style={styles.label}>Provincia</Text>
+            <TextInput
+              style={styles.input}
+              value={addrProvince}
+              onChangeText={setAddrProvince}
+              placeholder="Ej: Madrid"
+              placeholderTextColor={MUTED}
+              autoCapitalize="words"
+            />
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.saveBtn, savingAddress && styles.saveBtnDisabled]}
+          onPress={handleSaveAddress}
+          disabled={savingAddress}
+          activeOpacity={0.8}
+        >
+          {savingAddress ? (
+            <ActivityIndicator size="small" color={BG} />
+          ) : (
+            <Text style={styles.saveBtnText}>Guardar dirección</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -544,6 +651,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: TEXT,
   },
+  // Address row
+  addrRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  addrColShort: { flex: 2 },
+  addrColLong:  { flex: 3 },
+
   igRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
   Linking,
+  Switch,
 } from 'react-native';
 import {
   collection,
@@ -54,13 +55,24 @@ export function CheckoutScreen({ route, navigation }: Props) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
+  // Dirección de envío
+  const [wantsDelivery, setWantsDelivery] = useState(false);
+  const [addrStreet, setAddrStreet]         = useState('');
+  const [addrCity, setAddrCity]             = useState('');
+  const [addrPostalCode, setAddrPostalCode] = useState('');
+  const [addrProvince, setAddrProvince]     = useState('');
+
   const user = auth.currentUser;
 
-  // Fetch barbershop payment config
+  // Fetch barbershop payment config + saved address from user profile
   useEffect(() => {
-    const fetchConfig = async () => {
+    const fetchData = async () => {
       try {
-        const shopSnap = await getDoc(doc(db, 'barbershops', barbershopId));
+        const [shopSnap, userSnap] = await Promise.all([
+          getDoc(doc(db, 'barbershops', barbershopId)),
+          user ? getDoc(doc(db, 'users', user.uid)) : Promise.resolve(null),
+        ]);
+
         if (shopSnap.exists()) {
           const shopData = shopSnap.data();
           const pm = shopData.paymentMethods as { cash?: boolean; bizum?: boolean; paypal?: boolean } | undefined;
@@ -74,12 +86,25 @@ export function CheckoutScreen({ route, navigation }: Props) {
             paypalUsername: (shopData.paypalUsername as string) ?? undefined,
           });
         }
+
+        if (userSnap && userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData.shippingAddress) {
+            const a = userData.shippingAddress;
+            setAddrStreet(a.street ?? '');
+            setAddrCity(a.city ?? '');
+            setAddrPostalCode(a.postalCode ?? '');
+            setAddrProvince(a.province ?? '');
+            // Si ya tiene dirección guardada, activamos envío a domicilio por defecto
+            if (a.street) setWantsDelivery(true);
+          }
+        }
       } catch (err) {
-        console.error('[CheckoutScreen] Error fetching payment config:', err);
+        console.error('[CheckoutScreen] Error fetching data:', err);
       }
     };
-    fetchConfig();
-  }, [barbershopId]);
+    fetchData();
+  }, [barbershopId, user]);
 
   const handleConfirm = async () => {
     if (!user) {
@@ -92,10 +117,26 @@ export function CheckoutScreen({ route, navigation }: Props) {
       return;
     }
 
+    // Validar dirección si el cliente quiere envío
+    if (wantsDelivery) {
+      if (!addrStreet.trim() || !addrCity.trim() || !addrPostalCode.trim() || !addrProvince.trim()) {
+        Alert.alert('Dirección incompleta', 'Completa todos los campos de la dirección de envío o desactiva la opción de envío.');
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     try {
       const batch = writeBatch(db);
+
+      const shippingAddress = wantsDelivery ? {
+        street: addrStreet.trim(),
+        city: addrCity.trim(),
+        postalCode: addrPostalCode.trim(),
+        province: addrProvince.trim(),
+        country: 'España',
+      } : null;
 
       // Create order doc with auto-generated ID
       const orderRef = doc(collection(db, 'orders'));
@@ -114,6 +155,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
         status: 'pending',
         paymentMethod: selectedPayment,
         paymentStatus: 'pending',
+        shippingAddress: shippingAddress ?? null,
         createdAt: serverTimestamp(),
         barbershopId,
       });
@@ -192,18 +234,87 @@ export function CheckoutScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {/* Pickup info */}
+        {/* Delivery / Pickup */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Punto de recogida</Text>
-          <View style={styles.pickupRow}>
-            <Text style={styles.pickupIcon}>{'📍'}</Text>
-            <Text style={styles.pickupText}>
-              Recoge tus productos en {barbershopName}
-            </Text>
+          <View style={styles.deliveryToggleRow}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.sectionTitle}>
+                {wantsDelivery ? 'Envío a domicilio' : 'Recogida en tienda'}
+              </Text>
+              <Text style={styles.pickupNote}>
+                {wantsDelivery
+                  ? 'Indica la dirección donde recibirás el pedido'
+                  : `Recoge en ${barbershopName}`}
+              </Text>
+            </View>
+            <Switch
+              value={wantsDelivery}
+              onValueChange={setWantsDelivery}
+              trackColor={{ false: BORDER, true: GOLD + '80' }}
+              thumbColor={wantsDelivery ? GOLD : MUTED}
+            />
           </View>
-          <Text style={styles.pickupNote}>
-            Paga directamente en la barberia al recoger tu pedido
-          </Text>
+
+          {!wantsDelivery && (
+            <View style={styles.pickupRow}>
+              <Text style={styles.pickupIcon}>{'🏠'}</Text>
+              <Text style={styles.pickupText}>
+                Recoge tus productos en {barbershopName}
+              </Text>
+            </View>
+          )}
+
+          {wantsDelivery && (
+            <View style={{ gap: 10 }}>
+              <View style={styles.addrField}>
+                <Text style={styles.addrLabel}>Calle y número</Text>
+                <TextInput
+                  style={styles.addrInput}
+                  value={addrStreet}
+                  onChangeText={setAddrStreet}
+                  placeholder="Ej: Calle Mayor 12, 3ºA"
+                  placeholderTextColor={MUTED}
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={styles.addrField}>
+                <Text style={styles.addrLabel}>Ciudad</Text>
+                <TextInput
+                  style={styles.addrInput}
+                  value={addrCity}
+                  onChangeText={setAddrCity}
+                  placeholder="Ej: Madrid"
+                  placeholderTextColor={MUTED}
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={styles.addrRowInline}>
+                <View style={{ flex: 2 }}>
+                  <Text style={styles.addrLabel}>Código postal</Text>
+                  <TextInput
+                    style={styles.addrInput}
+                    value={addrPostalCode}
+                    onChangeText={setAddrPostalCode}
+                    placeholder="28001"
+                    placeholderTextColor={MUTED}
+                    keyboardType="numeric"
+                    maxLength={5}
+                  />
+                </View>
+                <View style={{ flex: 3 }}>
+                  <Text style={styles.addrLabel}>Provincia</Text>
+                  <TextInput
+                    style={styles.addrInput}
+                    value={addrProvince}
+                    onChangeText={setAddrProvince}
+                    placeholder="Ej: Madrid"
+                    placeholderTextColor={MUTED}
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Notes */}
@@ -472,11 +583,34 @@ const styles = StyleSheet.create({
   totalLabel: { color: TEXT_C, fontSize: 18, fontWeight: '700' },
   totalValue: { color: GOLD, fontSize: 22, fontWeight: '800' },
 
-  // Pickup
+  // Pickup / Delivery
+  deliveryToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   pickupRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pickupIcon: { fontSize: 20 },
   pickupText: { color: TEXT_C, fontSize: 14, fontWeight: '500', flex: 1 },
   pickupNote: { color: MUTED, fontSize: 12, fontStyle: 'italic' },
+
+  // Address fields inside checkout
+  addrField: { gap: 4 },
+  addrLabel: { fontSize: 12, color: MUTED, fontWeight: '600' },
+  addrInput: {
+    backgroundColor: BG,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: TEXT_C,
+    fontSize: 14,
+  },
+  addrRowInline: {
+    flexDirection: 'row',
+    gap: 10,
+  },
 
   // Notes
   notesInput: {
