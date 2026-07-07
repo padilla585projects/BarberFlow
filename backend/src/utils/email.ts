@@ -1,9 +1,17 @@
 import { Resend } from 'resend'
 
-// FROM: cambia a tu dominio verificado en Resend cuando lo tengas.
-// Mientras tanto usa 'onboarding@resend.dev' para pruebas (solo envía a tu propio email).
-// TODO: cambiar a 'BarberFlow <noreply@barberflow.app>' cuando el dominio esté verificado en Resend
-const FROM = 'BarberFlow <onboarding@resend.dev>'
+// ── Dominio de email ──────────────────────────────────────────────────────────
+// Para activar el dominio propio (barberflow.eu.org):
+//   1. Registra en https://nic.eu.org/arf/en/login/ → New domain → barberflow.eu.org
+//   2. Delega DNS a Cloudflare (gratis) y añade los registros SPF/DKIM/DMARC que da Resend
+//   3. En resend.com/domains verifica el dominio
+//   4. Pon RESEND_DOMAIN_VERIFIED = true  ← único cambio necesario
+//
+// Estado: pendiente aprobación eu.org (~1-4 semanas tras el registro)
+// ─────────────────────────────────────────────────────────────────────────────
+const RESEND_DOMAIN_VERIFIED = false
+const VERIFIED_FROM = 'BarberFlow <noreply@barberflow.eu.org>'
+const FROM = RESEND_DOMAIN_VERIFIED ? VERIFIED_FROM : 'BarberFlow <onboarding@resend.dev>'
 
 // Lazy init: el cliente se crea en tiempo de ejecución (cuando el secret ya está disponible),
 // no al analizar el módulo durante el deploy.
