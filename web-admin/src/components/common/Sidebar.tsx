@@ -209,8 +209,9 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         ))}
       </nav>
 
+      <div className={styles.logoutDivider} />
       <button className={styles.logoutBtn} onClick={handleLogout}>
-        <span>{'\u{1F6AA}'}</span>
+        <span>🚪</span>
         <span>Cerrar sesión</span>
       </button>
     </aside>
