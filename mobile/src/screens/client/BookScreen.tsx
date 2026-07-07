@@ -28,6 +28,7 @@ import {
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
+import { addAppointmentToCalendar } from '../../utils/calendarHelper';
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -254,6 +255,15 @@ export function BookScreen({ route, navigation }: Props) {
     amount: number;
     bizumPhone?: string;
     paypalUsername?: string;
+  } | null>(null);
+
+  // Calendar
+  const [pendingCalendarEvent, setPendingCalendarEvent] = useState<{
+    title: string;
+    startDate: Date;
+    durationMinutes: number;
+    location: string;
+    notes: string;
   } | null>(null);
 
   // Waitlist
@@ -705,6 +715,20 @@ export function BookScreen({ route, navigation }: Props) {
 
       setCreatedAppointmentId(appointmentRef.id);
 
+      // Build calendar event info for this appointment
+      const calEvent = {
+        title: `Cita en ${barbershopName}`,
+        startDate: appointmentDate,
+        durationMinutes: totalDuration,
+        location: barbershopName,
+        notes: [
+          `Barbero: ${selectedBarber.displayName}`,
+          `Servicios: ${servicesPayload.map((s) => s.name).join(', ')}`,
+          `Precio: ${finalPrice.toFixed(2)} €`,
+        ].join('\n'),
+      };
+      setPendingCalendarEvent(calEvent);
+
       if (selectedPayment === 'bizum' || selectedPayment === 'paypal') {
         setPaymentModalInfo({
           method: selectedPayment,
@@ -716,9 +740,22 @@ export function BookScreen({ route, navigation }: Props) {
       } else {
         const dateLabel = `${selectedDate.getDate()} ${SPANISH_MONTHS[selectedDate.getMonth()]}`;
         Alert.alert(
-          'Cita reservada',
+          '¡Cita reservada! 🎉',
           `Tu cita el ${dateLabel} a las ${selectedSlot} ha sido enviada. El barbero la confirmará pronto.`,
-          [{ text: 'OK', onPress: () => navigation.navigate('MyAppointments') }],
+          [
+            {
+              text: '📅 Guardar en calendario',
+              onPress: async () => {
+                await addAppointmentToCalendar(calEvent);
+                navigation.navigate('MyAppointments');
+              },
+            },
+            {
+              text: 'Continuar',
+              style: 'cancel',
+              onPress: () => navigation.navigate('MyAppointments'),
+            },
+          ],
         );
       }
     } catch (err) {
@@ -1300,7 +1337,28 @@ export function BookScreen({ route, navigation }: Props) {
                   }
                 }
                 setShowPaymentModal(false);
-                navigation.navigate('MyAppointments');
+                if (pendingCalendarEvent) {
+                  Alert.alert(
+                    '¿Guardar en calendario?',
+                    'Añade tu cita al calendario para no olvidarla.',
+                    [
+                      {
+                        text: '📅 Guardar',
+                        onPress: async () => {
+                          await addAppointmentToCalendar(pendingCalendarEvent);
+                          navigation.navigate('MyAppointments');
+                        },
+                      },
+                      {
+                        text: 'Ahora no',
+                        style: 'cancel',
+                        onPress: () => navigation.navigate('MyAppointments'),
+                      },
+                    ],
+                  );
+                } else {
+                  navigation.navigate('MyAppointments');
+                }
               }}
               activeOpacity={0.85}
             >

@@ -8,7 +8,11 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.barberflow.app"
+      "bundleIdentifier": "com.barberflow.app",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "BarberFlow necesita acceso al calendario para guardar tus citas.",
+        "NSCalendarsFullAccessUsageDescription": "BarberFlow necesita acceso al calendario para guardar tus citas."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +29,9 @@
         "android.permission.INTERNET",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
       ]
     },
     "web": {
@@ -41,6 +47,12 @@
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "La app necesita acceso al calendario para guardar tus citas."
+        }
+      ],
       [
         "expo-splash-screen",
         {
