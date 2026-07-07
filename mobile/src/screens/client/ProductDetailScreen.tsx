@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,22 @@ import {
   Image,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 import type { Product } from '../../types';
+import { auth, db } from '../../services/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'ProductDetail'>;
 
@@ -59,6 +70,87 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   const [quantity, setQuantity] = useState(1);
 
   const isOutOfStock = product.stock === 0;
+
+  // Stock alert state
+  const [alertSubscribed, setAlertSubscribed] = useState(false);
+  const [alertLoading, setAlertLoading]       = useState(false);
+  const [alertDocId, setAlertDocId]           = useState<string | null>(null);
+
+  // Check if current user already subscribed to this product alert
+  useEffect(() => {
+    if (!isOutOfStock) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    (async () => {
+      try {
+        const q = query(
+          collection(db, 'stockAlerts'),
+          where('userId', '==', user.uid),
+          where('productId', '==', product.id),
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setAlertSubscribed(true);
+          setAlertDocId(snap.docs[0].id);
+        }
+      } catch (e) {
+        console.error('[StockAlert] Error checking subscription:', e);
+      }
+    })();
+  }, [isOutOfStock, product.id]);
+
+  const handleToggleAlert = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para recibir avisos de stock.');
+      return;
+    }
+
+    setAlertLoading(true);
+    try {
+      if (alertSubscribed && alertDocId) {
+        // Unsubscribe
+        await deleteDoc(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (db as any).collection
+            ? (db as any).doc(`stockAlerts/${alertDocId}`)
+            : collection(db, 'stockAlerts'),
+        );
+        // Use getDocs to find the doc and delete it
+        const q = query(
+          collection(db, 'stockAlerts'),
+          where('userId', '==', user.uid),
+          where('productId', '==', product.id),
+        );
+        const snap = await getDocs(q);
+        for (const d of snap.docs) await deleteDoc(d.ref);
+        setAlertSubscribed(false);
+        setAlertDocId(null);
+        Alert.alert('Aviso cancelado', 'Ya no recibirás notificaciones sobre este producto.');
+      } else {
+        // Subscribe
+        const docRef = await addDoc(collection(db, 'stockAlerts'), {
+          userId:       user.uid,
+          productId:    product.id,
+          productName:  product.name,
+          barbershopId,
+          createdAt:    serverTimestamp(),
+        });
+        setAlertSubscribed(true);
+        setAlertDocId(docRef.id);
+        Alert.alert(
+          '¡Listo! 🔔',
+          'Te avisaremos cuando el producto vuelva a estar disponible.',
+        );
+      }
+    } catch (e) {
+      console.error('[StockAlert] Error toggling alert:', e);
+      Alert.alert('Error', 'No se pudo procesar tu solicitud. Inténtalo de nuevo.');
+    } finally {
+      setAlertLoading(false);
+    }
+  };
 
   const increment = () => {
     if (quantity < product.stock) setQuantity((q) => q + 1);
@@ -238,30 +330,48 @@ export function ProductDetailScreen({ route, navigation }: Props) {
 
       {/* Action buttons */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.addCartBtn, isOutOfStock && styles.btnDisabled]}
-          onPress={handleAddToCart}
-          disabled={isOutOfStock}
-          activeOpacity={0.85}
-        >
-          <Text
-            style={[
-              styles.addCartBtnText,
-              isOutOfStock && styles.btnTextDisabled,
-            ]}
-          >
-            {isOutOfStock ? 'Producto agotado' : 'Anadir al carrito'}
-          </Text>
-        </TouchableOpacity>
-
-        {!isOutOfStock && (
+        {isOutOfStock ? (
+          /* Out-of-stock: show alert subscription button */
           <TouchableOpacity
-            style={styles.reserveBtn}
-            onPress={handleReserveNow}
+            style={[
+              styles.alertBtn,
+              alertSubscribed && styles.alertBtnActive,
+            ]}
+            onPress={handleToggleAlert}
+            disabled={alertLoading}
             activeOpacity={0.85}
           >
-            <Text style={styles.reserveBtnText}>Reservar ahora</Text>
+            {alertLoading ? (
+              <ActivityIndicator color={alertSubscribed ? '#0A0A0A' : '#C9A84C'} />
+            ) : (
+              <Text
+                style={[
+                  styles.alertBtnText,
+                  alertSubscribed && styles.alertBtnTextActive,
+                ]}
+              >
+                {alertSubscribed ? '🔔 Avisarme cancelado' : '🔔 Avisarme cuando esté disponible'}
+              </Text>
+            )}
           </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.addCartBtn}
+              onPress={handleAddToCart}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.addCartBtnText}>Añadir al carrito</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.reserveBtn}
+              onPress={handleReserveNow}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.reserveBtnText}>Reservar ahora</Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
     </ScrollView>
@@ -380,4 +490,25 @@ const styles = StyleSheet.create({
   reserveBtnText: { color: GOLD, fontSize: 16, fontWeight: '700' },
   btnDisabled: { backgroundColor: BORDER },
   btnTextDisabled: { color: MUTED },
+
+  // Stock alert button
+  alertBtn: {
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  alertBtnActive: {
+    backgroundColor: GOLD,
+  },
+  alertBtnText: {
+    color: GOLD,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  alertBtnTextActive: {
+    color: '#0A0A0A',
+  },
 });
