@@ -13,6 +13,7 @@ import {
   ActionSheetIOS,
   Platform,
   Linking,
+  Share,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
@@ -59,6 +60,8 @@ export function ProfileScreen({ navigation }: Props) {
   const [savingAddress, setSavingAddress] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading]             = useState(true);
+  const [referralCode, setReferralCode]   = useState('');
+  const [referralCount, setReferralCount] = useState(0);
 
   // Dirección de envío
   const [addrStreet, setAddrStreet]         = useState('');
@@ -85,6 +88,8 @@ export function ProfileScreen({ navigation }: Props) {
             setAddrPostalCode(data.shippingAddress.postalCode ?? '');
             setAddrProvince(data.shippingAddress.province ?? '');
           }
+          if (data.referralCode) setReferralCode(data.referralCode);
+          if (data.referralCount) setReferralCount(data.referralCount);
         }
       } catch (err) {
         console.error('[ProfileScreen] Error loading user doc:', err);
@@ -527,6 +532,38 @@ export function ProfileScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
+      {/* ── Invita a amigos ─────────────────────────────────────────────── */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🎁 Invita a amigos</Text>
+        <Text style={[styles.label, { marginBottom: 8, fontStyle: 'italic' }]}>
+          Comparte tu código y gana 50 puntos por cada amigo que se una
+        </Text>
+        {referralCode ? (
+          <>
+            <View style={styles.referralCodeBox}>
+              <Text style={styles.referralCodeText}>{referralCode}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={() => Share.share({
+                message: `¡Únete a BarberFlow con mi código "${referralCode}" y consigue 25 puntos de bienvenida! Descárgala en https://barberflow-2026.web.app/#descarga`,
+                title: 'BarberFlow — Código de invitación',
+              })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.saveBtnText}>📤 Compartir código</Text>
+            </TouchableOpacity>
+            {referralCount > 0 && (
+              <Text style={[styles.label, { textAlign: 'center', marginTop: 8, color: GOLD }]}>
+                {referralCount} {referralCount === 1 ? 'amigo invitado' : 'amigos invitados'} · {referralCount * 50} puntos ganados
+              </Text>
+            )}
+          </>
+        ) : (
+          <Text style={[styles.label, { fontStyle: 'italic' }]}>Cargando código...</Text>
+        )}
+      </View>
+
       {/* ── Trabaja con nosotros ────────────────────────────────────────── */}
       {role === 'client' && (
         <TouchableOpacity
@@ -743,6 +780,23 @@ const styles = StyleSheet.create({
   // Version
   version: { textAlign: 'center', color: MUTED, fontSize: 12, marginTop: 12, opacity: 0.6 },
   signature: { textAlign: 'center', color: MUTED, fontSize: 11, marginTop: 4, opacity: 0.4 },
+
+  // Referral code display
+  referralCodeBox: {
+    backgroundColor: BG,
+    borderWidth: 2,
+    borderColor: GOLD,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  referralCodeText: {
+    fontSize: 28,
+    fontWeight: '900' as const,
+    color: GOLD,
+    letterSpacing: 6,
+  },
 
   // Work with us button
   workWithUsBtn: {

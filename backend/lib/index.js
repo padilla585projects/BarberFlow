@@ -3,7 +3,7 @@
 // Deploy: npm run deploy (desde /backend)
 // Secrets: npx firebase-tools secrets:set RESEND_API_KEY
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
+exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
 var emails_1 = require("./functions/emails");
 Object.defineProperty(exports, "onAppointmentCreated", { enumerable: true, get: function () { return emails_1.onAppointmentCreated; } });
 Object.defineProperty(exports, "onAppointmentStatusChanged", { enumerable: true, get: function () { return emails_1.onAppointmentStatusChanged; } });
@@ -29,4 +29,6 @@ var messages_1 = require("./functions/messages");
 Object.defineProperty(exports, "onMessageCreated", { enumerable: true, get: function () { return messages_1.onMessageCreated; } });
 var accountDeletion_1 = require("./functions/accountDeletion");
 Object.defineProperty(exports, "processAccountDeletions", { enumerable: true, get: function () { return accountDeletion_1.processAccountDeletions; } });
+var referrals_1 = require("./functions/referrals");
+Object.defineProperty(exports, "onReferralUserCreated", { enumerable: true, get: function () { return referrals_1.onReferralUserCreated; } });
 //# sourceMappingURL=index.js.map

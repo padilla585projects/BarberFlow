@@ -3,6 +3,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import type { User, UserRole, Membership } from '../types';
+import { consumePendingReferralCode } from '../utils/pendingReferral';
 
 export interface AuthState {
   firebaseUser: FirebaseUser | null;
@@ -11,6 +12,11 @@ export interface AuthState {
   activeBarbershopId: string | null;
   memberships: Membership[];
   loading: boolean;
+}
+
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
 
 /**
@@ -109,7 +115,14 @@ export function useAuth(): AuthState {
             role: 'client',
             memberships: [],
           };
-          await setDoc(userRef, { ...newProfile, createdAt: serverTimestamp() });
+          const referralCode = generateReferralCode();
+          const referredBy = consumePendingReferralCode(); // UID del referidor (no el código)
+          await setDoc(userRef, {
+            ...newProfile,
+            referralCode,
+            ...(referredBy ? { referredBy } : {}),
+            createdAt: serverTimestamp(),
+          });
 
           // Set state immediately for the new user (don't wait for onSnapshot)
           if (isMounted) {

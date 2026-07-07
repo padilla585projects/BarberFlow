@@ -14,7 +14,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../../services/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, db } from '../../services/firebase';
+import { setPendingReferralCode } from '../../utils/pendingReferral';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 
@@ -35,6 +37,8 @@ export function RegisterScreen({ navigation }: Props) {
   const [password, setPassword]       = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [loading, setLoading]         = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [validatingCode, setValidatingCode] = useState(false);
 
   const handleRegister = async () => {
     // Validaciones
@@ -53,6 +57,31 @@ export function RegisterScreen({ navigation }: Props) {
     if (password !== confirmPass) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
+    }
+
+    // Validar código de referido si se ha introducido
+    if (referralCode.trim()) {
+      setValidatingCode(true);
+      try {
+        const q = query(collection(db, 'users'), where('referralCode', '==', referralCode.trim()));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+          Alert.alert('Código inválido', 'El código de invitación no es válido. Compruébalo e inténtalo de nuevo.');
+          setValidatingCode(false);
+          return;
+        }
+        // Guardar UID del referidor para que useAuth lo consuma al crear el doc
+        setPendingReferralCode(snap.docs[0].id);
+      } catch (err) {
+        console.error('[RegisterScreen] Error validating referral code:', err);
+        Alert.alert('Error', 'No se pudo validar el código. Inténtalo de nuevo.');
+        setValidatingCode(false);
+        return;
+      } finally {
+        setValidatingCode(false);
+      }
+    } else {
+      setPendingReferralCode(null);
     }
 
     try {
@@ -139,13 +168,26 @@ export function RegisterScreen({ navigation }: Props) {
               editable={!loading}
             />
 
+            <Text style={styles.label}>Código de invitación (opcional)</Text>
+            <TextInput
+              style={styles.input}
+              value={referralCode}
+              onChangeText={t => setReferralCode(t.toUpperCase().trim())}
+              placeholder="XXXXXXXX"
+              placeholderTextColor={MUTED}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={6}
+              editable={!loading && !validatingCode}
+            />
+
             <TouchableOpacity
-              style={[styles.registerBtn, loading && styles.btnDisabled]}
+              style={[styles.registerBtn, (loading || validatingCode) && styles.btnDisabled]}
               onPress={handleRegister}
-              disabled={loading}
+              disabled={loading || validatingCode}
               activeOpacity={0.85}
             >
-              {loading ? (
+              {(loading || validatingCode) ? (
                 <ActivityIndicator color="#000" />
               ) : (
                 <Text style={styles.registerBtnText}>Crear cuenta</Text>
@@ -212,6 +254,12 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
     padding: 24,
     gap: 14,
+  },
+  label: {
+    fontSize: 13,
+    color: MUTED,
+    fontWeight: '600',
+    marginBottom: -4,
   },
   input: {
     backgroundColor: '#0F0F0F',
