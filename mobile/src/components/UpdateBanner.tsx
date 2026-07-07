@@ -21,6 +21,7 @@ const TEXT_C    = '#FFFFFF';
  */
 export function UpdateBanner() {
   const [isPending, setIsPending] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   // useRef so Animated.Value is NOT recreated on every render
   const slideAnim = useRef(new Animated.Value(-120)).current;
 
@@ -72,7 +73,7 @@ export function UpdateBanner() {
     }
   };
 
-  if (!isPending) return null;
+  if (!isPending || dismissed) return null;
 
   return (
     <Animated.View
@@ -90,6 +91,13 @@ export function UpdateBanner() {
           activeOpacity={0.8}
         >
           <Text style={styles.btnText}>Actualizar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => setDismissed(true)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.closeBtn}
+        >
+          <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -142,6 +150,15 @@ const styles = StyleSheet.create({
   btnText: {
     color: '#000',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  closeBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  closeBtnText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
     fontWeight: '700',
   },
 });
