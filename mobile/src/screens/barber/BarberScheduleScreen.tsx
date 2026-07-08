@@ -16,15 +16,16 @@ import DateTimePicker, {
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../../services/firebase';
+import { BARBER_COLORS, BARBER_SPACING } from '../../theme/barberTheme';
 
 /* ─── design tokens ─── */
-const BG      = '#0A0A0A';
-const SURFACE = '#141414';
-const GOLD    = '#C9A84C';
-const TEXT    = '#FFFFFF';
-const MUTED   = '#888888';
+const BG      = BARBER_COLORS.bgPrimary;
+const SURFACE = BARBER_COLORS.bgSecondary;
+const GOLD    = BARBER_COLORS.primary;
+const TEXT    = BARBER_COLORS.text;
+const MUTED   = BARBER_COLORS.textTertiary;
 const BORDER  = '#282828';
-const DANGER  = '#EF4444';
+const DANGER  = BARBER_COLORS.error;
 
 /* ─── types ─── */
 type DayKey =
@@ -324,9 +325,17 @@ export function BarberScheduleScreen() {
             <View key={key} style={styles.dayCard}>
               {/* Day header with toggle */}
               <View style={styles.dayHeader}>
-                <Text style={[styles.dayLabel, !day.active && styles.dayLabelInactive]}>
-                  {label}
-                </Text>
+                <View style={styles.dayLabelContainer}>
+                  <Text style={[styles.dayLabel, !day.active && styles.dayLabelInactive]}>
+                    {label}
+                  </Text>
+                  {day.active && day.start && day.end && (
+                    <Text style={styles.dayPreview}>
+                      {day.start} — {day.end}
+                      {day.breakStart && day.breakEnd ? ` (Descanso: ${day.breakStart}-${day.breakEnd})` : ''}
+                    </Text>
+                  )}
+                </View>
                 <Switch
                   value={day.active}
                   onValueChange={() => toggleDay(key)}
@@ -337,25 +346,32 @@ export function BarberScheduleScreen() {
 
               {day.active && (
                 <View style={styles.dayBody}>
-                  {/* Working hours */}
-                  <View style={styles.timeRow}>
-                    <Text style={styles.timeLabel}>Entrada</Text>
-                    <TouchableOpacity
-                      style={styles.timePill}
-                      onPress={() => openTimePicker(key, 'start')}
-                    >
-                      <Text style={styles.timePillText}>{day.start ?? '--:--'}</Text>
-                    </TouchableOpacity>
+                  {/* Working hours row */}
+                  <View style={styles.timeGroup}>
+                    <Text style={styles.timeGroupLabel}>Horario de trabajo</Text>
+                    <View style={styles.timeRow}>
+                      <View style={styles.timeInputGroup}>
+                        <Text style={styles.timeInputLabel}>Entrada</Text>
+                        <TouchableOpacity
+                          style={styles.timePill}
+                          onPress={() => openTimePicker(key, 'start')}
+                        >
+                          <Text style={styles.timePillText}>{day.start ?? '--:--'}</Text>
+                        </TouchableOpacity>
+                      </View>
 
-                    <Text style={styles.timeSep}>—</Text>
+                      <Text style={styles.timeSeparator}>—</Text>
 
-                    <Text style={styles.timeLabel}>Salida</Text>
-                    <TouchableOpacity
-                      style={styles.timePill}
-                      onPress={() => openTimePicker(key, 'end')}
-                    >
-                      <Text style={styles.timePillText}>{day.end ?? '--:--'}</Text>
-                    </TouchableOpacity>
+                      <View style={styles.timeInputGroup}>
+                        <Text style={styles.timeInputLabel}>Salida</Text>
+                        <TouchableOpacity
+                          style={styles.timePill}
+                          onPress={() => openTimePicker(key, 'end')}
+                        >
+                          <Text style={styles.timePillText}>{day.end ?? '--:--'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </View>
 
                   {/* Break toggle + times */}
@@ -364,29 +380,36 @@ export function BarberScheduleScreen() {
                     onPress={() => toggleBreak(key)}
                   >
                     <Text style={styles.breakToggleText}>
-                      {day.breakStart !== null ? 'Quitar descanso' : '+ Agregar descanso'}
+                      {day.breakStart !== null ? '— Quitar descanso' : '+ Agregar descanso'}
                     </Text>
                   </TouchableOpacity>
 
                   {day.breakStart !== null && (
-                    <View style={styles.timeRow}>
-                      <Text style={styles.timeLabel}>Desde</Text>
-                      <TouchableOpacity
-                        style={styles.timePill}
-                        onPress={() => openTimePicker(key, 'breakStart')}
-                      >
-                        <Text style={styles.timePillText}>{day.breakStart}</Text>
-                      </TouchableOpacity>
+                    <View style={styles.timeGroup}>
+                      <Text style={styles.timeGroupLabel}>Descanso</Text>
+                      <View style={styles.timeRow}>
+                        <View style={styles.timeInputGroup}>
+                          <Text style={styles.timeInputLabel}>Desde</Text>
+                          <TouchableOpacity
+                            style={styles.timePill}
+                            onPress={() => openTimePicker(key, 'breakStart')}
+                          >
+                            <Text style={styles.timePillText}>{day.breakStart}</Text>
+                          </TouchableOpacity>
+                        </View>
 
-                      <Text style={styles.timeSep}>—</Text>
+                        <Text style={styles.timeSeparator}>—</Text>
 
-                      <Text style={styles.timeLabel}>Hasta</Text>
-                      <TouchableOpacity
-                        style={styles.timePill}
-                        onPress={() => openTimePicker(key, 'breakEnd')}
-                      >
-                        <Text style={styles.timePillText}>{day.breakEnd ?? '--:--'}</Text>
-                      </TouchableOpacity>
+                        <View style={styles.timeInputGroup}>
+                          <Text style={styles.timeInputLabel}>Hasta</Text>
+                          <TouchableOpacity
+                            style={styles.timePill}
+                            onPress={() => openTimePicker(key, 'breakEnd')}
+                          >
+                            <Text style={styles.timePillText}>{day.breakEnd ?? '--:--'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -522,7 +545,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: BG,
   },
-  content: { padding: 16, gap: 12 },
+  content: { padding: BARBER_SPACING.lg, gap: BARBER_SPACING.md },
 
   /* templates button */
   templatesBtn: {
@@ -533,67 +556,93 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: GOLD + '40',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 6,
+    paddingHorizontal: BARBER_SPACING.md,
+    paddingVertical: BARBER_SPACING.sm,
+    gap: BARBER_SPACING.sm,
   },
   templatesBtnText: { fontSize: 14, fontWeight: '700', color: GOLD },
 
   /* section */
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: TEXT },
-  sectionSub: { fontSize: 13, color: MUTED, marginBottom: 4 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: TEXT, marginTop: BARBER_SPACING.md },
+  sectionSub: { fontSize: 13, color: MUTED, marginBottom: BARBER_SPACING.sm },
   sectionDivider: {
     height: 1,
     backgroundColor: BORDER,
-    marginVertical: 12,
+    marginVertical: BARBER_SPACING.md,
   },
 
   /* day card */
   dayCard: {
     backgroundColor: SURFACE,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   dayHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: BARBER_SPACING.lg,
+    paddingVertical: BARBER_SPACING.md,
+  },
+  dayLabelContainer: {
+    flex: 1,
   },
   dayLabel: { fontSize: 16, fontWeight: '700', color: TEXT },
   dayLabelInactive: { color: MUTED },
+  dayPreview: { fontSize: 12, color: GOLD, fontWeight: '600', marginTop: BARBER_SPACING.xs },
   dayBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 10,
+    paddingHorizontal: BARBER_SPACING.lg,
+    paddingBottom: BARBER_SPACING.md,
+    gap: BARBER_SPACING.md,
     borderTopWidth: 1,
     borderTopColor: BORDER,
-    paddingTop: 12,
+    paddingTop: BARBER_SPACING.md,
   },
+
+  /* time group */
+  timeGroup: {
+    gap: BARBER_SPACING.sm,
+  },
+  timeGroupLabel: { fontSize: 12, color: MUTED, fontWeight: '600', textTransform: 'uppercase' },
 
   /* time row */
   timeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    alignItems: 'flex-end',
+    gap: BARBER_SPACING.md,
   },
-  timeLabel: { fontSize: 13, color: MUTED, fontWeight: '600' },
+  timeInputGroup: {
+    flex: 1,
+    gap: BARBER_SPACING.xs,
+  },
+  timeInputLabel: { fontSize: 12, color: MUTED, fontWeight: '600' },
   timePill: {
     backgroundColor: BG,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: BARBER_SPACING.md,
+    paddingVertical: BARBER_SPACING.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 44,
   },
-  timePillText: { fontSize: 15, fontWeight: '700', color: GOLD },
-  timeSep: { fontSize: 14, color: MUTED },
+  timePillText: { fontSize: 16, fontWeight: '700', color: GOLD, textAlign: 'center' },
+  timeSeparator: { fontSize: 16, color: MUTED, fontWeight: '600', marginBottom: 0 },
 
   /* break toggle */
-  breakToggle: { alignSelf: 'flex-start' },
+  breakToggle: {
+    alignSelf: 'flex-start',
+    paddingVertical: BARBER_SPACING.sm,
+    paddingHorizontal: BARBER_SPACING.sm,
+  },
   breakToggleText: { fontSize: 13, color: GOLD, fontWeight: '600' },
 
   /* days off */
@@ -603,11 +652,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: GOLD + '40',
     borderStyle: 'dashed',
-    paddingVertical: 14,
+    paddingVertical: BARBER_SPACING.lg,
     alignItems: 'center',
+    marginTop: BARBER_SPACING.md,
   },
   addDayOffText: { fontSize: 15, fontWeight: '700', color: GOLD },
-  daysOffList: { gap: 8 },
+  daysOffList: { gap: BARBER_SPACING.sm, marginTop: BARBER_SPACING.md },
   dayOffItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -616,8 +666,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: BARBER_SPACING.lg,
+    paddingVertical: BARBER_SPACING.md,
   },
   dayOffDate: { fontSize: 15, fontWeight: '600', color: TEXT },
   dayOffRemove: { fontSize: 13, fontWeight: '600', color: DANGER },
@@ -625,7 +675,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: MUTED,
     textAlign: 'center',
-    paddingVertical: 16,
+    paddingVertical: BARBER_SPACING.lg,
   },
 
   /* save button */
@@ -634,7 +684,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
+    padding: BARBER_SPACING.lg,
     paddingBottom: 32,
     backgroundColor: BG,
     borderTopWidth: 1,
@@ -643,8 +693,15 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: GOLD,
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: BARBER_SPACING.lg,
     alignItems: 'center',
+    minHeight: 48,
+    justifyContent: 'center',
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { fontSize: 16, fontWeight: '800', color: BG },
@@ -663,7 +720,7 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
+    padding: BARBER_SPACING.xl,
     paddingBottom: 40,
   },
   pickerTitle: {
@@ -671,27 +728,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: TEXT,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: BARBER_SPACING.md,
   },
   pickerActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
+    marginTop: BARBER_SPACING.md,
   },
   pickerDone: {
     alignSelf: 'center',
-    marginTop: 12,
+    marginTop: BARBER_SPACING.md,
     backgroundColor: GOLD,
     borderRadius: 10,
     paddingHorizontal: 32,
-    paddingVertical: 12,
+    paddingVertical: BARBER_SPACING.md,
   },
   pickerDoneText: { fontSize: 15, fontWeight: '700', color: BG },
   pickerCancel: {
     alignSelf: 'center',
-    marginTop: 12,
+    marginTop: BARBER_SPACING.md,
     paddingHorizontal: 32,
-    paddingVertical: 12,
+    paddingVertical: BARBER_SPACING.md,
   },
   pickerCancelText: { fontSize: 15, fontWeight: '600', color: MUTED },
 });

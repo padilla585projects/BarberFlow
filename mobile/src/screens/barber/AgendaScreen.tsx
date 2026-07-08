@@ -29,13 +29,17 @@ import { useAuthContext } from '../../contexts/AuthContext';
 import type { BarberStackParamList } from '../../navigation/BarberNavigator';
 import type { Appointment } from '../../types';
 import { useUnreadCount } from '../common/NotificationsScreen';
+import { useBarberTheme, BARBER_COLORS, BARBER_SPACING } from '../../theme/barberTheme';
 
-const BG      = '#0A0A0A';
-const SURFACE = '#141414';
-const GOLD    = '#C9A84C';
-const TEXT    = '#FFFFFF';
-const MUTED   = '#888888';
+// Design tokens from theme
+const BG      = BARBER_COLORS.bgPrimary;
+const SURFACE = BARBER_COLORS.bgSecondary;
+const GOLD    = BARBER_COLORS.primary;
+const TEXT    = BARBER_COLORS.text;
+const MUTED   = BARBER_COLORS.textTertiary;
 const BORDER  = '#282828';
+const SUCCESS = BARBER_COLORS.success;
+const ERROR   = BARBER_COLORS.error;
 
 export function AgendaScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<BarberStackParamList>>();
@@ -204,76 +208,113 @@ export function AgendaScreen() {
         }
         renderItem={({ item }) => {
           return (
-          <View style={styles.card}>
-            <View style={styles.cardTime}>
-              <Text style={styles.cardTimeText}>{item.timeSlot}</Text>
-            </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.cardClient}>
-                {clientNames[item.clientId] ?? (item as any).clientName ?? 'Cliente'}
-              </Text>
-              <Text style={styles.cardEmail}>{(item as any).clientEmail ?? ''}</Text>
-              {item.services && item.services.length > 0 && (
-                <Text style={styles.cardServices} numberOfLines={2}>
-                  {item.services.map((s) => s.name).join(', ')}
-                </Text>
-              )}
-              {item.services && item.services.length > 0 && (
-                <Text style={styles.cardMeta}>
-                  {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
-                </Text>
-              )}
-              <View style={styles.badgesRow}>
-                <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] + '20' }]}>
-                  <Text style={[styles.badgeText, { color: STATUS_COLOR[item.status] }]}>
-                    {item.status === 'pending' ? 'Pendiente' :
-                     item.status === 'confirmed' ? 'Confirmada' :
-                     item.status === 'completed' ? 'Completada' :
-                     item.status === 'no_show' ? 'No presentado' : 'Cancelada'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-            {item.status === 'pending' && (
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
-                  onPress={() => updateStatus(item.id, 'confirmed')}
-                >
-                  <Text style={styles.actionBtnText}>✓</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
-                  onPress={() => updateStatus(item.id, 'cancelled')}
-                >
-                  <Text style={styles.actionBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {item.status === 'confirmed' && (
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#6B7280' }]}
-                  onPress={() => updateStatus(item.id, 'completed')}
-                >
-                  <Text style={styles.actionBtnText}>✓✓</Text>
-                </TouchableOpacity>
-                {(() => {
-                  const apptDate = item.date && (item.date as any).toDate
-                    ? (item.date as any).toDate()
-                    : new Date(item.date);
-                  return apptDate < new Date();
-                })() && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
-                    onPress={() => updateStatus(item.id, 'no_show')}
+            <View style={styles.card}>
+              {/* Left gold border accent */}
+              <View style={styles.cardBorder} />
+
+              {/* Main content */}
+              <View style={styles.cardContent}>
+                {/* Time + Status Row */}
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTime}>{item.timeSlot}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor:
+                          item.status === 'pending' ? '#FFD70040' :
+                          item.status === 'confirmed' ? '#00DD0040' :
+                          item.status === 'completed' ? '#6B728040' :
+                          item.status === 'no_show' ? '#DC262640' :
+                          '#EF444440',
+                      },
+                    ]}
                   >
-                    <Text style={styles.actionBtnText}>NS</Text>
-                  </TouchableOpacity>
+                    <Text
+                      style={[
+                        styles.statusBadgeText,
+                        {
+                          color:
+                            item.status === 'pending' ? '#FFD700' :
+                            item.status === 'confirmed' ? '#00DD00' :
+                            item.status === 'completed' ? '#6B7280' :
+                            item.status === 'no_show' ? '#DC2626' :
+                            '#EF4444',
+                        },
+                      ]}
+                    >
+                      {item.status === 'pending' ? 'PENDIENTE' :
+                       item.status === 'confirmed' ? 'CONFIRMADA' :
+                       item.status === 'completed' ? 'COMPLETADA' :
+                       item.status === 'no_show' ? 'NO PRESENTADO' : 'CANCELADA'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Client name */}
+                <Text style={styles.cardClientName}>
+                  {clientNames[item.clientId] ?? (item as any).clientName ?? 'Cliente'}
+                </Text>
+
+                {/* Email */}
+                {(item as any).clientEmail && (
+                  <Text style={styles.cardEmail}>{(item as any).clientEmail}</Text>
+                )}
+
+                {/* Services and meta */}
+                {item.services && item.services.length > 0 && (
+                  <>
+                    <Text style={styles.cardServices} numberOfLines={2}>
+                      {item.services.map((s) => s.name).join(', ')}
+                    </Text>
+                    <Text style={styles.cardMeta}>
+                      {item.services.reduce((sum, s) => sum + s.duration, 0)} min · {item.totalPrice.toFixed(2)} €
+                    </Text>
+                  </>
                 )}
               </View>
-            )}
-          </View>
+
+              {/* Action buttons */}
+              {item.status === 'pending' && (
+                <View style={styles.actionsContainer}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.confirmBtn]}
+                    onPress={() => updateStatus(item.id, 'confirmed')}
+                  >
+                    <Text style={styles.confirmBtnText}>Confirmar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.rejectBtn]}
+                    onPress={() => updateStatus(item.id, 'cancelled')}
+                  >
+                    <Text style={styles.rejectBtnText}>Rechazar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {item.status === 'confirmed' && (
+                <View style={styles.actionsContainer}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.completeBtn]}
+                    onPress={() => updateStatus(item.id, 'completed')}
+                  >
+                    <Text style={styles.completeBtnText}>Completada</Text>
+                  </TouchableOpacity>
+                  {(() => {
+                    const apptDate = item.date && (item.date as any).toDate
+                      ? (item.date as any).toDate()
+                      : new Date(item.date);
+                    return apptDate < new Date();
+                  })() && (
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.noShowBtn]}
+                      onPress={() => updateStatus(item.id, 'no_show')}
+                    >
+                      <Text style={styles.noShowBtnText}>No presentado</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
           );
         }}
       />
@@ -284,57 +325,150 @@ export function AgendaScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
-  list: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  list: { paddingHorizontal: BARBER_SPACING.lg, paddingBottom: BARBER_SPACING.lg, gap: BARBER_SPACING.md },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: 12,   // base padding; safe-area top inset added dynamically
-    paddingBottom: 12,
+    paddingHorizontal: BARBER_SPACING.lg,
+    paddingTop: BARBER_SPACING.md,
+    paddingBottom: BARBER_SPACING.md,
   },
   heading: { fontSize: 26, fontWeight: '800', color: TEXT },
   sub: { fontSize: 14, color: MUTED, marginTop: 2 },
-  logoutBtn: { fontSize: 14, color: '#EF4444', fontWeight: '600', marginTop: 4 },
+  logoutBtn: { fontSize: 14, color: ERROR, fontWeight: '600', marginTop: 4 },
   empty: { alignItems: 'center', paddingTop: 64, gap: 12 },
   emptyEmoji: { fontSize: 56 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: TEXT },
   emptySub: { fontSize: 14, color: MUTED, textAlign: 'center' },
+
+  /* Card styling */
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: SURFACE,
-    borderRadius: 16,
+    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 16,
-    gap: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: GOLD,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  cardBorder: {
+    width: 0, // Border handled by borderLeftWidth
+  },
+  cardContent: {
+    flex: 1,
+    paddingHorizontal: BARBER_SPACING.lg,
+    paddingVertical: BARBER_SPACING.md,
+    gap: BARBER_SPACING.sm,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: BARBER_SPACING.md,
+    marginBottom: BARBER_SPACING.sm,
   },
   cardTime: {
-    width: 60,
-    height: 60,
+    fontSize: 20,
+    fontWeight: '700',
+    color: GOLD,
+  },
+  statusBadge: {
+    paddingHorizontal: BARBER_SPACING.sm,
+    paddingVertical: 2,
     borderRadius: 12,
-    backgroundColor: GOLD + '15',
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  cardClientName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT,
+  },
+  cardEmail: {
+    fontSize: 12,
+    color: MUTED,
+  },
+  cardServices: {
+    fontSize: 12,
+    color: GOLD,
+    fontWeight: '600',
+  },
+  cardMeta: {
+    fontSize: 12,
+    color: MUTED,
+  },
+
+  /* Action buttons */
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: BARBER_SPACING.md,
+    paddingHorizontal: BARBER_SPACING.lg,
+    paddingVertical: BARBER_SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  actionBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: BARBER_SPACING.md,
   },
-  cardTimeText: { fontSize: 14, fontWeight: '800', color: GOLD },
-  cardInfo: { flex: 1, gap: 3 },
-  cardClient: { fontSize: 15, fontWeight: '700', color: TEXT },
-  cardEmail: { fontSize: 12, color: MUTED },
-  cardServices: { fontSize: 12, color: GOLD, fontWeight: '600' },
-  cardMeta: { fontSize: 11, color: MUTED },
-  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20, marginTop: 2 },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  actions: { flexDirection: 'row', gap: 8 },
-  actionBtn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  actionBtnText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  confirmBtn: {
+    backgroundColor: SUCCESS,
+  },
+  confirmBtnText: {
+    color: BG,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  rejectBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: ERROR,
+  },
+  rejectBtnText: {
+    color: ERROR,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  completeBtn: {
+    backgroundColor: '#6B7280',
+  },
+  completeBtnText: {
+    color: TEXT,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  noShowBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#DC2626',
+  },
+  noShowBtnText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
   notifBadge: {
     position: 'absolute',
     top: -4,
     right: -6,
-    backgroundColor: '#EF4444',
+    backgroundColor: ERROR,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
