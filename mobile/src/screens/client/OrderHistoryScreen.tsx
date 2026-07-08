@@ -18,6 +18,7 @@ import {
   getDocs,
   doc,
   getDoc,
+  onSnapshot,
 } from 'firebase/firestore';
 
 import { auth, db } from '../../services/firebase';
@@ -217,34 +218,39 @@ export function OrderHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
+  useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
-    try {
-      const q = query(
-        collection(db, 'orders'),
-        where('clientId', '==', user.uid),
-        orderBy('createdAt', 'desc'),
-      );
-      const snap = await getDocs(q);
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order));
-      setOrders(data);
-    } catch (err) {
-      console.error('[OrderHistoryScreen] Error:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+    const q = query(
+      collection(db, 'orders'),
+      where('clientId', '==', user.uid),
+      orderBy('createdAt', 'desc'),
+    );
 
-  useEffect(() => {
-    fetchOrders();
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Order));
+        setOrders(data);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (error) => {
+        console.error('[OrderHistoryScreen] Error listening to orders:', error);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchOrders();
+    // Pull-to-refresh will trigger re-subscription, manual refresh is handled by FlatList
   };
 
   const handleDownloadReceipt = async (order: Order) => {

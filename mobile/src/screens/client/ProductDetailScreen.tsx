@@ -23,6 +23,8 @@ import {
   addDoc,
   deleteDoc,
   serverTimestamp,
+  onSnapshot,
+  doc,
 } from 'firebase/firestore';
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'ProductDetail'>;
@@ -65,7 +67,8 @@ function getCategoryEmoji(category: string): string {
 
 export function ProductDetailScreen({ route, navigation }: Props) {
   const { barbershopId, product: productJson } = route.params;
-  const product: Product = useMemo(() => JSON.parse(productJson), [productJson]);
+  const initialProduct: Product = useMemo(() => JSON.parse(productJson), [productJson]);
+  const [product, setProduct] = useState<Product>(initialProduct);
   const cart = useCart();
   const [quantity, setQuantity] = useState(1);
 
@@ -75,6 +78,19 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   const [alertSubscribed, setAlertSubscribed] = useState(false);
   const [alertLoading, setAlertLoading]       = useState(false);
   const [alertDocId, setAlertDocId]           = useState<string | null>(null);
+
+  // Listen to real-time product updates
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, 'products', initialProduct.id), (snap) => {
+      if (snap.exists()) {
+        setProduct(snap.data() as Product);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [initialProduct.id]);
 
   // Check if current user already subscribed to this product alert
   useEffect(() => {

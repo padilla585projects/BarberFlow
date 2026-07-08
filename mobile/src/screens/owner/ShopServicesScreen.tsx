@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Service } from '../../types';
@@ -46,27 +46,23 @@ export function ShopServicesScreen() {
 
   const { activeBarbershopId } = useAuthContext();
 
-  const fetchServices = async () => {
+  useEffect(() => {
     if (!activeBarbershopId) return;
 
-    try {
-      // Get barbershop doc with services array
-      const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
-      if (!shopDoc.exists()) return;
+    const unsubscribe = onSnapshot(
+      doc(db, 'barbershops', activeBarbershopId),
+      (snap) => {
+        if (snap.exists()) {
+          setServices(snap.data().services ?? []);
+        }
+        setLoading(false);
+      },
+    );
 
-      const data = shopDoc.data();
-      setServices(data.services ?? []);
-    } catch (err) {
-      console.error('[ShopServicesScreen] Error fetching services:', err);
-      Alert.alert('Error', 'No se pudieron cargar los servicios.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchServices();
-  }, []);
+    return () => {
+      unsubscribe();
+    };
+  }, [activeBarbershopId]);
 
   const openAddModal = () => {
     setEditingService(null);

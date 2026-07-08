@@ -24,6 +24,7 @@ import {
   updateDoc,
   increment,
   Timestamp,
+  onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -372,17 +373,14 @@ export function BookScreen({ route, navigation }: Props) {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch barbers, services and shop data in parallel
-        const [barbersSnap, shopSnap] = await Promise.all([
-          getDocs(
-            query(
-              collection(db, 'users'),
-              where('barbershopId', '==', barbershopId),
-              where('role', 'in', ['barber', 'owner']),
-            ),
+        // Fetch barbers
+        const barbersSnap = await getDocs(
+          query(
+            collection(db, 'users'),
+            where('barbershopId', '==', barbershopId),
+            where('role', 'in', ['barber', 'owner']),
           ),
-          getDoc(doc(db, 'barbershops', barbershopId)),
-        ]);
+        );
 
         // Barbers
         const barberList = barbersSnap.docs.map((d) => ({
@@ -391,10 +389,26 @@ export function BookScreen({ route, navigation }: Props) {
         }));
         setBarbers(barberList);
         if (barberList.length === 1) setSelectedBarber(barberList[0]);
+      } catch (err) {
+        console.error('[BookScreen] Error loading barbers:', err);
+        Alert.alert('Error', 'No se pudo cargar los barberos.');
+      } finally {
+        setLoadingInit(false);
+      }
+    };
+    load();
+  }, [barbershopId]);
 
-        // Services and opening hours — both stored on the barbershop document
-        if (shopSnap.exists()) {
-          const shopData = shopSnap.data();
+  /* ── Real-time services sync ────────────────────────────────────── */
+
+  useEffect(() => {
+    if (!barbershopId) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'barbershops', barbershopId),
+      (snap) => {
+        if (snap.exists()) {
+          const shopData = snap.data();
 
           // Services are stored as an array field on the barbershop doc
           const rawServices = (shopData.services as any[]) ?? [];
@@ -433,14 +447,12 @@ export function BookScreen({ route, navigation }: Props) {
             setOpeningHours(mapped);
           }
         }
-      } catch (err) {
-        console.error('[BookScreen] Error loading initial data:', err);
-        Alert.alert('Error', 'No se pudo cargar la información de la barbería.');
-      } finally {
-        setLoadingInit(false);
-      }
+      },
+    );
+
+    return () => {
+      unsubscribe();
     };
-    load();
   }, [barbershopId]);
 
   /* ── Fetch barber's personal schedule when barber changes ─────────── */
@@ -451,24 +463,26 @@ export function BookScreen({ route, navigation }: Props) {
       return;
     }
 
-    const fetchSchedule = async () => {
-      try {
-        const scheduleDoc = await getDoc(
-          doc(db, 'users', selectedBarber.uid, 'schedule', 'config'),
-        );
-        if (scheduleDoc.exists()) {
-          setBarberSchedule(scheduleDoc.data() as BarberSchedule);
-        } else {
-          setBarberSchedule(null);
+    try {
+      const unsubscribe = onSnapshot(
+        doc(db, 'users', selectedBarber.uid, 'schedule', 'config'),
+        (snap) => {
+          if (snap.exists()) {
+            setBarberSchedule(snap.data() as BarberSchedule);
+          } else {
+            setBarberSchedule(null);
+          }
         }
-      } catch (err) {
-        console.error('[BookScreen] Error fetching barber schedule:', err);
-        setBarberSchedule(null);
-      }
-    };
+      );
 
-    fetchSchedule();
-  }, [selectedBarber]);
+      return () => {
+        unsubscribe();
+      };
+    } catch (err) {
+      console.error('[BookScreen] Error setting up barber schedule listener:', err);
+      setBarberSchedule(null);
+    }
+  }, [selectedBarber?.uid]);
 
   /* ── Fetch existing appointments when barber+date change ───────────── */
 

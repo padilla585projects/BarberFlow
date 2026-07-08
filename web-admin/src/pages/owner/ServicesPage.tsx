@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { db } from '../../services/firebase'
 import { getAllBarbershops, getBarbershopById, updateBarbershop } from '../../services/barbershops'
 import { getAppointmentsByBarbershop } from '../../services/appointments'
 import { useAuth } from '../../contexts/AuthContext'
@@ -30,11 +32,7 @@ export default function ServicesPage() {
     if (!shopId) return
     setLoading(true)
     try {
-      const [shop, apps] = await Promise.all([
-        getBarbershopById(shopId),
-        getAppointmentsByBarbershop(shopId),
-      ])
-      setServices(shop?.services ?? [])
+      const apps = await getAppointmentsByBarbershop(shopId)
       setAppointments(apps)
     } catch {
       showToast('Error al cargar los servicios', 'error')
@@ -42,6 +40,23 @@ export default function ServicesPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!selectedShop) return
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'barbershops', selectedShop),
+      (snap) => {
+        if (snap.exists()) {
+          setServices(snap.data().services ?? [])
+        }
+      },
+    )
+
+    return () => {
+      unsubscribe()
+    }
+  }, [selectedShop])
 
   useEffect(() => {
     const init = async () => {

@@ -13,7 +13,7 @@ import {
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { auth, db } from '../../services/firebase';
 
@@ -123,29 +123,32 @@ export function BarberScheduleScreen() {
   const [timePickerValue, setTimePickerValue] = useState(new Date());
 
   /* ─── load schedule ─── */
-  const loadSchedule = useCallback(async () => {
+  useEffect(() => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const ref = doc(db, 'users', user.uid, 'schedule', 'config');
-      const snap = await getDoc(ref);
+      const unsubscribe = onSnapshot(ref, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as ScheduleData;
+          if (data.weeklyHours) setWeeklyHours(data.weeklyHours);
+          if (data.daysOff) setDaysOff(data.daysOff);
+        }
+        setLoading(false);
+      });
 
-      if (snap.exists()) {
-        const data = snap.data() as ScheduleData;
-        if (data.weeklyHours) setWeeklyHours(data.weeklyHours);
-        if (data.daysOff) setDaysOff(data.daysOff);
-      }
+      return () => {
+        unsubscribe();
+      };
     } catch (err) {
-      console.error('[BarberScheduleScreen] load error:', err);
-    } finally {
+      console.error('[BarberScheduleScreen] listener error:', err);
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    loadSchedule();
-  }, [loadSchedule]);
 
   /* ─── save schedule ─── */
   const saveSchedule = async () => {

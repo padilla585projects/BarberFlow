@@ -11,7 +11,7 @@ import {
   Dimensions,
   RefreshControl,
 } from 'react-native';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -79,26 +79,28 @@ export function ShopScreen({ route, navigation }: Props) {
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const cart = useCart();
 
-  const fetchProducts = async () => {
+  useEffect(() => {
     try {
       const q = query(
         collection(db, 'products'),
         where('barbershopId', '==', barbershopId),
       );
-      const snap = await getDocs(q);
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
-      data.sort((a, b) => a.name.localeCompare(b.name));
-      setProducts(data);
+      const unsubscribe = onSnapshot(q, (snap) => {
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
+        data.sort((a, b) => a.name.localeCompare(b.name));
+        setProducts(data);
+        setLoading(false);
+        setRefreshing(false);
+      });
+
+      return () => {
+        unsubscribe();
+      };
     } catch (err) {
-      console.error('[ShopScreen] Error fetching products:', err);
-    } finally {
+      console.error('[ShopScreen] Error setting up listener:', err);
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  useEffect(() => {
-    fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barbershopId]);
 
@@ -147,7 +149,7 @@ export function ShopScreen({ route, navigation }: Props) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProducts();
+    setLoading(false);
   };
 
   const handleAdd = (product: Product) => {

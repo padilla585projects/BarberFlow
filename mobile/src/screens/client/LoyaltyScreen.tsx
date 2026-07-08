@@ -22,6 +22,7 @@ import {
   serverTimestamp,
   increment,
   where,
+  onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { PointTransaction, LoyaltyReward } from '../../types';
@@ -80,16 +81,32 @@ export function LoyaltyScreen() {
   // Use a ref to avoid including barbershopId in useCallback deps (prevents double-fetch)
   const barbershopIdRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', user.uid),
+      (snap) => {
+        if (snap.exists()) {
+          setPoints(snap.data()?.loyaltyPoints ?? 0);
+        }
+      },
+      (error) => {
+        console.error('[LoyaltyScreen] Error listening to points:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const fetchData = useCallback(async () => {
     const user = auth.currentUser;
     if (!user) return;
 
     try {
-      // Get user doc for points and barbershopId
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
-      setPoints(userData?.loyaltyPoints ?? 0);
-
       // Try to find the user's most-visited barbershop from their appointments
       if (!barbershopIdRef.current) {
         const appointmentsSnap = await getDocs(

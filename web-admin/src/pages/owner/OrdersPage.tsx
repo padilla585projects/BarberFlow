@@ -4,6 +4,8 @@ import { getAllBarbershops } from '../../services/barbershops'
 import { useAuth } from '../../contexts/AuthContext'
 import { Order, Barbershop, ShippingAddress } from '../../types'
 import styles from './OrdersPage.module.css'
+import { onSnapshot, query, collection, where, orderBy, Timestamp } from 'firebase/firestore'
+import { db } from '../../services/firebase'
 
 const STATUS_LABELS: Record<Order['status'], string> = {
   pending:    'Pendiente',
@@ -391,6 +393,7 @@ export default function OrdersPage() {
   const [expanded, setExpanded]         = useState<string | null>(null)
   const [labelOrder, setLabelOrder]     = useState<Order | null>(null)
   const [albaranOrder, setAlbaranOrder] = useState<Order | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
 
   // ── Future courier integration hook ───────────────────────────────────────
   // When integrating a carrier (SEUR, Correos, MRW, GLS...):
@@ -400,12 +403,42 @@ export default function OrdersPage() {
   // 4. Store the tracking number on the order doc and show it here
   // 5. Replace the custom label with the carrier's official label
 
-  const load = async (shopId: string) => {
+  const load = (shopId: string) => {
     if (!shopId) return
+
+    // Unsubscribe from previous listener
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current()
+    }
+
     setLoading(true)
-    const data = await getOrdersByBarbershop(shopId)
-    setOrders(data)
-    setLoading(false)
+
+    const q = query(
+      collection(db, 'orders'),
+      where('barbershopId', '==', shopId),
+      orderBy('createdAt', 'desc')
+    )
+
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const orders = snap.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          totalAmount: data.totalAmount ?? data.totalPrice ?? 0,
+          clientName: data.clientName ?? 'Cliente',
+          clientEmail: data.clientEmail ?? '',
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(data.createdAt),
+        } as Order
+      })
+      setOrders(orders)
+      setLoading(false)
+    }, (error) => {
+      console.error('[OrdersPage] Error listening to orders:', error)
+      setLoading(false)
+    })
+
+    unsubscribeRef.current = unsubscribe
   }
 
   useEffect(() => {
@@ -417,9 +450,15 @@ export default function OrdersPage() {
       setBarbershops(shops)
       const shopId = user?.barbershopId ?? shops[0]?.id ?? ''
       setSelectedShop(shopId)
-      await load(shopId)
+      load(shopId)
     }
     init()
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+      }
+    }
   }, [])
 
   const handleStatusChange = async (orderId: string, status: Order['status']) => {

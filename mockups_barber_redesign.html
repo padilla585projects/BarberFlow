@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarberFlow - Rediseño App Barbero</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #333;
+            font-size: 28px;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        @media (max-width: 1024px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .mockup-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .mockup-section h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #C9A84C;
+        }
+
+        /* PHONE FRAMES */
+        .phone-frame {
+            background: #000;
+            border-radius: 40px;
+            border: 8px solid #1a1a1a;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 400px;
+            margin: 0 auto;
+            aspect-ratio: 9/19.5;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background: #0a0a0a;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* STATUS BAR */
+        .status-bar {
+            background: #000;
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222;
+        }
+
+        /* ===== VERSIÓN ACTUAL (FEA) ===== */
+        .current-header {
+            background: #0a0a0a;
+            padding: 16px;
+            border-bottom: 1px solid #222;
+            color: #fff;
+        }
+
+        .current-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .current-tabs {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .current-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .current-appointments {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .current-appointment-item {
+            background: #141414;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .current-time {
+            color: #C9A84C;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .current-client {
+            color: #fff;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .current-email {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .current-service {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+
+        .current-status {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            margin-bottom: 6px;
+        }
+
+        .current-status.confirmed {
+            color: #00dd00;
+            background: rgba(0,255,0,0.1);
+        }
+
+        .current-status.pending {
+            color: #C9A84C;
+            background: rgba(201,168,76,0.1);
+        }
+
+        .current-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .current-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .current-btn.confirm {
+            background: #00dd00;
+            color: #000;
+        }
+
+        .current-btn.reject {
+            background: #ff4444;
+            color: #fff;
+        }
+
+        /* ===== VERSIÓN REDISEÑADA (BONITA) ===== */
+        .redesigned-header {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            padding: 16px;
+            border-bottom: 2px solid #C9A84C;
+        }
+
+        .redesigned-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .redesigned-tabs {
+            display: flex;
+            gap: 4px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .redesigned-tab {
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            font-weight: 500;
+        }
+
+        .redesigned-tab.active {
+            background: #C9A84C;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .redesigned-appointments {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .redesigned-appointment-item {
+            background: linear-gradient(135deg, #1a1a1a 0%, #141414 100%);
+            border-left: 4px solid #C9A84C;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+            color: #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .redesigned-appointment-item:active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(201,168,76,0.2);
+        }
+
+        .appointment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+
+        .redesigned-time {
+            font-size: 20px;
+            font-weight: 700;
+            color: #C9A84C;
+        }
+
+        .redesigned-status {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .redesigned-status.confirmed {
+            background: rgba(0,200,0,0.2);
+            color: #00dd00;
+        }
+
+        .redesigned-status.pending {
+            background: rgba(201,168,76,0.2);
+            color: #ffd700;
+        }
+
+        .redesigned-client {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 3px;
+        }
+
+        .redesigned-email {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .redesigned-service-info {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 10px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(201,168,76,0.2);
+        }
+
+        .redesigned-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .redesigned-btn {
+            padding: 10px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .redesigned-btn.confirm {
+            background: #00dd00;
+            color: #000;
+        }
+
+        .redesigned-btn.confirm:active {
+            background: #00bb00;
+            transform: scale(0.98);
+        }
+
+        .redesigned-btn.reject {
+            background: rgba(255,68,68,0.2);
+            color: #ff6666;
+            border: 1px solid #ff6666;
+        }
+
+        .redesigned-btn.reject:active {
+            background: rgba(255,68,68,0.3);
+            transform: scale(0.98);
+        }
+
+        /* VARIANTES */
+        .variants-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+
+        .variants-section h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #C9A84C;
+        }
+
+        .variants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .variant-description {
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .variant-pros {
+            background: rgba(0,200,0,0.05);
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .variant-pros strong {
+            color: #00aa00;
+        }
+
+        /* ISSUES LIST */
+        .issues-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+
+        .issues-section h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ff6666;
+        }
+
+        .issue {
+            background: #fff9f9;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ff6666;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .issue strong {
+            color: #ff6666;
+        }
+
+        .bottom-nav-demo {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #1a1a1a;
+            padding: 12px 0;
+            border-top: 1px solid #333;
+            margin-top: auto;
+            height: 60px;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #666;
+            cursor: pointer;
+            padding: 8px 12px;
+        }
+
+        .nav-item.active {
+            color: #C9A84C;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        /* RECOMMENDATIONS */
+        .recommendations {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        }
+
+        .recommendations h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .recommendation-item {
+            background: #f0fdf4;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-left: 3px solid #4CAF50;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .recommendation-item strong {
+            color: #4CAF50;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #d4004d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 BarberFlow App Barbero - Rediseño Visual</h1>
+
+        <div class="comparison">
+            <!-- VERSIÓN ACTUAL -->
+            <div class="mockup-section">
+                <h2>❌ Versión Actual (Fea)</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:10</span>
+                            <span>●●●●●</span>
+                        </div>
+
+                        <div class="current-header">
+                            <div class="current-title">Mi agenda</div>
+                            <div class="current-tabs">⏰ Horario &nbsp; 💰 &nbsp; 📷 &nbsp; 📊 Stats
+                            </div>
+                            <div class="current-date">miércoles, 8 de julio</div>
+                        </div>
+
+                        <div class="current-appointments">
+                            <div class="current-appointment-item">
+                                <div class="current-time">10:00</div>
+                                <div class="current-client">ClienteQA</div>
+                                <div class="current-email">cliente@barberflow.dev</div>
+                                <div class="current-service">Corte de pelo</div>
+                                <div class="current-status confirmed">Confirmada</div>
+                                <div class="current-actions">
+                                    <button class="current-btn confirm">✓</button>
+                                    <button class="current-btn reject">✕</button>
+                                </div>
+                            </div>
+
+                            <div class="current-appointment-item">
+                                <div class="current-time">09:30</div>
+                                <div class="current-client">Marcos Ruiz</div>
+                                <div class="current-email">cliente@barberflow.dev</div>
+                                <div class="current-service">Tratamiento capilar</div>
+                                <div class="current-status confirmed">Confirmada</div>
+                                <div class="current-actions">
+                                    <button class="current-btn confirm">✓</button>
+                                    <button class="current-btn reject">✕</button>
+                                </div>
+                            </div>
+
+                            <div class="current-appointment-item">
+                                <div class="current-time">10:00</div>
+                                <div class="current-client">Carlos Cliente</div>
+                                <div class="current-email">cliente@barberflow.dev</div>
+                                <div class="current-service">Corte + Barba</div>
+                                <div class="current-status pending">Pendiente</div>
+                                <div class="current-actions">
+                                    <button class="current-btn confirm">✓</button>
+                                    <button class="current-btn reject">✕</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bottom-nav-demo">
+                            <div class="nav-item active">
+                                <div class="nav-icon">🏠</div>
+                                <div>Home</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">📅</div>
+                                <div>Calendario</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">👤</div>
+                                <div>Perfil</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 16px; background: #fff3cd; border-radius: 6px; font-size: 12px; color: #856404;">
+                    <strong>Problemas:</strong>
+                    <ul style="margin-left: 16px; margin-top: 8px;">
+                        <li>Sin jerarquía visual</li>
+                        <li>Emojis poco profesionales</li>
+                        <li>Botones minúsculos (28x28px)</li>
+                        <li>Colores caóticos</li>
+                        <li>Spacing apretado</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- VERSIÓN REDISEÑADA -->
+            <div class="mockup-section">
+                <h2>✅ Versión Rediseñada (Profesional)</h2>
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:10</span>
+                            <span>●●●●●</span>
+                        </div>
+
+                        <div class="redesigned-header">
+                            <div class="redesigned-title">Mi Agenda</div>
+                            <div class="redesigned-tabs">
+                                <button class="redesigned-tab active">Agenda</button>
+                                <button class="redesigned-tab">Horario</button>
+                                <button class="redesigned-tab">Stats</button>
+                                <button class="redesigned-tab">Más</button>
+                            </div>
+                        </div>
+
+                        <div class="redesigned-appointments">
+                            <div class="redesigned-appointment-item">
+                                <div class="appointment-header">
+                                    <div class="redesigned-time">10:00</div>
+                                    <div class="redesigned-status confirmed">✓ Confirmada</div>
+                                </div>
+                                <div class="redesigned-client">ClienteQA</div>
+                                <div class="redesigned-email">cliente@barberflow.dev</div>
+                                <div class="redesigned-service-info">Corte de pelo • 30 min • 15.00 €</div>
+                                <div class="redesigned-actions">
+                                    <button class="redesigned-btn confirm">Confirmar</button>
+                                    <button class="redesigned-btn reject">Rechazar</button>
+                                </div>
+                            </div>
+
+                            <div class="redesigned-appointment-item">
+                                <div class="appointment-header">
+                                    <div class="redesigned-time">09:30</div>
+                                    <div class="redesigned-status confirmed">✓ Confirmada</div>
+                                </div>
+                                <div class="redesigned-client">Marcos Ruiz</div>
+                                <div class="redesigned-email">cliente@barberflow.dev</div>
+                                <div class="redesigned-service-info">Tratamiento capilar • 30 min • 18.00 €</div>
+                                <div class="redesigned-actions">
+                                    <button class="redesigned-btn confirm">Confirmar</button>
+                                    <button class="redesigned-btn reject">Rechazar</button>
+                                </div>
+                            </div>
+
+                            <div class="redesigned-appointment-item">
+                                <div class="appointment-header">
+                                    <div class="redesigned-time">10:00</div>
+                                    <div class="redesigned-status pending">⏳ Pendiente</div>
+                                </div>
+                                <div class="redesigned-client">Carlos Cliente</div>
+                                <div class="redesigned-email">cliente@barberflow.dev</div>
+                                <div class="redesigned-service-info">Corte + Barba • 45 min • 22.00 €</div>
+                                <div class="redesigned-actions">
+                                    <button class="redesigned-btn confirm">Confirmar</button>
+                                    <button class="redesigned-btn reject">Rechazar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bottom-nav-demo">
+                            <div class="nav-item active">
+                                <div class="nav-icon">📅</div>
+                                <div>Agenda</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">⏰</div>
+                                <div>Horario</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">📊</div>
+                                <div>Stats</div>
+                            </div>
+                            <div class="nav-item">
+                                <div class="nav-icon">👤</div>
+                                <div>Perfil</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 16px; background: #d4edda; border-radius: 6px; font-size: 12px; color: #155724;">
+                    <strong>Mejoras:</strong>
+                    <ul style="margin-left: 16px; margin-top: 8px;">
+                        <li>Jerarquía visual clara</li>
+                        <li>Tabs profesionales (sin emojis)</li>
+                        <li>Botones grandes (48x48px mínimo)</li>
+                        <li>Colores coherentes</li>
+                        <li>Card bien diseñada con bordes dorados</li>
+                        <li>Mejor spacing y legibilidad</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ISSUES IDENTIFICADOS -->
+        <div class="issues-section">
+            <h2>🚨 Problemas Identificados</h2>
+
+            <div class="issue">
+                <strong>1. Falta de jerarquía visual</strong><br>
+                Todo el contenido se ve igual (tamaño, peso, contraste). No está claro qué es importante.
+            </div>
+
+            <div class="issue">
+                <strong>2. Navegación confusa</strong><br>
+                Emojis como "⏰ Horario 💰 📷 📊 Stats" no son claros ni profesionales. Usuario no sabe si son clickeables.
+            </div>
+
+            <div class="issue">
+                <strong>3. Botones de acción demasiado pequeños</strong><br>
+                Círculos de 28x28px contra target size mínimo de 48x48px. Muy difícil de tocar en M9 (1080x1920).
+            </div>
+
+            <div class="issue">
+                <strong>4. Colores caóticos sin coherencia</strong><br>
+                Amarillo dorado para horas, otro para estado "Pendiente", verde para confirmadas. Sin lógica visual.
+            </div>
+
+            <div class="issue">
+                <strong>5. Spacing muy apretado</strong><br>
+                Items de cita no tienen separación clara. Se ven como una pared de texto.
+            </div>
+
+            <div class="issue">
+                <strong>6. Tipografía sin variación</strong><br>
+                Nombres de clientes no destacan. Sin diferencia visual entre títulos y detalles.
+            </div>
+
+            <div class="issue">
+                <strong>7. Sin feedback visual</strong><br>
+                No hay animations, hover states, o estados de selección. La app se siente muerta.
+            </div>
+        </div>
+
+        <!-- RECOMENDACIONES -->
+        <div class="recommendations">
+            <h2>✅ Recomendaciones de Implementación</h2>
+
+            <div class="recommendation-item">
+                <strong>1. Crear <code>theme.ts</code> centralizado</strong><br>
+                Define colores, tipografía, spacing en un lugar. Exporta constants para toda la app.
+                <br><code>export const COLORS = { primary: '#C9A84C', success: '#00dd00', pending: '#ffd700' }</code>
+            </div>
+
+            <div class="recommendation-item">
+                <strong>2. Rediseñar componente <code>AppointmentCard</code></strong><br>
+                - Aumentar padding (14px en lugar de 12px)<br>
+                - Borde izquierdo dorado (4px) para jerarquía<br>
+                - Hora grande (20px, bold) al inicio<br>
+                - Estado en badge pequeño (11px, uppercase)
+            </div>
+
+            <div class="recommendation-item">
+                <strong>3. Botones GRANDES y accesibles</strong><br>
+                - Mínimo 48x48px (standard Android)<br>
+                - Grid 2 columnas en lugar de circles<br>
+                - Texto claro: "Confirmar" y "Rechazar" en lugar de ✓ y ✕<br>
+                - Active/pressed states con animación
+            </div>
+
+            <div class="recommendation-item">
+                <strong>4. Tabs profesionales</strong><br>
+                Reemplazar emojis con texto + underline activo:<br>
+                <code>Agenda | Horario | Stats | Más</code><br>
+                Con background pills para tab activo.
+            </div>
+
+            <div class="recommendation-item">
+                <strong>5. Mejorar tipografía y spacing</strong><br>
+                - Nombre cliente: 15px, bold (weight 600), color blanco<br>
+                - Email: 12px, color #888<br>
+                - Servicio: 12px, color #aaa con borde top sutil<br>
+                - Separación clara entre items (12px gap)
+            </div>
+
+            <div class="recommendation-item">
+                <strong>6. Bottom navigation clara</strong><br>
+                4 tabs principales: Agenda | Horario | Stats | Perfil<br>
+                Con iconos + labels pequeños, active tab con color dorado.
+            </div>
+
+            <div class="recommendation-item">
+                <strong>7. Animaciones y feedback</strong><br>
+                - Item presionado: translateY(-2px) + sombra dorada<br>
+                - Botones activos: cambio de color + scale(0.98)<br>
+                - Transiciones suaves (0.2s)
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -32,17 +32,27 @@ export function HomeScreen({ navigation }: Props) {
   const [refreshing, setRefreshing]   = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
 
-  const fetchLoyaltyPoints = async () => {
-    try {
-      const user = auth.currentUser;
-      if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        setLoyaltyPoints(userDoc.data()?.loyaltyPoints ?? 0);
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'users', user.uid),
+      (snap) => {
+        if (snap.exists()) {
+          const userData = snap.data();
+          setLoyaltyPoints(userData?.loyaltyPoints ?? 0);
+        }
+      },
+      (error) => {
+        console.error('Error listening to loyalty points:', error);
       }
-    } catch (err) {
-      console.error('[HomeScreen] Error fetching loyalty points:', err);
-    }
-  };
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     // Real-time listener: list updates automatically when barbershops are added/changed
@@ -66,15 +76,12 @@ export function HomeScreen({ navigation }: Props) {
       },
     );
 
-    fetchLoyaltyPoints();
-
     return unsub; // cleanup listener on unmount
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchLoyaltyPoints();
-    // onSnapshot already keeps barbershops up-to-date; setRefreshing resets via the listener callback
+    // onSnapshot already keeps both barbershops and loyalty points up-to-date
     // Give the UI a brief moment to reflect any pending Firestore updates
     setTimeout(() => setRefreshing(false), 800);
   };
