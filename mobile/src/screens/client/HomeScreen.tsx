@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  TextInput,
 } from 'react-native';
 import { collection, onSnapshot, orderBy, query, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
@@ -31,6 +32,20 @@ export function HomeScreen({ navigation }: Props) {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter barbershops by search query
+  const filteredBarbershops = useMemo(() => {
+    if (!searchQuery.trim()) return barbershops;
+
+    const query = searchQuery.toLowerCase().trim();
+    return barbershops.filter(
+      (shop) =>
+        shop.name.toLowerCase().includes(query) ||
+        (shop.address && shop.address.toLowerCase().includes(query)) ||
+        (shop.phone && shop.phone.includes(query))
+    );
+  }, [barbershops, searchQuery]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -97,7 +112,7 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={barbershops}
+        data={filteredBarbershops}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshControl={
@@ -113,6 +128,35 @@ export function HomeScreen({ navigation }: Props) {
             <Text style={styles.greeting}>Barberías cerca</Text>
             <View style={styles.greetingAccent} />
             <Text style={styles.sub}>Elige tu barbería favorita</Text>
+
+            {/* Search bar */}
+            <View style={styles.searchContainer}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar barbería..."
+                placeholderTextColor={MUTED}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setSearchQuery('')}
+                  style={styles.searchClear}
+                >
+                  <Text style={styles.searchClearText}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Show result count if searching */}
+            {searchQuery.trim() && (
+              <Text style={styles.resultsCount}>
+                {filteredBarbershops.length} resultado{filteredBarbershops.length !== 1 ? 's' : ''}
+              </Text>
+            )}
+
             {/* Loyalty points banner */}
             <TouchableOpacity
               style={styles.loyaltyBanner}
@@ -295,6 +339,42 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: GOLD,
     opacity: 0.6,
+  },
+
+  // Search bar
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SURFACE,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: TEXT,
+    fontSize: 14,
+    paddingVertical: 10,
+  },
+  searchClear: {
+    padding: 8,
+  },
+  searchClearText: {
+    fontSize: 18,
+    color: MUTED,
+  },
+  resultsCount: {
+    fontSize: 12,
+    color: MUTED,
+    marginBottom: 8,
+    marginLeft: 2,
   },
 
   // Loyalty banner
