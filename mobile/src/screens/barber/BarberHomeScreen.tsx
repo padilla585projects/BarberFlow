@@ -18,6 +18,8 @@ import {
   limit,
   onSnapshot,
   getDocs,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "../../services/firebase";
 import { useAuthContext } from "../../contexts/AuthContext";
@@ -60,6 +62,7 @@ export function BarberHomeScreen() {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [todaySchedule, setTodaySchedule] = useState({
     start: "--:--",
     end: "--:--",
@@ -180,17 +183,100 @@ export function BarberHomeScreen() {
     return () => unsubscribe();
   }, [user, activeBarbershopId]);
 
+  // Load barber's availability status and today's schedule
+  useEffect(() => {
+    if (!user || !activeBarbershopId) return;
+
+    const barberDocRef = doc(
+      db,
+      'barbershops',
+      activeBarbershopId,
+      'barbers',
+      user.uid
+    );
+
+    const unsubscribe = onSnapshot(
+      barberDocRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          // Load availability status
+          if (typeof data.isAvailable === 'boolean') {
+            setAvailability((prev) => ({
+              ...prev,
+              isAvailable: data.isAvailable,
+              lastUpdated: data.availabilityUpdatedAt?.toDate?.() ?? new Date(),
+            }));
+          }
+
+          // Load today's schedule
+          const now = new Date();
+          const todaySchedule = data.schedule?.[now.getDay()];
+          if (todaySchedule) {
+            setTodaySchedule({
+              start: todaySchedule.startTime ?? "--:--",
+              end: todaySchedule.endTime ?? "--:--",
+              break: todaySchedule.breakTime ?? "--:--",
+            });
+          }
+        }
+      },
+      (err) => {
+        console.error('[BarberHomeScreen] Error loading barber data:', err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user, activeBarbershopId]);
+
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  const toggleAvailability = () => {
-    setAvailability((prev) => ({
-      ...prev,
-      isAvailable: !prev.isAvailable,
-      lastUpdated: new Date(),
-    }));
+  const toggleAvailability = async () => {
+    if (!user || !activeBarbershopId || availabilityLoading) return;
+
+    setAvailabilityLoading(true);
+    const newAvailability = !availability.isAvailable;
+
+    try {
+      // Update in Firestore (barber doc within barbershop)
+      const barberDocRef = doc(
+        db,
+        'barbershops',
+        activeBarbershopId,
+        'barbers',
+        user.uid
+      );
+      await updateDoc(barberDocRef, {
+        isAvailable: newAvailability,
+        availabilityUpdatedAt: new Date(),
+      });
+
+      // Also update user doc as backup
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        isAvailable: newAvailability,
+        availabilityUpdatedAt: new Date(),
+      });
+
+      // Update local state
+      setAvailability((prev) => ({
+        ...prev,
+        isAvailable: newAvailability,
+        lastUpdated: new Date(),
+      }));
+    } catch (err) {
+      console.error('[BarberHomeScreen] Error toggling availability:', err);
+      // Revert on error
+      setAvailability((prev) => ({
+        ...prev,
+        isAvailable: !prev.isAvailable,
+      }));
+    } finally {
+      setAvailabilityLoading(false);
+    }
   };
 
   const formatTime = (date?: any) => {
@@ -366,24 +452,30 @@ export function BarberHomeScreen() {
                 borderColor: theme.colors.textTertiary,
                 flex: 1,
                 minHeight: 48,
+                opacity: availabilityLoading ? 0.6 : 1,
               },
             ]}
             onPress={toggleAvailability}
+            disabled={availabilityLoading}
             activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.buttonText,
-                {
-                  color: availability.isAvailable
-                    ? theme.colors.dark
-                    : theme.colors.text,
-                  fontWeight: availability.isAvailable ? "700" : "600",
-                },
-              ]}
-            >
-              ✅ Disponible
-            </Text>
+            {availabilityLoading && availability.isAvailable ? (
+              <ActivityIndicator color={theme.colors.dark} />
+            ) : (
+              <Text
+                style={[
+                  styles.buttonText,
+                  {
+                    color: availability.isAvailable
+                      ? theme.colors.dark
+                      : theme.colors.text,
+                    fontWeight: availability.isAvailable ? "700" : "600",
+                  },
+                ]}
+              >
+                ✅ Disponible
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -397,24 +489,30 @@ export function BarberHomeScreen() {
                 borderColor: theme.colors.textTertiary,
                 flex: 1,
                 minHeight: 48,
+                opacity: availabilityLoading ? 0.6 : 1,
               },
             ]}
             onPress={toggleAvailability}
+            disabled={availabilityLoading}
             activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.buttonText,
-                {
-                  color: !availability.isAvailable
-                    ? theme.colors.text
-                    : theme.colors.text,
-                  fontWeight: !availability.isAvailable ? "700" : "600",
-                },
-              ]}
-            >
-              ❌ No disponible
-            </Text>
+            {availabilityLoading && !availability.isAvailable ? (
+              <ActivityIndicator color={theme.colors.text} />
+            ) : (
+              <Text
+                style={[
+                  styles.buttonText,
+                  {
+                    color: !availability.isAvailable
+                      ? theme.colors.text
+                      : theme.colors.text,
+                    fontWeight: !availability.isAvailable ? "700" : "600",
+                  },
+                ]}
+              >
+                ❌ No disponible
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
