@@ -31,6 +31,8 @@ interface EarningsData {
   today: number;
   commissionRate: number;
   commissionEarned: number;
+  commissionEnabled: boolean;
+  commissionType: 'percentage' | 'fixed'; // % o €
 }
 
 interface AvailabilityStatus {
@@ -48,6 +50,8 @@ export function BarberHomeScreen() {
     today: 0,
     commissionRate: 0,
     commissionEarned: 0,
+    commissionEnabled: false,
+    commissionType: 'percentage',
   });
   const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
   const [availability, setAvailability] = useState<AvailabilityStatus>({
@@ -62,16 +66,26 @@ export function BarberHomeScreen() {
     break: "--:--",
   });
 
-  const fetchCommissionRate = async (): Promise<number> => {
-    if (!user) return 0;
+  const fetchCommissionData = async (): Promise<{
+    rate: number;
+    enabled: boolean;
+    type: 'percentage' | 'fixed';
+  }> => {
+    if (!user) return { rate: 0, enabled: false, type: 'percentage' };
     try {
       const userSnap = await getDocs(
         query(collection(db, "users"), where("uid", "==", user.uid))
       );
-      return userSnap.empty ? 0 : (userSnap.docs[0].data().commissionRate ?? 0);
+      if (userSnap.empty) return { rate: 0, enabled: false, type: 'percentage' };
+      const data = userSnap.docs[0].data();
+      return {
+        rate: data.commissionRate ?? 0,
+        enabled: data.commissionEnabled ?? false,
+        type: data.commissionType ?? 'percentage',
+      };
     } catch (err) {
-      console.error("[BarberHomeScreen] Error fetching commission rate:", err);
-      return 0;
+      console.error("[BarberHomeScreen] Error fetching commission data:", err);
+      return { rate: 0, enabled: false, type: 'percentage' };
     }
   };
 
@@ -79,7 +93,7 @@ export function BarberHomeScreen() {
     if (!user || !activeBarbershopId) return;
 
     const fetchTodayEarnings = async () => {
-      const commissionRate = await fetchCommissionRate();
+      const commissionData = await fetchCommissionData();
       const now = new Date();
       const todayStart = new Date(now);
       todayStart.setHours(0, 0, 0, 0);
@@ -104,11 +118,23 @@ export function BarberHomeScreen() {
             }
           });
 
-          const commissionEarned = revenue * (commissionRate / 100);
+          // Calcular ganancia según tipo de comisión
+          let commissionEarned = 0;
+          if (commissionData.enabled) {
+            if (commissionData.type === 'percentage') {
+              commissionEarned = revenue * (commissionData.rate / 100);
+            } else {
+              // tipo 'fixed': cantidad fija en euros
+              commissionEarned = commissionData.rate;
+            }
+          }
+
           setEarnings({
             today: revenue,
-            commissionRate,
+            commissionRate: commissionData.rate,
             commissionEarned,
+            commissionEnabled: commissionData.enabled,
+            commissionType: commissionData.type,
           });
         }
       );
@@ -231,24 +257,27 @@ export function BarberHomeScreen() {
           >
             {earnings.today.toFixed(2)} €
           </Text>
-          <View
-            style={[
-              styles.commissionInfo,
-              { marginTop: theme.spacing.md, paddingTop: theme.spacing.md },
-            ]}
-          >
-            <Text style={[styles.commissionText, { color: theme.colors.textTertiary }]}>
-              Comisión: {earnings.commissionRate}%
-            </Text>
-            <Text
+          {earnings.commissionEnabled && (
+            <View
               style={[
-                styles.commissionEarned,
-                { color: theme.colors.success, marginTop: 4 },
+                styles.commissionInfo,
+                { marginTop: theme.spacing.md, paddingTop: theme.spacing.md },
               ]}
             >
-              Tu ganancia: {earnings.commissionEarned.toFixed(2)} €
-            </Text>
-          </View>
+              <Text style={[styles.commissionText, { color: theme.colors.textTertiary }]}>
+                Comisión: {earnings.commissionRate}
+                {earnings.commissionType === 'percentage' ? '%' : ' €'}
+              </Text>
+              <Text
+                style={[
+                  styles.commissionEarned,
+                  { color: theme.colors.success, marginTop: 4 },
+                ]}
+              >
+                Tu ganancia: {earnings.commissionEarned.toFixed(2)} €
+              </Text>
+            </View>
+          )}
         </View>
 
         {nextAppointment ? (

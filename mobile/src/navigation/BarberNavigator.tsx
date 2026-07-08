@@ -21,6 +21,7 @@ import { BarberProfileScreen } from '../screens/barber/BarberProfileScreen';
 import { ReviewsScreen } from '../screens/barber/ReviewsScreen';
 import { FrequentClientsScreen } from '../screens/barber/FrequentClientsScreen';
 import { AvailabilityScreen } from '../screens/barber/AvailabilityScreen';
+import { BarberCommissionSettingsScreen } from '../screens/barber/BarberCommissionSettingsScreen';
 import { useUnreadCount } from '../screens/common/NotificationsScreen';
 
 export type BarberStackParamList = {
@@ -42,6 +43,7 @@ export type BarberStackParamList = {
   Profile: undefined;
   Reviews: undefined;
   FrequentClients: undefined;
+  CommissionSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<BarberStackParamList>();
@@ -305,6 +307,11 @@ function MoreTabStack() {
         name="BugReport"
         component={BugReportScreen}
         options={{ title: 'Reportar un problema' }}
+      />
+      <Stack.Screen
+        name="CommissionSettings"
+        component={BarberCommissionSettingsScreen}
+        options={{ title: 'Configurar Comisión' }}
       />
     </Stack.Navigator>
   );
