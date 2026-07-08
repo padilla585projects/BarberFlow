@@ -4,447 +4,524 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  TouchableOpacity,
   RefreshControl,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   collection,
   query,
   where,
   orderBy,
+  limit,
   onSnapshot,
-  doc,
-  getDoc,
+  getDocs,
 } from "firebase/firestore";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { useAuthContext } from "../../contexts/AuthContext";
-import type { Appointment } from "../../types";
 import { auth, db } from "../../services/firebase";
-import { useUnreadCount } from "../common/NotificationsScreen";
+import { useAuthContext } from "../../contexts/AuthContext";
+import { useBarberTheme } from "../../theme/barberTheme";
+import type { BarberStackParamList } from "../../navigation/BarberNavigator";
+import type { Appointment } from "../../types";
 
-const BG      = "#0A0A0A";
-const SURFACE = "#141414";
-const GOLD    = "#C9A84C";
-const TEXT    = "#FFFFFF";
-const MUTED   = "#888888";
-const BORDER  = "#282828";
-const SUCCESS = "#4CAF50";
+type Nav = NativeStackNavigationProp<BarberStackParamList>;
+
+interface EarningsData {
+  today: number;
+  commissionRate: number;
+  commissionEarned: number;
+}
+
+interface AvailabilityStatus {
+  isAvailable: boolean;
+  lastUpdated: Date;
+}
 
 export function BarberHomeScreen() {
-  const navigation = useNavigation<any>();
-  const { activeBarbershopId, firebaseUser, profile } = useAuthContext();
-  const insets = useSafeAreaInsets();
-  const barberId = firebaseUser?.uid;
-  const unreadCount = useUnreadCount();
+  const navigation = useNavigation<Nav>();
+  const theme = useBarberTheme();
+  const { activeBarbershopId } = useAuthContext();
+  const user = auth.currentUser;
 
-  const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([]);
-  const [isAvailable, setIsAvailable] = useState(false);
+  const [earnings, setEarnings] = useState<EarningsData>({
+    today: 0,
+    commissionRate: 0,
+    commissionEarned: 0,
+  });
+  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
+  const [availability, setAvailability] = useState<AvailabilityStatus>({
+    isAvailable: true,
+    lastUpdated: new Date(),
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [stats, setStats] = useState({
-    totalClients: 0,
-    totalAppointments: 0,
-    averageRating: 0,
+  const [todaySchedule, setTodaySchedule] = useState({
+    start: "--:--",
+    end: "--:--",
+    break: "--:--",
   });
 
-  useEffect(() => {
-    if (!barberId) return;
-
-    const userDocRef = doc(db, "users", barberId);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setIsAvailable(docSnap.data().available ?? false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [barberId]);
-
-  useEffect(() => {
-    if (!barberId || !activeBarbershopId) {
-      setLoading(false);
-      return;
+  const fetchCommissionRate = async (): Promise<number> => {
+    if (!user) return 0;
+    try {
+      const userSnap = await getDocs(
+        query(collection(db, "users"), where("uid", "==", user.uid))
+      );
+      return userSnap.empty ? 0 : (userSnap.docs[0].data().commissionRate ?? 0);
+    } catch (err) {
+      console.error("[BarberHomeScreen] Error fetching commission rate:", err);
+      return 0;
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const appointmentsRef = collection(db, "appointments");
-    const q = query(
-      appointmentsRef,
-      where("barberId", "==", barberId),
-      where("barbershopId", "==", activeBarbershopId),
-      where("date", ">=", today),
-      where("date", "<", tomorrow),
-      orderBy("date", "asc")
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const appts = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      } as unknown as Appointment));
-
-      setTodayAppointments(appts);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [barberId, activeBarbershopId]);
+  };
 
   useEffect(() => {
-    if (!barberId || !activeBarbershopId) return;
+    if (!user || !activeBarbershopId) return;
 
-    const loadStats = async () => {
-      try {
-        const barberDocRef = doc(db, "users", barberId);
-        const barberDoc = await getDoc(barberDocRef);
+    const fetchTodayEarnings = async () => {
+      const commissionRate = await fetchCommissionRate();
+      const now = new Date();
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(now);
+      todayEnd.setHours(23, 59, 59, 999);
 
-        if (barberDoc.exists()) {
-          const data = barberDoc.data();
-          setStats({
-            totalClients: data.totalClients || 0,
-            totalAppointments: data.totalAppointments || 0,
-            averageRating: data.averageRating || 0,
+      const unsubscribe = onSnapshot(
+        query(
+          collection(db, "appointments"),
+          where("barberId", "==", user.uid),
+          where("barbershopId", "==", activeBarbershopId),
+          where("status", "==", "completed"),
+          orderBy("date", "desc")
+        ),
+        (snap) => {
+          let revenue = 0;
+          snap.docs.forEach((d) => {
+            const data = d.data();
+            const date: Date = data.date?.toDate?.() ?? new Date(0);
+            if (date >= todayStart && date <= todayEnd) {
+              revenue += data.totalPrice ?? 0;
+            }
+          });
+
+          const commissionEarned = revenue * (commissionRate / 100);
+          setEarnings({
+            today: revenue,
+            commissionRate,
+            commissionEarned,
           });
         }
-      } catch (error) {
-        console.error("Error loading stats:", error);
-      }
+      );
+
+      return unsubscribe;
     };
 
-    loadStats();
-  }, [barberId]);
+    fetchTodayEarnings().then((unsub) => {
+      setLoading(false);
+      return unsub;
+    });
+  }, [user, activeBarbershopId]);
 
-  const onRefresh = async () => {
+  useEffect(() => {
+    if (!user || !activeBarbershopId) return;
+
+    const now = new Date();
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, "appointments"),
+        where("barberId", "==", user.uid),
+        where("barbershopId", "==", activeBarbershopId),
+        where("status", "==", "pending"),
+        orderBy("date", "asc"),
+        limit(1)
+      ),
+      (snap) => {
+        if (!snap.empty) {
+          const data = snap.docs[0].data();
+          const date: Date = data.date?.toDate?.() ?? new Date(0);
+          if (date > now) {
+            setNextAppointment({
+              id: snap.docs[0].id,
+              ...data,
+            } as Appointment);
+          }
+        } else {
+          setNextAppointment(null);
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user, activeBarbershopId]);
+
+  const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  const nextAppointment = todayAppointments[0];
-  const appointmentCount = todayAppointments.length;
+  const toggleAvailability = () => {
+    setAvailability((prev) => ({
+      ...prev,
+      isAvailable: !prev.isAvailable,
+      lastUpdated: new Date(),
+    }));
+  };
 
-  const displayName = profile?.displayName || firebaseUser?.displayName || "Barbero";
+  const formatTime = (date?: any) => {
+    if (!date) return "--:--";
+    const d = date?.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatAppointmentDate = (date?: any) => {
+    if (!date) return "";
+    const d = date?.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+  };
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={GOLD} />
+      <View style={[styles.centered, { backgroundColor: theme.colors.bgPrimary }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[
-        styles.container,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={GOLD}
-        />
-      }
-    >
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Hola, {displayName}</Text>
-        <View
-          style={[
-            styles.availabilityBadge,
-            isAvailable ? styles.availableBadge : styles.unavailableBadge,
-          ]}
-        >
-          <Text style={styles.badgeText}>
-            {isAvailable ? "● Disponible" : "● No disponible"}
+    <View style={[styles.container, { backgroundColor: theme.colors.bgPrimary }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+          />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
+            💈 Tu Dashboard
+          </Text>
+          <Text style={[styles.subtitle, { color: theme.colors.textTertiary }]}>
+            Bienvenido de vuelta
           </Text>
         </View>
-      </View>
 
-      <View style={styles.statsGrid}>
-        <TouchableOpacity
-          style={styles.statCard}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate("Agenda")}
+        <View
+          style={[
+            styles.card,
+            styles.earningsCard,
+            {
+              backgroundColor: theme.colors.bgSecondary,
+              borderLeftColor: theme.colors.primary,
+            },
+          ]}
         >
-          <Text style={styles.statNumber}>{appointmentCount}</Text>
-          <Text style={styles.statLabel}>Citas hoy</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.statCard}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate("Stats")}
-        >
-          <Text style={styles.statNumber}>{stats.totalClients}</Text>
-          <Text style={styles.statLabel}>Clientes</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.statCard}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate("Stats")}
-        >
-          <Text style={styles.statNumber}>
-            {stats.averageRating.toFixed(1)}
+          <View style={styles.cardHeader}>
+            <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+              💰 Dinero ganado HOY
+            </Text>
+          </View>
+          <Text
+            style={[
+              styles.earningsAmount,
+              { color: theme.colors.primary, marginTop: theme.spacing.lg },
+            ]}
+          >
+            {earnings.today.toFixed(2)} €
           </Text>
-          <Text style={styles.statLabel}>Calificación</Text>
-        </TouchableOpacity>
-      </View>
+          <View
+            style={[
+              styles.commissionInfo,
+              { marginTop: theme.spacing.md, paddingTop: theme.spacing.md },
+            ]}
+          >
+            <Text style={[styles.commissionText, { color: theme.colors.textTertiary }]}>
+              Comisión: {earnings.commissionRate}%
+            </Text>
+            <Text
+              style={[
+                styles.commissionEarned,
+                { color: theme.colors.success, marginTop: 4 },
+              ]}
+            >
+              Tu ganancia: {earnings.commissionEarned.toFixed(2)} €
+            </Text>
+          </View>
+        </View>
 
-      {nextAppointment ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Próxima cita</Text>
-          <View style={styles.appointmentCard}>
-            <View>
-              <Text style={styles.appointmentTime}>
-                {nextAppointment.timeSlot}
+        {nextAppointment ? (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.bgSecondary,
+                borderLeftColor: theme.colors.pending,
+              },
+            ]}
+          >
+            <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+              ⏰ Próxima cita
+            </Text>
+            <View style={[styles.appointmentInfo, { marginTop: theme.spacing.lg }]}>
+              <View style={styles.appointmentRow}>
+                <Text style={[styles.appointmentTime, { color: theme.colors.primary }]}>
+                  {formatTime(nextAppointment.date)} • {nextAppointment.timeSlot}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.appointmentClient,
+                  { color: theme.colors.text, marginTop: theme.spacing.sm },
+                ]}
+              >
+                Cliente: {(nextAppointment as any).clientName ?? "Sin nombre"}
               </Text>
-              <Text style={styles.appointmentClient}>
-                {(nextAppointment as any).clientName || "Cliente"}
+              <Text
+                style={[
+                  styles.appointmentService,
+                  { color: theme.colors.textSecondary, marginTop: 4 },
+                ]}
+              >
+                Servicio: {nextAppointment.services?.[0]?.name ?? "Sin servicio"}
               </Text>
-              <Text style={styles.appointmentService}>
-                {nextAppointment.services?.[0]?.name || "Servicio"}
+              <Text
+                style={[
+                  styles.appointmentDate,
+                  { color: theme.colors.textTertiary, marginTop: 4 },
+                ]}
+              >
+                {formatAppointmentDate(nextAppointment.date)}
               </Text>
             </View>
-            <View style={styles.appointmentStatus}>
-              <Text style={styles.statusBadge}>
-                {nextAppointment.status === "completed" ? "✓" : "→"}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: theme.colors.bgSecondary,
+                borderLeftColor: theme.colors.textTertiary,
+              },
+            ]}
+          >
+            <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+              ⏰ Próxima cita
+            </Text>
+            <Text
+              style={[
+                styles.noAppointment,
+                { color: theme.colors.textTertiary, marginTop: theme.spacing.lg },
+              ]}
+            >
+              No hay citas programadas
+            </Text>
+          </View>
+        )}
+
+        <View
+          style={[
+            styles.buttonRow,
+            { gap: theme.spacing.md, marginVertical: theme.spacing.lg },
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor: availability.isAvailable
+                  ? theme.colors.success
+                  : theme.colors.bgSecondary,
+                borderWidth: availability.isAvailable ? 0 : 1,
+                borderColor: theme.colors.textTertiary,
+                flex: 1,
+                minHeight: 48,
+              },
+            ]}
+            onPress={toggleAvailability}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                {
+                  color: availability.isAvailable
+                    ? theme.colors.dark
+                    : theme.colors.text,
+                  fontWeight: availability.isAvailable ? "700" : "600",
+                },
+              ]}
+            >
+              ✅ Disponible
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor: !availability.isAvailable
+                  ? theme.colors.error
+                  : theme.colors.bgSecondary,
+                borderWidth: !availability.isAvailable ? 0 : 1,
+                borderColor: theme.colors.textTertiary,
+                flex: 1,
+                minHeight: 48,
+              },
+            ]}
+            onPress={toggleAvailability}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.buttonText,
+                {
+                  color: !availability.isAvailable
+                    ? theme.colors.text
+                    : theme.colors.text,
+                  fontWeight: !availability.isAvailable ? "700" : "600",
+                },
+              ]}
+            >
+              ❌ No disponible
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: theme.colors.bgSecondary,
+              borderLeftColor: theme.colors.primary,
+            },
+          ]}
+        >
+          <Text style={[styles.cardLabel, { color: theme.colors.textSecondary }]}>
+            📅 Horario de hoy
+          </Text>
+          <View
+            style={[
+              styles.scheduleGrid,
+              {
+                marginTop: theme.spacing.lg,
+                gap: theme.spacing.md,
+              },
+            ]}
+          >
+            <View style={styles.scheduleItem}>
+              <Text style={[styles.scheduleLabel, { color: theme.colors.textTertiary }]}>
+                Entrada
+              </Text>
+              <Text
+                style={[
+                  styles.scheduleTime,
+                  { color: theme.colors.text, marginTop: 4 },
+                ]}
+              >
+                {todaySchedule.start}
+              </Text>
+            </View>
+            <View style={styles.scheduleItem}>
+              <Text style={[styles.scheduleLabel, { color: theme.colors.textTertiary }]}>
+                Descanso
+              </Text>
+              <Text
+                style={[
+                  styles.scheduleTime,
+                  { color: theme.colors.warning, marginTop: 4 },
+                ]}
+              >
+                {todaySchedule.break}
+              </Text>
+            </View>
+            <View style={styles.scheduleItem}>
+              <Text style={[styles.scheduleLabel, { color: theme.colors.textTertiary }]}>
+                Salida
+              </Text>
+              <Text
+                style={[
+                  styles.scheduleTime,
+                  { color: theme.colors.text, marginTop: 4 },
+                ]}
+              >
+                {todaySchedule.end}
               </Text>
             </View>
           </View>
         </View>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Sin citas</Text>
-          <Text style={styles.emptyText}>No tienes citas programadas para hoy</Text>
-        </View>
-      )}
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Acciones rápidas</Text>
         <TouchableOpacity
-          style={styles.actionButton}
-          activeOpacity={0.7}
+          style={[
+            styles.linkButton,
+            {
+              backgroundColor: theme.colors.primary,
+              marginTop: theme.spacing.xl,
+              marginBottom: theme.spacing.xxl,
+            },
+          ]}
           onPress={() => navigation.navigate("Agenda")}
-        >
-          <Text style={styles.actionIcon}>📅</Text>
-          <Text style={styles.actionLabel}>Ver Agenda completa</Text>
-          <Text style={styles.arrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
           activeOpacity={0.7}
-          onPress={() => navigation.navigate("Messages")}
         >
-          <Text style={styles.actionIcon}>💬</Text>
-          <Text style={styles.actionLabel}>Mensajes {unreadCount > 0 ? `(${unreadCount})` : ""}</Text>
-          <Text style={styles.arrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate("Schedule")}
-        >
-          <Text style={styles.actionIcon}>⏰</Text>
-          <Text style={styles.actionLabel}>Configurar horario</Text>
-          <Text style={styles.arrow}>→</Text>
-        </TouchableOpacity>
-      </View>
-
-      {!isAvailable && (
-        <View style={styles.warningBox}>
-          <Text style={styles.warningTitle}>⚠️ No disponible</Text>
-          <Text style={styles.warningText}>
-            Actualmente no estás disponible. Los clientes no pueden reservarte.
-          </Text>
-          <TouchableOpacity
-            style={styles.warningButton}
-            onPress={() => navigation.navigate("Availability")}
+          <Text
+            style={[
+              styles.linkButtonText,
+              { color: theme.colors.dark, fontWeight: "700" },
+            ]}
           >
-            <Text style={styles.warningButtonText}>Activar disponibilidad</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+            Ver toda mi agenda →
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-    paddingHorizontal: 16,
-  },
-  header: {
-    marginVertical: 20,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: TEXT,
-    marginBottom: 12,
-  },
-  availabilityBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  availableBadge: {
-    backgroundColor: SUCCESS + "20",
-  },
-  unavailableBadge: {
-    backgroundColor: "#FF5252" + "20",
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: TEXT,
-  },
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: SURFACE,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: "center",
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: GOLD,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: MUTED,
-    textAlign: "center",
-  },
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  scrollContent: { padding: 16, paddingBottom: 32 },
+  header: { marginBottom: 24 },
+  title: { fontSize: 28, fontWeight: "800", marginBottom: 4 },
+  subtitle: { fontSize: 14 },
   card: {
-    backgroundColor: SURFACE,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderLeftWidth: 4,
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: TEXT,
-    marginBottom: 12,
-  },
-  appointmentCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  appointmentTime: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: GOLD,
-    marginBottom: 4,
-  },
-  appointmentClient: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: TEXT,
-    marginBottom: 4,
-  },
-  appointmentService: {
-    fontSize: 12,
-    color: MUTED,
-  },
-  appointmentStatus: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: GOLD + "20",
+  earningsCard: { minHeight: 140 },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  cardLabel: { fontSize: 14, fontWeight: "600" },
+  earningsAmount: { fontSize: 36, fontWeight: "800", marginBottom: 8 },
+  commissionInfo: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)" },
+  commissionText: { fontSize: 13, fontWeight: "500" },
+  commissionEarned: { fontSize: 14, fontWeight: "700" },
+  appointmentInfo: { gap: 8 },
+  appointmentRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  appointmentTime: { fontSize: 16, fontWeight: "700" },
+  appointmentClient: { fontSize: 14, fontWeight: "600" },
+  appointmentService: { fontSize: 13 },
+  appointmentDate: { fontSize: 12 },
+  noAppointment: { fontSize: 14, fontStyle: "italic" },
+  buttonRow: { flexDirection: "row", justifyContent: "space-between" },
+  button: {
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  statusBadge: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: GOLD,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: MUTED,
-    textAlign: "center",
-    paddingVertical: 16,
-  },
-  actionButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginVertical: 4,
-    backgroundColor: "#0A0A0A",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  actionIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  actionLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
-    color: TEXT,
-  },
-  arrow: {
-    fontSize: 14,
-    color: MUTED,
-  },
-  warningBox: {
-    backgroundColor: "#FF5252" + "15",
+  buttonText: { fontSize: 14 },
+  scheduleGrid: { flexDirection: "row", justifyContent: "space-around" },
+  scheduleItem: { flex: 1, alignItems: "center" },
+  scheduleLabel: { fontSize: 12 },
+  scheduleTime: { fontSize: 16, fontWeight: "700" },
+  linkButton: {
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: "#FF5252",
-  },
-  warningTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: TEXT,
-    marginBottom: 8,
-  },
-  warningText: {
-    fontSize: 13,
-    color: MUTED,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  warningButton: {
-    backgroundColor: GOLD,
-    borderRadius: 8,
-    paddingVertical: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    justifyContent: "center",
     alignItems: "center",
   },
-  warningButtonText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: BG,
-  },
+  linkButtonText: { fontSize: 14 },
 });
