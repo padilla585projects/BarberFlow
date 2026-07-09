@@ -3,7 +3,7 @@
 // Deploy: npm run deploy (desde /backend)
 // Secrets: npx firebase-tools secrets:set RESEND_API_KEY
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
+exports.updateUserRole = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
 var emails_1 = require("./functions/emails");
 Object.defineProperty(exports, "onAppointmentCreated", { enumerable: true, get: function () { return emails_1.onAppointmentCreated; } });
 Object.defineProperty(exports, "onAppointmentStatusChanged", { enumerable: true, get: function () { return emails_1.onAppointmentStatusChanged; } });
@@ -33,4 +33,6 @@ var referrals_1 = require("./functions/referrals");
 Object.defineProperty(exports, "onReferralUserCreated", { enumerable: true, get: function () { return referrals_1.onReferralUserCreated; } });
 var stockAlerts_1 = require("./functions/stockAlerts");
 Object.defineProperty(exports, "onProductStockRestored", { enumerable: true, get: function () { return stockAlerts_1.onProductStockRestored; } });
+var updateUserRole_1 = require("./functions/updateUserRole");
+Object.defineProperty(exports, "updateUserRole", { enumerable: true, get: function () { return updateUserRole_1.updateUserRole; } });
 //# sourceMappingURL=index.js.map
