@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../services/firebase'
-import { getAllBarbershops, getBarbershopById, updateBarbershop } from '../../services/barbershops'
+import { getAllBarbershops, updateBarbershop } from '../../services/barbershops'
 import { getAppointmentsByBarbershop } from '../../services/appointments'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../components/common/Toast'

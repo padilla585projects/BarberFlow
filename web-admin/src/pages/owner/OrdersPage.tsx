@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getOrdersByBarbershop, updateOrderStatus } from '../../services/orders'
+import { updateOrderStatus } from '../../services/orders'
 import { getAllBarbershops } from '../../services/barbershops'
 import { useAuth } from '../../contexts/AuthContext'
 import { Order, Barbershop, ShippingAddress } from '../../types'

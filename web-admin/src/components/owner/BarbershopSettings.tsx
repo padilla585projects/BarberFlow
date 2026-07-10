@@ -8,15 +8,34 @@ interface BarbershopSettingsProps {
   onUpdate: (updated: Barbershop) => void
 }
 
+interface DayHours {
+  from: string
+  to: string
+  open: boolean
+}
+
+interface FormData {
+  name: string
+  address: string
+  phone: string
+  monday: DayHours
+  tuesday: DayHours
+  wednesday: DayHours
+  thursday: DayHours
+  friday: DayHours
+  saturday: DayHours
+  sunday: DayHours
+}
+
 export default function BarbershopSettings({
   barbershop,
   onUpdate,
 }: BarbershopSettingsProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: barbershop.name,
     address: barbershop.address,
     phone: barbershop.phone,
-    ...barbershop.openingHours,
+    ...(barbershop.openingHours as Omit<FormData, 'name' | 'address' | 'phone'>),
   })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -27,23 +46,29 @@ export default function BarbershopSettings({
   }
 
   const handleHoursChange = (day: string, field: 'from' | 'to', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day as keyof typeof prev],
-        [field]: value,
-      },
-    }))
+    setFormData(prev => {
+      const dayData = prev[day as keyof FormData] as DayHours || {}
+      return {
+        ...prev,
+        [day]: {
+          ...dayData,
+          [field]: value,
+        },
+      }
+    })
   }
 
   const handleOpenChange = (day: string, open: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day as keyof typeof prev],
-        open,
-      },
-    }))
+    setFormData(prev => {
+      const dayData = prev[day as keyof FormData] as DayHours || {}
+      return {
+        ...prev,
+        [day]: {
+          ...dayData,
+          open,
+        },
+      }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
