@@ -13,9 +13,16 @@ import {
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
-import { auth, db } from '../../services/firebase';
+import { auth } from '../../services/firebase';
+import {
+  saveSchedule,
+  subscribeToSchedule,
+  validateSchedule,
+  type ScheduleData,
+  type WeeklyHours,
+  type DaySchedule,
+} from '../../services/scheduleService';
 import { BARBER_COLORS, BARBER_SPACING } from '../../theme/barberTheme';
 
 /* ─── design tokens ─── */
@@ -36,21 +43,6 @@ type DayKey =
   | 'friday'
   | 'saturday'
   | 'sunday';
-
-interface DaySchedule {
-  active: boolean;
-  start: string | null;
-  end: string | null;
-  breakStart: string | null;
-  breakEnd: string | null;
-}
-
-type WeeklyHours = Record<DayKey, DaySchedule>;
-
-interface ScheduleData {
-  weeklyHours: WeeklyHours;
-  daysOff: string[];
-}
 
 /* ─── constants ─── */
 const DAYS: { key: DayKey; label: string }[] = [
@@ -131,39 +123,48 @@ export function BarberScheduleScreen() {
       return;
     }
 
-    try {
-      const ref = doc(db, 'users', user.uid, 'schedule', 'config');
-      const unsubscribe = onSnapshot(ref, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as ScheduleData;
+    const unsubscribe = subscribeToSchedule(
+      user.uid,
+      (data) => {
+        if (data) {
           if (data.weeklyHours) setWeeklyHours(data.weeklyHours);
           if (data.daysOff) setDaysOff(data.daysOff);
         }
         setLoading(false);
-      });
+      },
+      (error) => {
+        console.error('[BarberScheduleScreen] listener error:', error);
+        setLoading(false);
+      }
+    );
 
-      return () => {
-        unsubscribe();
-      };
-    } catch (err) {
-      console.error('[BarberScheduleScreen] listener error:', err);
-      setLoading(false);
-    }
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   /* ─── save schedule ─── */
-  const saveSchedule = async () => {
+  const handleSaveSchedule = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
+    // Validate schedule data
+    const scheduleData: ScheduleData = { weeklyHours, daysOff };
+    const validationErrors = validateSchedule(scheduleData);
+
+    if (validationErrors.length > 0) {
+      Alert.alert('Errores de validación', validationErrors.join('\n'));
+      return;
+    }
+
     setSaving(true);
     try {
-      const ref = doc(db, 'users', user.uid, 'schedule', 'config');
-      await setDoc(ref, { weeklyHours, daysOff } satisfies ScheduleData);
+      await saveSchedule(user.uid, scheduleData);
       Alert.alert('Guardado', 'Tu horario se ha actualizado correctamente.');
     } catch (err) {
       console.error('[BarberScheduleScreen] save error:', err);
-      Alert.alert('Error', 'No se pudo guardar el horario. Inténtalo de nuevo.');
+      const errorMsg = err instanceof Error ? err.message : 'No se pudo guardar el horario. Inténtalo de nuevo.';
+      Alert.alert('Error', errorMsg);
     } finally {
       setSaving(false);
     }
@@ -458,7 +459,7 @@ export function BarberScheduleScreen() {
       <View style={styles.saveContainer}>
         <TouchableOpacity
           style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-          onPress={saveSchedule}
+          onPress={handleSaveSchedule}
           disabled={saving}
         >
           {saving ? (
