@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import { signInWithGoogle } from '../../services/auth';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
+import { logFirebaseDebugInfo, diagnoseHTTP400Error } from '../../utils/firebaseDebug';
 
 // ── Theme (matches web-admin dark palette) ────────────────────────────────────
 const BG      = '#0A0A0A';
@@ -58,6 +59,11 @@ export function LoginScreen() {
   const [password, setPassword]   = useState('');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
+  // Log Firebase configuration on mount for debugging
+  useEffect(() => {
+    logFirebaseDebugInfo();
+  }, []);
+
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
@@ -83,9 +89,20 @@ export function LoginScreen() {
       Alert.alert('Email enviado', `Revisa tu bandeja de entrada en ${email.trim()}. Si no lo ves, mira la carpeta de spam.`);
     } catch (err: any) {
       const code = err?.code ?? '';
+      const errorMsg = err?.message ?? '';
       let msg = 'No se pudo enviar el email';
+
+      console.error('[LoginScreen] Password reset error:', {
+        code,
+        message: errorMsg,
+      });
+
       if (code === 'auth/user-not-found' || code === 'auth/invalid-email') {
         msg = 'No existe ninguna cuenta con ese email';
+      } else if (errorMsg.includes('400') || errorMsg.includes('identitytoolkit')) {
+        msg = 'Error de conexión con Firebase. Verifica tu conexión a internet';
+      } else if (code === 'auth/network-request-failed') {
+        msg = 'Error de red. Verifica tu conexión a internet';
       }
       Alert.alert('Error', msg);
     } finally {
@@ -115,13 +132,29 @@ export function LoginScreen() {
       await signInWithEmailAndPassword(auth, email.trim(), password);
     } catch (err: any) {
       const code = err?.code ?? '';
+      const errorMsg = err?.message ?? '';
       let msg = 'Error al iniciar sesión';
-      if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+
+      // Log detailed error info for debugging Firebase issues
+      console.error('[LoginScreen] Email sign-in error:', {
+        code,
+        message: errorMsg,
+        fullError: err,
+      });
+
+      // Check for HTTP 400 Firebase issues
+      if (errorMsg.includes('400') || errorMsg.includes('identitytoolkit')) {
+        console.warn('[LoginScreen] Firebase HTTP 400 Error detected');
+        console.warn(diagnoseHTTP400Error(err));
+        msg = 'Error de conexión con Firebase. Verifica tu conexión a internet e intenta de nuevo.';
+      } else if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
         msg = 'Email o contraseña incorrectos';
       } else if (code === 'auth/invalid-email') {
         msg = 'Email no válido';
       } else if (code === 'auth/too-many-requests') {
         msg = 'Demasiados intentos. Espera un momento';
+      } else if (code === 'auth/network-request-failed') {
+        msg = 'Error de red. Verifica tu conexión a internet';
       }
       Alert.alert('Error', msg);
     } finally {

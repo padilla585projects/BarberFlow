@@ -4,6 +4,22 @@ import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Validate required Firebase environment variables
+const requiredEnvVars = [
+  'EXPO_PUBLIC_FIREBASE_API_KEY',
+  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
+  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'EXPO_PUBLIC_FIREBASE_APP_ID',
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.warn(`⚠️  Missing Firebase env var: ${envVar}`);
+  }
+}
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,6 +28,13 @@ const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
+
+// Ensure API key is properly formatted and not public-facing issues
+if (firebaseConfig.apiKey && firebaseConfig.apiKey.startsWith('AIzaSy')) {
+  // This is a valid Firebase API key format
+  // Note: The API key must have "Identity Toolkit API" enabled in Google Cloud Console
+  // and must NOT have IP/HTTP referrer restrictions that would block mobile app requests
+}
 
 const app = initializeApp(firebaseConfig);
 
