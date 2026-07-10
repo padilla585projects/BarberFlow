@@ -26,6 +26,7 @@ import { useAuthContext } from "../../contexts/AuthContext";
 import { useBarberTheme } from "../../theme/barberTheme";
 import type { BarberStackParamList } from "../../navigation/BarberNavigator";
 import type { Appointment } from "../../types";
+import { AppointmentList } from "../../components/AppointmentList";
 
 type Nav = NativeStackNavigationProp<BarberStackParamList>;
 
@@ -68,6 +69,7 @@ export function BarberHomeScreen() {
     end: "--:--",
     break: "--:--",
   });
+  const [showAppointmentList, setShowAppointmentList] = useState(false);
 
   const fetchCommissionData = async (): Promise<{
     rate: number;
@@ -295,6 +297,36 @@ export function BarberHomeScreen() {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.bgPrimary }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  // Show appointment list in full screen mode
+  if (showAppointmentList && user && activeBarbershopId) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.bgPrimary }]}>
+        <View style={styles.appointmentListHeader}>
+          <TouchableOpacity
+            onPress={() => setShowAppointmentList(false)}
+            style={styles.backButton}
+          >
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>
+              ← Atrás
+            </Text>
+          </TouchableOpacity>
+          <Text style={[styles.appointmentListTitle, { color: theme.colors.text }]}>
+            Mis citas
+          </Text>
+        </View>
+        <AppointmentList
+          barberId={user.uid}
+          barbershopId={activeBarbershopId}
+          onStatusChange={() => {
+            // Refresh data when appointments are updated
+            setRefreshing(true);
+            setTimeout(() => setRefreshing(false), 500);
+          }}
+        />
       </View>
     );
   }
@@ -579,27 +611,49 @@ export function BarberHomeScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.linkButton,
-            {
-              backgroundColor: theme.colors.primary,
-              marginTop: theme.spacing.xl,
-              marginBottom: theme.spacing.xxl,
-            },
-          ]}
-          onPress={() => navigation.navigate("Agenda")}
-          activeOpacity={0.7}
-        >
-          <Text
+        <View style={styles.buttonRowVertical}>
+          <TouchableOpacity
             style={[
-              styles.linkButtonText,
-              { color: theme.colors.dark, fontWeight: "700" },
+              styles.linkButton,
+              {
+                backgroundColor: theme.colors.primary,
+                marginBottom: theme.spacing.md,
+              },
             ]}
+            onPress={() => setShowAppointmentList(true)}
+            activeOpacity={0.7}
           >
-            Ver toda mi agenda →
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.linkButtonText,
+                { color: theme.colors.dark, fontWeight: "700" },
+              ]}
+            >
+              Ver todas mis citas →
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.linkButton,
+              {
+                backgroundColor: theme.colors.primary,
+                marginBottom: theme.spacing.xxl,
+              },
+            ]}
+            onPress={() => navigation.navigate("Agenda")}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.linkButtonText,
+                { color: theme.colors.dark, fontWeight: "700" },
+              ]}
+            >
+              Ver mi agenda →
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -633,6 +687,7 @@ const styles = StyleSheet.create({
   appointmentDate: { fontSize: 12 },
   noAppointment: { fontSize: 14, fontStyle: "italic" },
   buttonRow: { flexDirection: "row", justifyContent: "space-between" },
+  buttonRowVertical: { flexDirection: "column", gap: 12, marginTop: 24 },
   button: {
     borderRadius: 12,
     justifyContent: "center",
@@ -651,4 +706,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   linkButtonText: { fontSize: 14 },
+  appointmentListHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  backButton: {
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  appointmentListTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+  },
 });
