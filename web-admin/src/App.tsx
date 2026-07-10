@@ -26,6 +26,7 @@ import BarberApplicationsPage from './pages/owner/BarberApplicationsPage'
 import NotificationsPage from './pages/owner/NotificationsPage'
 import MessagesPage from './pages/owner/MessagesPage'
 import GiftCardsPage from './pages/owner/GiftCardsPage'
+import OwnerDashboard from './pages/owner/OwnerDashboard'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivacyPage from './pages/PrivacyPage'
 import LandingPage from './pages/LandingPage'
@@ -102,6 +103,7 @@ function AppRoutes() {
             <Layout>
               <Routes>
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/owner-dashboard" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><OwnerDashboard /></ProtectedRoute>} />
                 {/* Developer */}
                 <Route path="/barbershops" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopsPage /></ProtectedRoute>} />
                 <Route path="/barbershops/:id" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopFormPage /></ProtectedRoute>} />
