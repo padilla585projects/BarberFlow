@@ -21,8 +21,8 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../../services/firebase';
 import Constants from 'expo-constants';
-import { signOut } from '../../services/auth';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useLogout } from '../../hooks/useLogout';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
@@ -49,6 +49,7 @@ function getInitials(name: string): string {
 export function ProfileScreen({ navigation }: Props) {
   const user = auth.currentUser;
   const { role } = useAuthContext();
+  const { handleLogout } = useLogout();
 
   const [displayName, setDisplayName]     = useState(user?.displayName ?? '');
   const [phone, setPhone]                 = useState('');
@@ -246,13 +247,6 @@ export function ProfileScreen({ navigation }: Props) {
     }
   };
 
-  // ── Sign out ──────────────────────────────────────────────────────────────
-  const handleSignOut = () => {
-    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
-    ]);
-  };
 
   // ── Delete account ────────────────────────────────────────────────────────
   const handleDeleteAccount = () => {
@@ -583,7 +577,7 @@ export function ProfileScreen({ navigation }: Props) {
       {/* ── Account ─────────────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Cuenta</Text>
-        <TouchableOpacity style={styles.dangerBtn} onPress={handleSignOut} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.dangerBtn} onPress={handleLogout} activeOpacity={0.7}>
           <Text style={styles.dangerBtnText}>Cerrar sesión</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.dangerOutlineBtn} onPress={handleDeleteAccount} activeOpacity={0.7}>

@@ -12,11 +12,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
-import { signOut } from '../../services/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 import { useUnreadCount } from '../common/NotificationsScreen';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useLogout } from '../../hooks/useLogout';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'Dashboard'>;
 
@@ -42,6 +42,7 @@ export function DashboardScreen({ navigation }: Props) {
   const [noBarbershop, setNoBarbershop] = useState(false);
   const unreadCount = useUnreadCount();
   const { activeBarbershopId } = useAuthContext();
+  const { handleLogout } = useLogout();
   const user = auth.currentUser;
 
   const fetchStats = async () => {
@@ -92,13 +93,6 @@ export function DashboardScreen({ navigation }: Props) {
 
   useEffect(() => { fetchStats(); }, []);
 
-  const handleSignOut = () => {
-    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', style: 'destructive', onPress: signOut },
-    ]);
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.centered}>
@@ -123,7 +117,7 @@ export function DashboardScreen({ navigation }: Props) {
           >
             <Text style={styles.ctaBtnText}>Crear mi barbería</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSignOut} style={{ marginTop: 8 }}>
+          <TouchableOpacity onPress={handleLogout} style={{ marginTop: 8 }}>
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </View>
@@ -161,7 +155,7 @@ export function DashboardScreen({ navigation }: Props) {
               <Text style={styles.iconBtnText}>🔔</Text>
               {unreadCount > 0 && <View style={styles.badge} />}
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSignOut} style={styles.iconBtn}>
+            <TouchableOpacity onPress={handleLogout} style={styles.iconBtn}>
               <Text style={[styles.iconBtnText, { fontSize: 16 }]}>🚪</Text>
             </TouchableOpacity>
           </View>

@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { signOut } from '../../services/auth';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { useLogout } from '../../hooks/useLogout';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 import type {
@@ -97,6 +97,7 @@ export function ShopSettingsScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { activeBarbershopId } = useAuthContext();
+  const { handleLogout } = useLogout();
 
   // Shop info
   const [name, setName] = useState('');
@@ -211,12 +212,6 @@ export function ShopSettingsScreen({ navigation }: Props) {
     }
   };
 
-  const handleSignOut = () => {
-    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', style: 'destructive', onPress: signOut },
-    ]);
-  };
 
   const updateDay = (day: DayKey, patch: Partial<DayHours>) => {
     setHours((prev) => ({
@@ -602,7 +597,7 @@ export function ShopSettingsScreen({ navigation }: Props) {
       {/* ── Sign Out ──────────────────────────────── */}
       <TouchableOpacity
         style={styles.signOutBtn}
-        onPress={handleSignOut}
+        onPress={handleLogout}
         activeOpacity={0.8}
       >
         <Text style={styles.signOutText}>Cerrar sesión</Text>

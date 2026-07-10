@@ -6,12 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { signOut } from '../../services/auth';
+import { useLogout } from '../../hooks/useLogout';
 import { db } from '../../services/firebase';
 
 const BG      = '#0A0A0A';
@@ -23,6 +22,7 @@ const BORDER  = '#282828';
 
 export function BarberProfileScreen() {
   const { firebaseUser, profile } = useAuthContext();
+  const { handleLogout } = useLogout();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [barberData, setBarberData] = useState<any>(null);
@@ -52,13 +52,6 @@ export function BarberProfileScreen() {
       </View>
     );
   }
-
-  const handleSignOut = () => {
-    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
-    ]);
-  };
 
   return (
     <ScrollView
@@ -106,7 +99,7 @@ export function BarberProfileScreen() {
           <Text style={styles.editButtonText}>Editar Perfil</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.dangerBtn} onPress={handleSignOut} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.dangerBtn} onPress={handleLogout} activeOpacity={0.7}>
           <Text style={styles.dangerBtnText}>Cerrar sesión</Text>
         </TouchableOpacity>
       </View>
