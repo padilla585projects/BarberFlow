@@ -1,0 +1,46 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ===== HELPER FUNCTIONS =====
+    function isSignedIn() {
+      return request.auth.uid != null;
+    }
+
+    function isUser(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isDeveloper() {
+      return getUserRole() in ['developer'];
+    }
+
+    function isBarber() {
+      return getUserRole() in ['barber'];
+    }
+
+    function isOwner() {
+      return getUserRole() in ['owner'];
+    }
+
+    // ===== BARBER PORTFOLIO PHOTOS =====
+    // Path: barber_portfolios/{userId}/{photoId}.{ext}
+    // - Any authenticated user can read
+    // - Only the barber (owner of the portfolio) can write/delete
+    match /barber_portfolios/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow create: if isUser(userId) && isBarber();
+      allow update: if isUser(userId) && isBarber();
+      allow delete: if isUser(userId) && isBarber();
+    }
+
+    // ===== CATCH-ALL - DENY EVERYTHING ELSE =====
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

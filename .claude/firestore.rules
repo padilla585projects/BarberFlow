@@ -1,0 +1,142 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== HELPER FUNCTIONS =====
+    function isSignedIn() {
+      return request.auth.uid != null;
+    }
+
+    function isUser(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isDeveloper() {
+      return getUserRole() in ['developer'];
+    }
+
+    function isBarber() {
+      return getUserRole() in ['barber'];
+    }
+
+    function isOwner() {
+      return getUserRole() in ['owner'];
+    }
+
+    function isClient() {
+      return getUserRole() in ['client'];
+    }
+
+    // ===== EXISTING RULES (DO NOT CHANGE) =====
+
+    // Users
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isUser(userId);
+      allow update: if isUser(userId);
+      allow delete: if false; // Never allow deletion
+    }
+
+    // Barbershops
+    match /barbershops/{barbershopId} {
+      allow read: if isSignedIn();
+      allow create: if isDeveloper();
+      allow update: if isDeveloper() || request.auth.uid == resource.data.ownerId;
+      allow delete: if isDeveloper();
+    }
+
+    // ===== NEW RULES FOR BARBER PROFILE & PORTFOLIO =====
+
+    // Barber Profiles - Public readable, owner-writeable
+    match /barber_profiles/{barberId} {
+      allow read: if isSignedIn(); // Any authenticated user can view barber profiles
+      allow create: if isUser(barberId) && isBarber();
+      allow update: if isUser(barberId); // Only the barber can update their own profile
+      allow delete: if false; // Never delete profiles
+
+      // Subcollection: photos (not needed, photos are in portfolio array)
+    }
+
+    // Barber Reviews - Public readable, clients can create, only review author can update/delete
+    match /barber_reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.clientId == request.auth.uid && isClient();
+      allow update: if isUser(resource.data.clientId); // Only the review author (client) can update
+      allow delete: if isUser(resource.data.clientId); // Only the review author can delete
+    }
+
+    // Barber Applications (existing, keep as is)
+    match /barber_applications/{docId} {
+      allow read: if isSignedIn();
+      allow create: if request.resource.data.userId == request.auth.uid && isBarber();
+      allow update: if isOwner() || isDeveloper(); // Only owner/dev can approve/reject
+      allow delete: if false;
+    }
+
+    // Invitations (existing, keep as is)
+    match /invitations/{code} {
+      allow read: if isSignedIn();
+      allow create: if isOwner() || isDeveloper();
+      allow update: if isOwner() || isDeveloper();
+      allow delete: if false;
+    }
+
+    // Appointments
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // Services
+    match /services/{serviceId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner() || isDeveloper();
+      allow update: if isOwner() || isDeveloper();
+      allow delete: if isOwner() || isDeveloper();
+    }
+
+    // Products (inventory)
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner() || isDeveloper();
+      allow update: if isOwner() || isDeveloper();
+      allow delete: if isOwner() || isDeveloper();
+    }
+
+    // Sales
+    match /sales/{saleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // Messages
+    match /messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // Catch-all - deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
