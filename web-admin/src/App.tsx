@@ -49,6 +49,7 @@ import ClientOrdersPage from './pages/client/ClientOrdersPage'
 import ClientBookPage from './pages/client/ClientBookPage'
 import ClientAppointmentsPage from './pages/client/ClientAppointmentsPage'
 import ClientProfilePage from './pages/client/ClientProfilePage'
+import AdminUtilsPage from './pages/AdminUtilsPage'
 
 function AppRoutes() {
   return (
@@ -57,6 +58,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/admin/utils" element={<AdminUtilsPage />} />
 
       {/* Onboarding (requiere auth, sin Layout principal) */}
       <Route

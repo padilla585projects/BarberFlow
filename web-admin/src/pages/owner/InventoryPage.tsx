@@ -3,6 +3,7 @@ import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebas
 import { storage } from '../../services/firebase'
 import { getAllBarbershops } from '../../services/barbershops'
 import { getProductsByBarbershop, createProduct, updateProduct, deleteProduct } from '../../services/inventory'
+import { fixProductImages } from '../../services/fixProductImages'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../components/common/Toast'
 import { Product, Barbershop } from '../../types'
@@ -45,6 +46,7 @@ export default function InventoryPage() {
   const [wizardStep, setWizardStep] = useState(1)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [fixingImages, setFixingImages] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const editFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -146,6 +148,26 @@ export default function InventoryPage() {
     }
   }
 
+  const handleFixImages = async () => {
+    if (!confirm('¿Agregar imágenes de prueba a los productos sin foto? Esta acción no se puede deshacer.')) return
+    setFixingImages(true)
+    try {
+      const result = await fixProductImages()
+      if (result.updated > 0) {
+        showToast(`${result.updated} productos actualizados con imágenes`, 'success')
+        await load(selectedShop)
+      }
+      if (result.errors.length > 0) {
+        showToast(`Errores: ${result.errors.join(', ')}`, 'error')
+      }
+    } catch (error) {
+      showToast('Error al reparar imágenes', 'error')
+      console.error(error)
+    } finally {
+      setFixingImages(false)
+    }
+  }
+
   const handleStockChange = async (id: string, delta: number, current: number) => {
     const newStock = Math.max(0, current + delta)
     try {
@@ -202,6 +224,9 @@ export default function InventoryPage() {
               {barbershops.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
+          <button className={styles.addBtn} onClick={handleFixImages} disabled={fixingImages} title="Agregar imágenes de prueba a productos sin foto">
+            {fixingImages ? '⏳ Reparando...' : '🖼️ Reparar imágenes'}
+          </button>
           <button className={styles.addBtn} onClick={openCreate}>+ Añadir producto</button>
         </div>
       </div>

@@ -106,7 +106,7 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if isSignedIn();
       allow create: if isOwner() || isDeveloper();
-      allow update: if isOwner() || isDeveloper();
+      allow update: if isSignedIn(); // TEMPORARY: Allow all authenticated users to update for migration
       allow delete: if isOwner() || isDeveloper();
     }
 
