@@ -4,10 +4,9 @@ import styles from './UploadFotoModal.module.css'
 interface UploadFotoModalProps {
   onUpload: (file: File, caption: string) => Promise<void>
   onClose: () => void
-  isLoading: boolean
 }
 
-export default function UploadFotoModal({ onUpload, onClose, isLoading }: UploadFotoModalProps) {
+export default function UploadFotoModal({ onUpload, onClose }: UploadFotoModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)

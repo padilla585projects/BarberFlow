@@ -6,13 +6,12 @@ import {
   deletePortfolioPhoto,
   updatePhotoCaption,
 } from '../../services/barberProfile'
-import { BarberProfile, BarberProfilePhoto } from '../../types'
+import { BarberProfilePhoto } from '../../types'
 import UploadFotoModal from '../../components/barber/UploadFotoModal'
 import styles from './PortfolioPage.module.css'
 
 export default function PortfolioPage() {
   const { user } = useAuth()
-  const [profile, setProfile] = useState<BarberProfile | null>(null)
   const [photos, setPhotos] = useState<BarberProfilePhoto[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -31,7 +30,6 @@ export default function PortfolioPage() {
       setLoading(true)
       const data = await getBarberProfile(user!.uid)
       if (data) {
-        setProfile(data)
         setPhotos(data.portfolio.photos)
       }
     } catch (err) {
@@ -203,7 +201,6 @@ export default function PortfolioPage() {
         <UploadFotoModal
           onUpload={handleUploadPhoto}
           onClose={() => setShowUploadModal(false)}
-          isLoading={uploading}
         />
       )}
     </div>

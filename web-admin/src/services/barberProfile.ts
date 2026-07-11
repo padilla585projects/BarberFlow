@@ -3,13 +3,10 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   collection,
   query,
   where,
   getDocs,
-  Query,
-  Timestamp,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { db, storage } from './firebase'

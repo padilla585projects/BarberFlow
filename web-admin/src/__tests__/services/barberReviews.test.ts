@@ -4,14 +4,6 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  createBarberReview,
-  getBarberReviews,
-  getRecentBarberReviews,
-  updateBarberReview,
-  deleteBarberReview,
-  getClientReviews,
-} from '../../services/barberReviews';
 import { BarberReview } from '../../types';
 
 // Mock Firebase modules
@@ -242,7 +234,6 @@ describe('barberReviews Service', () => {
 
     it('debe preservar datos no modificados', async () => {
       const original = mockReview;
-      const update = { comment: 'Nuevo comentario' };
 
       // Los campos no actualizados deben preservarse
       expect(original.id).toBe(mockReview.id);
@@ -311,7 +302,7 @@ describe('barberReviews Service', () => {
 
   describe('Rating Calculation', () => {
     it('debe calcular promedio correctamente', async () => {
-      const reviews = mockReviewsList; // [5, 4, 5]
+      // mockReviewsList has ratings [5, 4, 5]
       const average = (5 + 4 + 5) / 3;
 
       expect(average).toBe(14 / 3);

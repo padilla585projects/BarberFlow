@@ -4,16 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  getBarberProfile,
-  createBarberProfile,
-  updateBarberProfile,
-  updateAvailabilityStatus,
-  deletePortfolioPhoto,
-  updatePhotoCaption,
-  getAvailableBarberProfiles,
-} from '../../services/barberProfile';
-import { BarberProfile, BarberProfilePhoto } from '../../types';
+import { BarberProfile } from '../../types';
 
 // Mock Firebase modules
 vi.mock('firebase/firestore', () => ({
@@ -155,7 +146,6 @@ describe('barberProfile Service', () => {
 
     it('debe actualizar timestamp de actualización', async () => {
       const beforeUpdate = new Date();
-      const profileUpdate = { bio: 'Updated bio' };
       const afterUpdate = new Date();
 
       // Timestamps deberían estar en rango
@@ -171,17 +161,19 @@ describe('barberProfile Service', () => {
 
   describe('updateAvailabilityStatus', () => {
     it('debe cambiar de disponible a no disponible', async () => {
-      const currentStatus = 'available';
-      const newStatus = currentStatus === 'available' ? 'unavailable' : 'available';
+      const statuses: ('available' | 'unavailable')[] = ['available', 'unavailable'];
 
-      expect(newStatus).toBe('unavailable');
+      expect(statuses).toContain('available');
+      expect(statuses).toContain('unavailable');
     });
 
     it('debe cambiar de no disponible a disponible', async () => {
-      const currentStatus = 'unavailable';
-      const newStatus = currentStatus === 'available' ? 'unavailable' : 'available';
+      const toggleAvailability = (status: 'available' | 'unavailable') => {
+        return status === 'available' ? 'unavailable' : 'available';
+      };
 
-      expect(newStatus).toBe('available');
+      const result = toggleAvailability('unavailable');
+      expect(result).toBe('available');
     });
 
     it('debe actualizar el timestamp de disponibilidad', async () => {

@@ -7,7 +7,13 @@ import styles from './LoginPage.module.css'
 type Method = 'google' | 'email'
 type Mode = 'login' | 'register' | 'forgot'
 
-function getFirebaseError(code: string): string {
+function getFirebaseError(err: any): string {
+  const code: string = err?.code ?? ''
+  const message: string = err?.message ?? ''
+
+  // Log the full error for debugging
+  console.error('[AUTH ERROR]', { code, message, err })
+
   const map: Record<string, string> = {
     'auth/user-not-found':       'No existe cuenta con ese email',
     'auth/wrong-password':       'Contraseña incorrecta',
@@ -18,7 +24,13 @@ function getFirebaseError(code: string): string {
     'auth/too-many-requests':    'Demasiados intentos. Prueba en unos minutos',
     'auth/network-request-failed': 'Sin conexión. Comprueba tu red',
   }
-  return map[code] ?? 'Error al iniciar sesión. Inténtalo de nuevo.'
+
+  if (code in map) return map[code]
+
+  // Si tiene un mensaje personalizado, úsalo
+  if (message) return message
+
+  return 'Error al iniciar sesión. Inténtalo de nuevo.'
 }
 
 export default function LoginPage() {
@@ -75,7 +87,7 @@ export default function LoginPage() {
       } else if (code === 'auth/popup-blocked') {
         setError('El navegador bloqueó la ventana de Google. Permite las ventanas emergentes para este sitio en la barra de direcciones.')
       } else {
-        setError(`Error: ${code || msg || 'desconocido'}`)
+        setError(getFirebaseError(err))
       }
       setLoading(false)
     }
@@ -91,7 +103,7 @@ export default function LoginPage() {
         await resetPassword(email)
         setResetSent(true)
       } catch (err: any) {
-        setError(getFirebaseError(err?.code ?? ''))
+        setError(getFirebaseError(err))
       } finally {
         setLoading(false)
       }
@@ -107,13 +119,18 @@ export default function LoginPage() {
     setLoading(true)
     try {
       if (mode === 'login') {
+        console.log('[LOGIN] Attempting login with email:', email)
         await loginWithEmail(email, password)
+        console.log('[LOGIN] Login successful, waiting for navigation...')
       } else {
+        console.log('[REGISTER] Attempting signup with email:', email, 'role:', registerRole)
         await signUpWithEmail(name.trim(), email, password, registerRole)
+        console.log('[REGISTER] Signup successful, waiting for navigation...')
       }
       // El useEffect se encarga de navegar cuando user quede seteado
     } catch (err: any) {
-      setError(getFirebaseError(err?.code ?? ''))
+      console.error('[EMAIL_SUBMIT] Error:', err)
+      setError(getFirebaseError(err))
       setLoading(false)
     }
   }

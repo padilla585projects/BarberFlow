@@ -10,7 +10,6 @@ import {
   getDocs,
   orderBy,
   limit as firestoreLimit,
-  Query,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { BarberReview } from '../types'

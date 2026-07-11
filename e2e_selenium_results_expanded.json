@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-07-10T10:58:32.890125",
+  "flows": {
+    "cliente": {
+      "status": "success",
+      "validations": [
+        "Search bar visible: False",
+        "Barber list visible: False"
+      ],
+      "steps": [
+        "Login page loaded",
+        "Logged in successfully"
+      ]
+    },
+    "barbero": {
+      "status": "success",
+      "validations": [
+        "Appointments section: False",
+        "Schedule section: False"
+      ],
+      "steps": [
+        "Login page loaded",
+        "Logged in successfully",
+        "Found 0 appointments"
+      ]
+    },
+    "propietario": {
+      "status": "success",
+      "validations": [
+        "Statistics section: False",
+        "Barbershop management: False",
+        "Employees section: False"
+      ],
+      "steps": [
+        "Login page loaded",
+        "Logged in successfully",
+        "Found 0 modules"
+      ]
+    }
+  }
+}

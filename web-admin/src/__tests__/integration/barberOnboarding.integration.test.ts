@@ -17,7 +17,6 @@ import { BarberProfile } from '../../types';
 
 describe('Barber Onboarding Integration', () => {
   const mockUserId = 'barber-uid-123';
-  const mockEmail = 'juan.barber@example.com';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -174,7 +173,6 @@ describe('Barber Onboarding Integration', () => {
 
   describe('Navigation Flow', () => {
     it('debe navegar a /onboarding/crear-perfil-barbero desde OnboardingBarberPage', async () => {
-      const currentPath = '/onboarding/barber';
       const targetPath = '/onboarding/crear-perfil-barbero';
 
       expect(targetPath).toContain('crear-perfil-barbero');

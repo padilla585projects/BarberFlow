@@ -36,10 +36,17 @@ async function createUserDoc(fbUser: FirebaseUser, overrideName?: string, overri
     uid: fbUser.uid,
     email: fbUser.email ?? '',
     displayName: overrideName ?? fbUser.displayName ?? fbUser.email?.split('@')[0] ?? 'Usuario',
-    photoURL: fbUser.photoURL ?? undefined,
+    photoURL: fbUser.photoURL ?? null,
     role,
   }
-  await setDoc(doc(db, 'users', fbUser.uid), newUser)
+  try {
+    await setDoc(doc(db, 'users', fbUser.uid), newUser)
+    console.log('[AUTH] User document created successfully:', fbUser.uid, newUser)
+  } catch (error) {
+    console.error('[AUTH] Error creating user document:', error)
+    // Re-throw with more context
+    throw new Error(`Failed to create user document: ${error instanceof Error ? error.message : String(error)}`)
+  }
   return newUser
 }
 
@@ -50,20 +57,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        setFirebaseUser(fbUser)
-        const userDoc = await getDoc(doc(db, 'users', fbUser.uid))
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User)
+      try {
+        if (fbUser) {
+          console.log('[AUTH] User authenticated via onAuthStateChanged:', fbUser.uid)
+          setFirebaseUser(fbUser)
+          const userDoc = await getDoc(doc(db, 'users', fbUser.uid))
+          if (userDoc.exists()) {
+            console.log('[AUTH] User document found in Firestore')
+            setUser(userDoc.data() as User)
+          } else {
+            console.log('[AUTH] User document not found, creating...')
+            const newUser = await createUserDoc(fbUser)
+            setUser(newUser)
+          }
         } else {
-          const newUser = await createUserDoc(fbUser)
-          setUser(newUser)
+          console.log('[AUTH] No authenticated user')
+          setFirebaseUser(null)
+          setUser(null)
         }
-      } else {
+      } catch (error) {
+        console.error('[AUTH] Error in onAuthStateChanged:', error)
         setFirebaseUser(null)
         setUser(null)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
     return unsub
   }, [])
@@ -74,18 +92,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const loginWithEmail = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
-    // onAuthStateChanged se encarga del resto
+    try {
+      console.log('[AUTH] Signing in with email:', email)
+      await signInWithEmailAndPassword(auth, email, password)
+      console.log('[AUTH] Email sign-in successful, onAuthStateChanged will handle the rest')
+      // onAuthStateChanged se encarga del resto
+    } catch (error) {
+      console.error('[AUTH] Email sign-in error:', error)
+      throw error
+    }
   }
 
   const signUpWithEmail = async (name: string, email: string, password: string, role?: UserRole) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password)
-    // Actualizar displayName en Firebase Auth
-    await updateProfile(result.user, { displayName: name })
-    // Crear doc en Firestore directamente con el nombre correcto
-    // (no esperamos a onAuthStateChanged para evitar que se cree sin nombre)
-    const newUser = await createUserDoc(result.user, name, role)
-    setUser(newUser)
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password)
+      console.log('[AUTH] User created in Firebase Auth:', result.user.uid)
+
+      // Actualizar displayName en Firebase Auth
+      try {
+        await updateProfile(result.user, { displayName: name })
+        console.log('[AUTH] Display name updated in Firebase Auth')
+      } catch (profileError) {
+        console.warn('[AUTH] Warning: Could not update profile:', profileError)
+        // Continuar incluso si el perfil no se actualiza
+      }
+
+      // Crear doc en Firestore directamente con el nombre correcto
+      // (no esperamos a onAuthStateChanged para evitar que se cree sin nombre)
+      const newUser = await createUserDoc(result.user, name, role)
+      console.log('[AUTH] User document created, setting user state')
+      setUser(newUser)
+      setLoading(false)
+    } catch (error) {
+      console.error('[AUTH] Error in signUpWithEmail:', error)
+      setLoading(false)
+      throw error
+    }
   }
 
   const resetPassword = async (email: string) => {

@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-07-10T11:02:15.057058",
+  "flows": {
+    "cliente": {
+      "status": "success",
+      "steps": [
+        "Page loaded",
+        "Login successful",
+        "Barbershop found"
+      ]
+    },
+    "barbero": {
+      "status": "success",
+      "steps": [
+        "Barbero logged in"
+      ]
+    },
+    "propietario": {
+      "status": "success",
+      "steps": [
+        "Propietario logged in"
+      ]
+    }
+  }
+}

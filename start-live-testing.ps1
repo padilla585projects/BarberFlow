@@ -37,24 +37,20 @@ Write-Host ""
 
 # Paso 2: Abrir terminal con logs
 Write-Host "Abriendo terminal con logs en tiempo real..." -ForegroundColor Cyan
-$logCommand = "& '$adbPath' -s $deviceId logcat -s 'ReactNativeJS:*'"
 
-# Crear un script para PowerShell que abra en nueva ventana
+$logScriptPath = "$env:TEMP\barberflow_logs.ps1"
 $logScript = @"
-Write-Host "╔════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║         LIVE LOGS - HTC M9 React Native                   ║" -ForegroundColor Cyan
-Write-Host "╚════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Presiona Ctrl+C para salir" -ForegroundColor Yellow
-Write-Host ""
+Write-Host 'LIVE LOGS - HTC M9 React Native' -ForegroundColor Cyan
+Write-Host 'Presiona Ctrl+C para salir' -ForegroundColor Yellow
+Write-Host ''
 
 & '$adbPath' -s '$deviceId' logcat -s "ReactNativeJS:*"
 "@
 
-$logScriptPath = "$env:TEMP\barberflow_logs.ps1"
 Set-Content -Path $logScriptPath -Value $logScript
 
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {$logScript}"
+Start-Process powershell -NoNewWindow -ArgumentList "-NoExit", "-File", $logScriptPath
+Start-Sleep -Seconds 1
 Write-Host "✅ Terminal de logs abierta" -ForegroundColor Green
 Write-Host ""
 
