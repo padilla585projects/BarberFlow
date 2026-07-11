@@ -11,7 +11,7 @@ import { getAllBarbershops } from '../../services/barbershops'
 import { Barbershop } from '../../types'
 import styles from './OnboardingPage.module.css'
 
-type Tab = 'code' | 'apply'
+type Tab = 'code' | 'apply' | 'profile'
 
 export default function OnboardingBarberPage() {
   const { user, refreshUser, logout } = useAuth()
@@ -193,14 +193,14 @@ export default function OnboardingBarberPage() {
     )
   }
 
-  // ── Estado normal: elegir entre código o solicitud ──
+  // ── Estado normal: elegir entre código, solicitud, o crear perfil ──
   return (
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.icon}>✂️</div>
-        <h1 className={styles.title}>Únete a una barbería</h1>
+        <h1 className={styles.title}>Bienvenido, Barbero</h1>
         <p className={styles.subtitle}>
-          Usa el código que te dio el dueño o envía una solicitud.
+          ¿Quieres unirte a una barbería o crear tu perfil independiente?
         </p>
 
         <div className={styles.tabs}>
@@ -215,6 +215,12 @@ export default function OnboardingBarberPage() {
             onClick={() => setTab('apply')}
           >
             📋 Solicitar unirse
+          </button>
+          <button
+            className={`${styles.tab} ${tab === 'profile' ? styles.tabActive : ''}`}
+            onClick={() => setTab('profile')}
+          >
+            👤 Mi perfil primero
           </button>
         </div>
 
@@ -288,6 +294,24 @@ export default function OnboardingBarberPage() {
               </button>
             </form>
           )
+        )}
+
+        {/* ── Tab: Mi perfil primero ── */}
+        {tab === 'profile' && (
+          <div className={styles.profileTab}>
+            <p className={styles.stepSubtitle}>
+              Crea tu perfil independiente, sube tus trabajos y espera a que los dueños te contacten.
+              <br />
+              O únete a una barbería después si lo deseas.
+            </p>
+            <button
+              onClick={() => navigate('/onboarding/crear-perfil-barbero')}
+              className={styles.btn}
+              style={{ marginTop: '1.5rem' }}
+            >
+              Crear mi perfil →
+            </button>
+          </div>
         )}
 
         <button onClick={logout} className={styles.logoutLink}>

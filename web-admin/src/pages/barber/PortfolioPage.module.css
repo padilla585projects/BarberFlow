@@ -1,0 +1,308 @@
+.container {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: #999;
+  font-size: 1rem;
+}
+
+.error {
+  background: #dc2626;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.statValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #c9a84c;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: #999;
+  margin-top: 0.5rem;
+}
+
+.uploadButton {
+  width: 100%;
+  padding: 1rem;
+  background: #c9a84c;
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
+}
+
+.uploadButton:hover:not(:disabled) {
+  background: #d4b556;
+  transform: translateY(-2px);
+}
+
+.uploadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(201, 168, 76, 0.3);
+  border-radius: 12px;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty h2 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.empty p {
+  color: #999;
+  margin-bottom: 1.5rem;
+}
+
+.emptyButton {
+  padding: 0.75rem 1.5rem;
+  background: #c9a84c;
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.emptyButton:hover:not(:disabled) {
+  background: #d4b556;
+}
+
+.emptyButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.photoCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.photoCard:hover {
+  transform: translateY(-4px);
+  border-color: #c9a84c;
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.photoImageWrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  overflow: hidden;
+}
+
+.photoImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photoCard:hover .photoImage {
+  transform: scale(1.05);
+}
+
+.photoOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.photoCard:hover .photoOverlay {
+  opacity: 1;
+}
+
+.deleteBtn {
+  padding: 0.5rem 1rem;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.deleteBtn:hover {
+  background: #b91c1c;
+}
+
+.photoInfo {
+  padding: 1rem;
+}
+
+.captionView {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.captionView:hover {
+  color: #c9a84c;
+}
+
+.caption {
+  color: #ccc;
+  font-size: 0.9rem;
+  margin: 0;
+  flex: 1;
+  word-break: break-word;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.editBtn:hover {
+  color: #c9a84c;
+}
+
+.uploadedAt {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.editCaption {
+  padding: 0.5rem;
+  background: rgba(201, 168, 76, 0.1);
+  border-radius: 6px;
+}
+
+.editCaption textarea {
+  width: 100%;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.editCaption textarea::placeholder {
+  color: #666;
+}
+
+.editButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.saveCaptionBtn,
+.cancelCaptionBtn {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.saveCaptionBtn {
+  background: #c9a84c;
+  color: #0a0a0a;
+}
+
+.saveCaptionBtn:hover {
+  background: #d4b556;
+}
+
+.cancelCaptionBtn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.cancelCaptionBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}

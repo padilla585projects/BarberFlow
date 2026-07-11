@@ -33,6 +33,11 @@ import LandingPage from './pages/LandingPage'
 // Onboarding
 import OnboardingOwnerPage from './pages/onboarding/OnboardingOwnerPage'
 import OnboardingBarberPage from './pages/onboarding/OnboardingBarberPage'
+import CrearPerfilBarberPage from './pages/onboarding/CrearPerfilBarberPage'
+// Barber pages
+import PortfolioPage from './pages/barber/PortfolioPage'
+import BarberProfileViewPage from './pages/barber/BarberProfileViewPage'
+import DashboardBarber from './pages/barber/DashboardBarber'
 // Client portal
 import { WebCartProvider } from './contexts/WebCartContext'
 import ClientLayout from './components/client/ClientLayout'
@@ -70,6 +75,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/onboarding/crear-perfil-barbero"
+        element={
+          <ProtectedRoute allowedRoles={['barber']}>
+            <CrearPerfilBarberPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Rutas cliente */}
       <Route
@@ -103,6 +116,7 @@ function AppRoutes() {
             <Layout>
               <Routes>
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/barber-dashboard" element={<ProtectedRoute allowedRoles={['barber', 'developer']}><DashboardBarber /></ProtectedRoute>} />
                 <Route path="/owner-dashboard" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><OwnerDashboard /></ProtectedRoute>} />
                 {/* Developer */}
                 <Route path="/barbershops" element={<ProtectedRoute allowedRoles={['developer']}><BarbershopsPage /></ProtectedRoute>} />
@@ -125,6 +139,9 @@ function AppRoutes() {
                 <Route path="/notifications" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><NotificationsPage /></ProtectedRoute>} />
                 <Route path="/messages" element={<ProtectedRoute allowedRoles={['barber', 'owner', 'developer']}><MessagesPage /></ProtectedRoute>} />
                 <Route path="/gift-cards" element={<ProtectedRoute allowedRoles={['owner', 'developer']}><GiftCardsPage /></ProtectedRoute>} />
+                {/* Barber */}
+                <Route path="/portfolio" element={<ProtectedRoute allowedRoles={['barber', 'developer']}><PortfolioPage /></ProtectedRoute>} />
+                <Route path="/barber-profile/:barberId" element={<BarberProfileViewPage />} />
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>

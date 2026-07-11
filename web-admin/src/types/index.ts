@@ -12,7 +12,7 @@ export interface User {
   uid: string;
   email: string;
   displayName: string;
-  photoURL?: string;
+  photoURL?: string | null;
   role: UserRole;
   barbershopId?: string;
   activeBarbershopId?: string;
@@ -165,4 +165,59 @@ export interface Promo {
   active: boolean;
   expiresAt?: Date;
   createdAt: Date;
+}
+
+export interface BarberProfilePhoto {
+  id: string; // UUID
+  url: string; // Firebase Storage URL
+  caption?: string;
+  uploadedAt: Date;
+  tags?: string[]; // ej: ['corte', 'diseño']
+}
+
+export interface BarberProfile {
+  uid: string;
+  displayName: string;
+  phone: string;
+  bio: string;
+  location: {
+    city: string;
+    province: string;
+    country?: string;
+  };
+  professional: {
+    yearsExperience: number;
+    specialties: string[]; // ej: ['cortes clásicos', 'diseños modernos', 'afeitados']
+    certifications?: string[];
+    languages: string[];
+  };
+  social: {
+    instagramHandle?: string;
+    instagramUrl?: string;
+  };
+  portfolio: {
+    photos: BarberProfilePhoto[];
+  };
+  availability: {
+    status: 'available' | 'unavailable' | 'in_negotiation';
+    updatedAt: Date;
+  };
+  ratings: {
+    averageRating: number; // 0-5, calculado
+    totalReviews: number;
+    lastReviewDate?: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BarberReview {
+  id: string;
+  barberId: string; // ref a User.uid
+  clientId: string; // ref a User.uid
+  rating: number; // 1-5
+  comment: string;
+  appointmentId?: string; // ref a Appointment.id
+  createdAt: Date;
+  updatedAt: Date;
 }
