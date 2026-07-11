@@ -172,7 +172,31 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   return (
     <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
       <div className={styles.brand}>
-        <img src="/logo.png" alt="BarberFlow" className={styles.brandLogo} />
+        <svg className={styles.brandLogo} viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          {/* Círculo */}
+          <circle cx="100" cy="100" r="95" fill="none" stroke="#c9a84c" strokeWidth="2" opacity="0.5"/>
+
+          {/* Tijeras */}
+          <g transform="translate(100, 85) rotate(-35)">
+            <circle cx="-15" cy="-30" r="7" fill="none" stroke="#c9a84c" strokeWidth="2"/>
+            <circle cx="15" cy="-30" r="7" fill="none" stroke="#c9a84c" strokeWidth="2"/>
+            <path d="M -15 -23 Q 0 -12 15 -23" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round"/>
+          </g>
+
+          {/* Navaja */}
+          <g transform="translate(100, 85) rotate(35)">
+            <path d="M 8 -35 L 16 15 Q 16 20 11 23 Q 8 23 8 20 L 8 -35" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="8" cy="-35" r="5" fill="none" stroke="#c9a84c" strokeWidth="1.5"/>
+          </g>
+
+          {/* Peine */}
+          <g transform="translate(100, 85) translate(-8, 8)">
+            <rect x="-2" y="-18" width="4" height="25" fill="none" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="-6" y1="-5" x2="2" y2="-5" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="-6" y1="5" x2="2" y2="5" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="-6" y1="15" x2="2" y2="15" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round"/>
+          </g>
+        </svg>
       </div>
 
       <div className={styles.userInfo}>

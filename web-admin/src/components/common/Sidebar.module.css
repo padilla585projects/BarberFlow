@@ -17,17 +17,24 @@
 .brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 0 20px 12px;
+  padding: 16px 20px;
   border-bottom: 1px solid rgba(201,168,76,0.12);
 }
 
 .brandLogo {
-  width: 100%;
-  max-width: 120px;
-  height: auto;
+  width: 75px;
+  height: 75px;
+  max-width: 100%;
   margin: 0 auto;
   display: block;
+  filter: drop-shadow(0 2px 4px rgba(201,168,76,0.15));
+  transition: filter 0.2s ease;
+}
+
+.brand:hover .brandLogo {
+  filter: drop-shadow(0 4px 8px rgba(201,168,76,0.25));
 }
 
 .userInfo {
