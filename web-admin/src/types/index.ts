@@ -33,6 +33,8 @@ export interface Barbershop {
   services: Service[];
   barbers: string[];
   openingHours: OpeningHours;
+  latitude?: number;   // GPS latitude — permite ordenar por cercanía en la app
+  longitude?: number;  // GPS longitude
   createdAt: Date;
 }
 

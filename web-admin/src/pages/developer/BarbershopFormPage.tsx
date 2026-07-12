@@ -28,6 +28,8 @@ export default function BarbershopFormPage() {
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [ownerId, setOwnerId] = useState('')
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
   const [services, setServices] = useState<Service[]>([])
   const [newService, setNewService] = useState({ name: '', duration: 30, price: 0 })
 
@@ -39,6 +41,8 @@ export default function BarbershopFormPage() {
       setAddress(shop.address)
       setPhone(shop.phone)
       setOwnerId(shop.ownerId)
+      setLatitude(shop.latitude != null ? String(shop.latitude) : '')
+      setLongitude(shop.longitude != null ? String(shop.longitude) : '')
       setServices(shop.services ?? [])
       setLoading(false)
     })
@@ -60,12 +64,14 @@ export default function BarbershopFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    const data = {
+    const data: any = {
       name, address, phone, ownerId,
       services,
       barbers: [],
       openingHours: defaultOpeningHours,
     }
+    if (latitude.trim()) data.latitude = parseFloat(latitude)
+    if (longitude.trim()) data.longitude = parseFloat(longitude)
     try {
       if (isEdit) {
         await updateBarbershop(id!, data)
@@ -108,6 +114,35 @@ export default function BarbershopFormPage() {
             <label>UID del dueño</label>
             <input value={ownerId} onChange={e => setOwnerId(e.target.value)} placeholder="UID de Firebase del dueño" />
             <span className={styles.hint}>El dueño lo puede ver en su perfil del panel</span>
+          </div>
+          <div className={styles.grid2}>
+            <div className={styles.field}>
+              <label>Latitud GPS</label>
+              <input
+                type="number"
+                step="any"
+                value={latitude}
+                onChange={e => setLatitude(e.target.value)}
+                placeholder="Ej: 40.416775"
+              />
+              <span className={styles.hint}>
+                Busca la barbería en{' '}
+                <a href="https://maps.google.com" target="_blank" rel="noreferrer" style={{ color: '#C9A84C' }}>
+                  Google Maps
+                </a>
+                {' '}→ clic derecho → copiar coordenadas
+              </span>
+            </div>
+            <div className={styles.field}>
+              <label>Longitud GPS</label>
+              <input
+                type="number"
+                step="any"
+                value={longitude}
+                onChange={e => setLongitude(e.target.value)}
+                placeholder="Ej: -3.703790"
+              />
+            </div>
           </div>
         </div>
 

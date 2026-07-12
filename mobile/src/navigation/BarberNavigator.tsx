@@ -1,5 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthContext } from '../contexts/AuthContext';
@@ -91,25 +92,26 @@ const switchStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 60,
     backgroundColor: BG,
     borderTopWidth: 1,
     borderTopColor: '#282828',
-    paddingTop: 4,
-    paddingBottom: 8,
+    // height + padding are set dynamically via insets in BarberNavigator
   },
   tabIconContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
+    gap: 3,
   },
   tabIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 22,
+    lineHeight: 26,      // explicit lineHeight evita desajuste de emojis en Android
+    includeFontPadding: false,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
+    lineHeight: 13,
   },
 });
 
@@ -327,10 +329,12 @@ function TabBarIcon({ icon, label, isFocused }: { icon: string; label: string; i
       ]}>
         {icon}
       </Text>
-      <Text style={[
-        styles.tabLabel,
-        { color: isFocused ? GOLD : '#666666' }
-      ]}>
+      <Text
+        style={[styles.tabLabel, { color: isFocused ? GOLD : '#666666' }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
         {label}
       </Text>
     </View>
@@ -339,12 +343,27 @@ function TabBarIcon({ icon, label, isFocused }: { icon: string; label: string; i
 
 export function BarberNavigator() {
   const unreadCount = useUnreadCount();
+  const insets = useSafeAreaInsets();
+
+  // Altura total = contenido (52px) + safe area bottom
+  const tabBarHeight = 52 + insets.bottom;
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: tabBarHeight,
+            paddingBottom: insets.bottom,
+          },
+        ],
+        tabBarItemStyle: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
         tabBarShowLabel: false,
         tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: '#666666',

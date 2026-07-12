@@ -1,5 +1,5 @@
 import { Alert } from 'react-native';
-import { signOut as firebaseSignOut } from '../../services/auth';
+import { signOut as firebaseSignOut } from '../services/auth';
 
 /**
  * Hook que proporciona la lógica de logout con confirmación.

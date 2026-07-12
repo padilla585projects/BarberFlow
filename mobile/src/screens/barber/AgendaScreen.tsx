@@ -62,56 +62,72 @@ export function AgendaScreen() {
       return;
     }
 
-    // Re-compute start-of-today so the listener always uses the current day
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const q = query(
-      collection(db, 'appointments'),
-      where('barberId', '==', user.uid),
-      where('barbershopId', '==', activeBarbershopId),
-      where('date', '>=', startOfToday),
-      orderBy('date'),
-    );
+    let retries = 0;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let currentUnsub: (() => void) | null = null;
 
-    const unsub = onSnapshot(
-      q,
-      async (snap) => {
-        const appts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
-        setAppointments(appts);
-        setLoading(false);
-        setRefreshing(false);
+    const subscribe = () => {
+      const q = query(
+        collection(db, 'appointments'),
+        where('barberId', '==', user.uid),
+        where('barbershopId', '==', activeBarbershopId),
+        where('date', '>=', startOfToday),
+        orderBy('date'),
+      );
 
-        // Resolve client display names (batch, no duplicates)
-        const uniqueIds = [...new Set(appts.map((a) => a.clientId).filter(Boolean))];
-        const resolved: Record<string, string> = {};
-        await Promise.all(
-          uniqueIds.map(async (uid) => {
-            try {
-              const snap = await getDoc(doc(db, 'users', uid));
-              if (snap.exists()) {
-                resolved[uid] = (snap.data() as any).displayName ?? uid;
+      currentUnsub = onSnapshot(
+        q,
+        async (snap) => {
+          const appts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment));
+          setAppointments(appts);
+          setLoading(false);
+          setRefreshing(false);
+
+          // Resolve client display names (batch, no duplicates)
+          const uniqueIds = [...new Set(appts.map((a) => a.clientId).filter(Boolean))];
+          const resolved: Record<string, string> = {};
+          await Promise.all(
+            uniqueIds.map(async (uid) => {
+              try {
+                const snap = await getDoc(doc(db, 'users', uid));
+                if (snap.exists()) {
+                  resolved[uid] = (snap.data() as any).displayName ?? uid;
+                }
+              } catch {
+                // non-critical — fallback shows clientId
               }
-            } catch {
-              // non-critical — fallback shows clientId
-            }
-          }),
-        );
-        setClientNames((prev) => ({ ...prev, ...resolved }));
-      },
-      (err) => {
-        console.error('[AgendaScreen] Error:', err);
-        Alert.alert(
-          'Error al cargar citas',
-          'No se pudo cargar la agenda. Revisa tu conexión y vuelve a intentarlo.',
-          [{ text: 'OK' }],
-        );
-        setLoading(false);
-        setRefreshing(false);
-      },
-    );
+            }),
+          );
+          setClientNames((prev) => ({ ...prev, ...resolved }));
+        },
+        (err) => {
+          console.error('[AgendaScreen] Error:', err.code, err.message);
+          // Retry up to 2× for transient errors (e.g. auth token refresh on slow/old devices)
+          if (retries < 2) {
+            retries += 1;
+            retryTimeout = setTimeout(subscribe, 1500);
+            return;
+          }
+          Alert.alert(
+            'Error al cargar citas',
+            'No se pudo cargar la agenda. Revisa tu conexión y vuelve a intentarlo.',
+            [{ text: 'OK' }],
+          );
+          setLoading(false);
+          setRefreshing(false);
+        },
+      );
+    };
 
-    return unsub;
+    subscribe();
+
+    return () => {
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (currentUnsub) currentUnsub();
+    };
   }, [activeBarbershopId]);
 
   const updateStatus = async (id: string, status: Appointment['status']) => {
@@ -159,6 +175,9 @@ export function AgendaScreen() {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: '60%' }}>
           <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
+            <TouchableOpacity onPress={() => navigation.navigate('Availability')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🔒 Dispon.</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
             </TouchableOpacity>

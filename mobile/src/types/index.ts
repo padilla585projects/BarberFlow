@@ -27,6 +27,7 @@ export interface User {
   activeBarbershopId?: string;  // barbería seleccionada actualmente
   memberships?: Membership[];   // todas las barberías donde trabaja
   shippingAddress?: ShippingAddress; // dirección de envío del cliente
+  favoriteShops?: string[];     // IDs de barberías favoritas del cliente
 }
 
 export interface BookingSettings {
@@ -56,6 +57,8 @@ export interface Barbershop {
   gallery?: string[];
   totalRatings?: number;
   ratingSum?: number;
+  latitude?: number;   // GPS latitude (set by owner in admin panel)
+  longitude?: number;  // GPS longitude
   createdAt: Date;
 }
 

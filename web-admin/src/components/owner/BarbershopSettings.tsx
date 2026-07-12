@@ -18,6 +18,8 @@ interface FormData {
   name: string
   address: string
   phone: string
+  latitude: string
+  longitude: string
   monday: DayHours
   tuesday: DayHours
   wednesday: DayHours
@@ -35,7 +37,9 @@ export default function BarbershopSettings({
     name: barbershop.name,
     address: barbershop.address,
     phone: barbershop.phone,
-    ...(barbershop.openingHours as Omit<FormData, 'name' | 'address' | 'phone'>),
+    latitude: barbershop.latitude != null ? String(barbershop.latitude) : '',
+    longitude: barbershop.longitude != null ? String(barbershop.longitude) : '',
+    ...(barbershop.openingHours as Omit<FormData, 'name' | 'address' | 'phone' | 'latitude' | 'longitude'>),
   })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -85,19 +89,20 @@ export default function BarbershopSettings({
         sunday: formData.sunday,
       }
 
-      await updateBarbershop(barbershop.id, {
+      const updatePayload: Partial<Barbershop> = {
         name: formData.name,
         address: formData.address,
         phone: formData.phone,
         openingHours,
-      })
+      }
+      if (formData.latitude.trim()) updatePayload.latitude = parseFloat(formData.latitude)
+      if (formData.longitude.trim()) updatePayload.longitude = parseFloat(formData.longitude)
+
+      await updateBarbershop(barbershop.id, updatePayload)
 
       onUpdate({
         ...barbershop,
-        name: formData.name,
-        address: formData.address,
-        phone: formData.phone,
-        openingHours,
+        ...updatePayload,
       })
 
       setMessage({ type: 'success', text: 'Cambios guardados correctamente' })
@@ -155,6 +160,40 @@ export default function BarbershopSettings({
               required
             />
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Latitud GPS</label>
+              <input
+                type="number"
+                step="any"
+                name="latitude"
+                value={formData.latitude}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="Ej: 40.416775"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Longitud GPS</label>
+              <input
+                type="number"
+                step="any"
+                name="longitude"
+                value={formData.longitude}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="Ej: -3.703790"
+              />
+            </div>
+          </div>
+          <p style={{ fontSize: '12px', color: '#888', margin: '-4px 0 0' }}>
+            Busca tu barbería en{' '}
+            <a href="https://maps.google.com" target="_blank" rel="noreferrer" style={{ color: '#C9A84C' }}>
+              Google Maps
+            </a>
+            {' '}→ clic derecho → "¿Qué hay aquí?" para obtener las coordenadas
+          </p>
         </div>
 
         {/* Horario de apertura */}
