@@ -77,6 +77,7 @@ export function ShopScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const cart = useCart();
 
   useEffect(() => {
@@ -250,11 +251,14 @@ export function ShopScreen({ route, navigation }: Props) {
             }
           >
             {/* Product image */}
-            {item.photoURL ? (
+            {item.photoURL && !failedImages.has(item.id) ? (
               <Image
                 source={{ uri: item.photoURL }}
                 style={styles.cardImage}
                 resizeMode="cover"
+                onError={() =>
+                  setFailedImages((prev) => new Set(prev).add(item.id))
+                }
               />
             ) : (
               <View
@@ -298,7 +302,7 @@ export function ShopScreen({ route, navigation }: Props) {
                     item.stock === 0 && styles.addBtnTextDisabled,
                   ]}
                 >
-                  {item.stock === 0 ? 'Agotado' : 'Anadir'}
+                  {item.stock === 0 ? 'Agotado' : 'Añadir'}
                 </Text>
               </TouchableOpacity>
             </View>

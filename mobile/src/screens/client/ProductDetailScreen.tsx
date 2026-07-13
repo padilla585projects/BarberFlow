@@ -9,6 +9,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -71,6 +72,9 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   const [product, setProduct] = useState<Product>(initialProduct);
   const cart = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [addedModalVisible, setAddedModalVisible] = useState(false);
+  const [addedInfo, setAddedInfo] = useState<{ name: string; quantity: number } | null>(null);
 
   const isOutOfStock = product.stock === 0;
 
@@ -83,7 +87,7 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'products', initialProduct.id), (snap) => {
       if (snap.exists()) {
-        setProduct(snap.data() as Product);
+        setProduct({ id: snap.id, ...snap.data() } as Product);
       }
     });
 
@@ -189,7 +193,8 @@ export function ProductDetailScreen({ route, navigation }: Props) {
         barbershopId,
       );
     }
-    Alert.alert('Agregado', `${product.name} x${quantity} agregado al carrito.`);
+    setAddedInfo({ name: product.name, quantity });
+    setAddedModalVisible(true);
   };
 
   const handleReserveNow = () => {
@@ -233,11 +238,12 @@ export function ProductDetailScreen({ route, navigation }: Props) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Product image */}
-      {product.photoURL ? (
+      {product.photoURL && !imageFailed ? (
         <Image
           source={{ uri: product.photoURL }}
           style={styles.imageWrap}
           resizeMode="cover"
+          onError={() => setImageFailed(true)}
         />
       ) : (
         <View
@@ -390,6 +396,31 @@ export function ProductDetailScreen({ route, navigation }: Props) {
           </>
         )}
       </View>
+
+      {/* Added to cart confirmation modal */}
+      <Modal
+        visible={addedModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddedModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalCheckmark}>{'✓'}</Text>
+            <Text style={styles.modalTitle}>Agregado</Text>
+            <Text style={styles.modalDesc}>
+              {addedInfo?.name} x{addedInfo?.quantity} agregado al carrito.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalConfirmBtn}
+              onPress={() => setAddedModalVisible(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalConfirmBtnText}>Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -527,4 +558,47 @@ const styles = StyleSheet.create({
   alertBtnTextActive: {
     color: '#0A0A0A',
   },
+
+  // Added-to-cart confirmation modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: SURFACE,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  modalCheckmark: {
+    fontSize: 40,
+    color: '#4CAF50',
+    width: 72,
+    height: 72,
+    lineHeight: 72,
+    textAlign: 'center',
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: '#4CAF50',
+    overflow: 'hidden',
+  },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: TEXT_C },
+  modalDesc: { fontSize: 15, color: MUTED, textAlign: 'center', lineHeight: 22 },
+  modalConfirmBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalConfirmBtnText: { color: '#000', fontSize: 15, fontWeight: '700' },
 });
