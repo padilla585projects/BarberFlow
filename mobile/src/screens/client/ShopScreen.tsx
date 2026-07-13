@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
@@ -187,16 +188,20 @@ export function ShopScreen({ route, navigation }: Props) {
         />
       </View>
 
-      {/* Category chips — generated from actual product categories */}
-      <FlatList
-        data={categories}
+      {/* Category chips — generated from actual product categories.
+          chipList has flexShrink:0 (see styles) so this row never gets
+          squeezed by the product grid below when content overflows the
+          screen — without it, Yoga's flexShrink:1 default clips the top
+          of the chip text (letters like "T", "ú", "G" losing their tops). */}
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item}
         contentContainerStyle={styles.chipRow}
         style={styles.chipList}
-        renderItem={({ item }) => (
+      >
+        {categories.map((item) => (
           <TouchableOpacity
+            key={item}
             style={[
               styles.chip,
               selectedCategory === item && styles.chipActive,
@@ -212,11 +217,12 @@ export function ShopScreen({ route, navigation }: Props) {
               {item}
             </Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </ScrollView>
 
       {/* Product grid */}
       <FlatList
+        style={styles.gridList}
         data={filtered}
         numColumns={2}
         keyExtractor={(item) => item.id}
@@ -343,7 +349,7 @@ const styles = StyleSheet.create({
   cartBadgeText: { color: BG, fontSize: 11, fontWeight: '800' },
 
   // Search
-  searchWrap: { paddingHorizontal: 16, paddingTop: 12 },
+  searchWrap: { paddingHorizontal: 16, paddingTop: 12, flexShrink: 0 },
   searchInput: {
     backgroundColor: SURFACE,
     borderWidth: 1,
@@ -355,7 +361,11 @@ const styles = StyleSheet.create({
   },
 
   // Category chips
-  chipList: { flexGrow: 0, marginTop: 10 },
+  // flexShrink: 0 is critical here — without it, RN's flex layout (Yoga
+  // defaults flexShrink to 1) squeezes this row's height whenever the
+  // product grid below wants more space than the screen has, and Android
+  // clips the chip text at the top of the squeezed row.
+  chipList: { flexGrow: 0, flexShrink: 0, marginTop: 10 },
   chipRow: { paddingHorizontal: 16, gap: 8 },
   chip: {
     borderWidth: 1,
@@ -364,12 +374,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     backgroundColor: SURFACE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipActive: { borderColor: GOLD, backgroundColor: GOLD },
-  chipText: { color: MUTED, fontSize: 13, fontWeight: '600' },
+  chipText: { color: MUTED, fontSize: 13, fontWeight: '600', lineHeight: 18 },
   chipTextActive: { color: BG },
 
   // Grid
+  gridList: { flex: 1 },
   grid: { padding: 16, paddingTop: 12 },
   gridRow: { gap: CARD_GAP },
 

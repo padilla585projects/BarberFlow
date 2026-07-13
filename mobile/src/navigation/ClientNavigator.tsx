@@ -117,12 +117,21 @@ function ProfileAvatar({ onPress }: { onPress: () => void }) {
 
 function NotificationBell({ onPress }: { onPress: () => void }) {
   const unread = useUnreadCount();
+  // Fixed 32x32 box with the emoji centered inside via lineHeight: the native
+  // header (Toolbar) clips content to its allotted height, and a bare Text
+  // with no lineHeight measures too tight — its top (and the dot poking
+  // above it at top:-4) got clipped by the toolbar's bounds. Centering in a
+  // taller box, and keeping the dot inside the box (top:4 instead of -4),
+  // fixes the clipping without touching the toolbar itself.
   return (
-    <TouchableOpacity onPress={onPress} style={{ position: 'relative', paddingHorizontal: 4 }}>
-      <Text style={{ fontSize: 20 }}>{'🔔'}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <Text style={{ fontSize: 20, lineHeight: 24 }}>{'🔔'}</Text>
       {unread > 0 && (
         <View style={{
-          position: 'absolute', top: -4, right: 0,
+          position: 'absolute', top: 4, right: 4,
           width: 10, height: 10, borderRadius: 5,
           backgroundColor: GOLD,
         }} />
