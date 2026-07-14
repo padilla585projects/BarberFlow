@@ -93,3 +93,22 @@ mobile-testing.ps1
 restart-app.js
 /package.json
 /package-lock.json
+
+# Stray QA/E2E diagnostic screenshots and dumps (root-level only — real
+# assets live under mobile/, web-admin/, play-store-assets/, etc.)
+/m9_*.png
+/m9_*.xml
+/check_m9_*.png
+/fase2_*.png
+/test.png
+/test1_*.png
+/dump.xml
+/dump2.xml
+/dump_shop.xml
+/current_screen.png
+/barbershop_detail.png
+/s_horario.png
+/*_STATUS.txt
+/EXECUTION_SUMMARY.txt
+/e2e_selenium_screenshots*/
+/qa_audit_report/
