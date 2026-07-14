@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View, Platform } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -96,12 +96,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#282828',
     // height + padding are set dynamically via insets in BarberNavigator
-  },
-  tabIconContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
   },
   tabIcon: {
     fontSize: 22,
@@ -320,24 +314,25 @@ function MoreTabStack() {
 }
 
 // Tab Bar Icon Component
-function TabBarIcon({ icon, label, isFocused }: { icon: string; label: string; isFocused: boolean }) {
+//
+// OJO — por qué esto NO era un simple problema de justifyContent:
+// @react-navigation/bottom-tabs envuelve lo que devuelve `tabBarIcon` dentro
+// de una cajita de tamaño FIJO (31x28dp) posicionada con `position: absolute`
+// (ver TabBarIcon.js de la librería). Como aquí adentro metíamos ícono +
+// etiqueta + gap (~40dp de alto), el contenido se desbordaba hacia abajo de
+// esa cajita de 28dp — el ancla real siempre quedaba arriba del todo, sin
+// importar qué justifyContent/alignItems pusiéramos en nuestros propios
+// contenedores. Por eso ningún centrado nuestro cambiaba nada visualmente.
+//
+// Fix: dejar que `tabBarIcon` renderice SOLO el ícono (cabe bien en esa
+// cajita de 28dp) y usar el mecanismo nativo de etiqueta de la librería
+// (`tabBarShowLabel: true` + `tabBarLabel`) para el texto de abajo — ese sí
+// se apila y centra correctamente porque no vive dentro de la cajita fija.
+function TabBarIconOnly({ icon, isFocused }: { icon: string; isFocused: boolean }) {
   return (
-    <View style={styles.tabIconContainer}>
-      <Text style={[
-        styles.tabIcon,
-        { color: isFocused ? GOLD : '#666666' }
-      ]}>
-        {icon}
-      </Text>
-      <Text
-        style={[styles.tabLabel, { color: isFocused ? GOLD : '#666666' }]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
-      >
-        {label}
-      </Text>
-    </View>
+    <Text style={[styles.tabIcon, { color: isFocused ? GOLD : '#666666' }]}>
+      {icon}
+    </Text>
   );
 }
 
@@ -345,7 +340,8 @@ export function BarberNavigator() {
   const unreadCount = useUnreadCount();
   const insets = useSafeAreaInsets();
 
-  // Altura total = contenido (52px) + safe area bottom
+  // Altura total = contenido + safe area bottom (para no invadir la barra
+  // de navegación por software del dispositivo).
   const tabBarHeight = 52 + insets.bottom;
 
   return (
@@ -361,10 +357,12 @@ export function BarberNavigator() {
         ],
         tabBarItemStyle: {
           flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
         },
-        tabBarShowLabel: false,
+        // Dejamos que la librería dibuje la etiqueta (ver comentario en
+        // TabBarIconOnly de arriba sobre por qué NO metemos el label dentro
+        // del slot del ícono).
+        tabBarShowLabel: true,
+        tabBarLabelStyle: styles.tabLabel,
         tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: '#666666',
       })}
@@ -373,9 +371,7 @@ export function BarberNavigator() {
         name="HomeTab"
         component={HomeTabStack}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="🏠" label="Home" isFocused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabBarIconOnly icon="🏠" isFocused={focused} />,
           tabBarLabel: 'Home',
         }}
       />
@@ -384,9 +380,7 @@ export function BarberNavigator() {
         name="AgendaTab"
         component={AgendaTabStack}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="📅" label="Agenda" isFocused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabBarIconOnly icon="📅" isFocused={focused} />,
           tabBarLabel: 'Agenda',
         }}
       />
@@ -395,9 +389,7 @@ export function BarberNavigator() {
         name="StatsTab"
         component={StatsTabStack}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="📊" label="Stats" isFocused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabBarIconOnly icon="📊" isFocused={focused} />,
           tabBarLabel: 'Stats',
         }}
       />
@@ -406,9 +398,7 @@ export function BarberNavigator() {
         name="ProfileTab"
         component={ProfileTabStack}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="👤" label="Perfil" isFocused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabBarIconOnly icon="👤" isFocused={focused} />,
           tabBarLabel: 'Perfil',
         }}
       />
@@ -417,9 +407,7 @@ export function BarberNavigator() {
         name="MoreTab"
         component={MoreTabStack}
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon icon="⚙️" label="Más" isFocused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabBarIconOnly icon="⚙️" isFocused={focused} />,
           tabBarLabel: 'Más',
         }}
       />
