@@ -8,8 +8,8 @@ import {
   RefreshControl,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,

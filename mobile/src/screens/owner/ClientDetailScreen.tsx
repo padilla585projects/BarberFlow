@@ -8,10 +8,10 @@ import {
   RefreshControl,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,

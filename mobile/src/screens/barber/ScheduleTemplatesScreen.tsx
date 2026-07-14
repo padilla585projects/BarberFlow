@@ -6,10 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   Switch,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   doc,

@@ -6,9 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
+import { Alert } from './AppAlert';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
   subscribeToBarberoAppointments,

@@ -9,8 +9,8 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,

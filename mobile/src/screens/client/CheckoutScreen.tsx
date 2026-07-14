@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   Modal,
   Linking,
   Switch,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   doc,

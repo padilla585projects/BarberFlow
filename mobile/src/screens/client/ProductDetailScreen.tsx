@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Alert,
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';

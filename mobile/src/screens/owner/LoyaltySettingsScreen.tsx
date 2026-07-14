@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   Switch,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';

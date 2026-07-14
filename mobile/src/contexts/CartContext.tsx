@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { Alert } from '../components/AppAlert';
 
 export interface CartItem {
   productId: string;

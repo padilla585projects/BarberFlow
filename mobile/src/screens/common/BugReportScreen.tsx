@@ -6,10 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import Constants from 'expo-constants';

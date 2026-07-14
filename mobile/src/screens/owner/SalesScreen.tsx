@@ -5,11 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   FlatList,
   TextInput,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,

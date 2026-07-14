@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   TextInput,
@@ -13,6 +12,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,

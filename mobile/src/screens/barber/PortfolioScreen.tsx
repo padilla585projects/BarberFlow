@@ -7,11 +7,11 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Dimensions,
   Modal,
   RefreshControl,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import * as ImagePicker from 'expo-image-picker';
 import {
   collection,

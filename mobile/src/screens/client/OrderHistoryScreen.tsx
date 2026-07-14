@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   collection,

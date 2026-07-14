@@ -6,9 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   doc,
   getDoc,

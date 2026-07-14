@@ -6,11 +6,11 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Dimensions,
   Modal,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { db, storage } from '../../services/firebase';

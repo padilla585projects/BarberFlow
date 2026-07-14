@@ -8,9 +8,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   Modal,
-  Alert,
   Share,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

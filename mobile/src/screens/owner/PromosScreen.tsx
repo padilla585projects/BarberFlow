@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   TextInput,
@@ -14,6 +13,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,

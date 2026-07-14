@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
   FlatList,
@@ -12,6 +11,7 @@ import {
   Modal,
   Linking,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   collection,
   addDoc,

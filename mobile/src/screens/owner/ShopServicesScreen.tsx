@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   TextInput,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';

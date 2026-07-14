@@ -5,13 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   FlatList,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {

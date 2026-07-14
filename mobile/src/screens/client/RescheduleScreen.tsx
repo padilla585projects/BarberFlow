@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   FlatList,
   ScrollView,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   collection,

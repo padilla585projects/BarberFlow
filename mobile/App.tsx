@@ -7,6 +7,7 @@ import { CartProvider } from './src/contexts/CartContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { initSentry, wrapWithSentry } from './src/services/sentry';
 import { UpdateBanner } from './src/components/UpdateBanner';
+import { AlertProvider } from './src/components/AppAlert';
 
 // Suppress non-critical warnings BEFORE any module initialization
 // (LogBox must register patterns before initSentry() fires its warning)
@@ -36,6 +37,8 @@ function App() {
           <RootNavigator onReady={onReady} />
           {/* OTA update banner — appears when a new version is ready */}
           <UpdateBanner />
+          {/* Themed replacement for native Alert.alert dialogs */}
+          <AlertProvider />
         </CartProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

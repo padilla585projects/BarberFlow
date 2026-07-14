@@ -6,11 +6,11 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { auth, db } from '../../services/firebase';

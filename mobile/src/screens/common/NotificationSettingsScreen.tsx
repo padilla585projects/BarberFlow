@@ -6,8 +6,8 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { NotificationPreferences } from '../../types';

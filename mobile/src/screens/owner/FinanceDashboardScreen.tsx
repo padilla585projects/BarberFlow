@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
   Share,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import * as FileSystem from 'expo-file-system/legacy';
 import {
   collection,

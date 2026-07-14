@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
-  Alert,
   ActivityIndicator,
   Image,
   ActionSheetIOS,
@@ -15,6 +14,7 @@ import {
   Linking,
   Share,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';

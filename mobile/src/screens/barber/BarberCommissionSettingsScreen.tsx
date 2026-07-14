@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  Alert,
   Switch,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { useBarberTheme } from '../../theme/barberTheme';

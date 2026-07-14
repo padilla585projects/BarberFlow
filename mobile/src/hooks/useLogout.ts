@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Alert } from '../components/AppAlert';
 import { signOut as firebaseSignOut } from '../services/auth';
 
 /**

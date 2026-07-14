@@ -5,7 +5,8 @@
  */
 
 import * as Calendar from 'expo-calendar'
-import { Alert, Platform } from 'react-native'
+import { Platform } from 'react-native';
+import { Alert } from '../components/AppAlert';
 
 export interface AppointmentCalendarEvent {
   title: string          // e.g. "Corte + Barba en BarberFlow"

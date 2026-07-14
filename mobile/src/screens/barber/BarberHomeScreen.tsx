@@ -335,11 +335,13 @@ export function BarberHomeScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.bgPrimary }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
+        overScrollMode="never"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
           />
         }
       >

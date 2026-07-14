@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Share,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import * as FileSystem from 'expo-file-system/legacy';
 import { httpsCallable } from 'firebase/functions';
 import { getFunctions } from 'firebase/functions';

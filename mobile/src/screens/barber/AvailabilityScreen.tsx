@@ -6,8 +6,8 @@ import {
   Switch,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import {
   doc,
   getDoc,

@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
   Share,
 } from 'react-native';
+import { Alert } from '../../components/AppAlert';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
