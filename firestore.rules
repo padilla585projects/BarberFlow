@@ -124,6 +124,14 @@ service cloud.firestore {
         );
       }
 
+      // Barber availability/schedule doc (read/toggled from BarberHomeScreen)
+      match /barbers/{barberId} {
+        allow read: if isAuth();
+        allow write: if isAuth() && (
+          request.auth.uid == barberId || isOwnerOf(barbershopId) || isDeveloper()
+        );
+      }
+
       // Promo codes subcollection (stored under barbershop, not root)
       match /promos/{promoId} {
         allow read: if isAuth();

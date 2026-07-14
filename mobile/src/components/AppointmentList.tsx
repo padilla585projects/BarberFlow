@@ -144,7 +144,7 @@ export function AppointmentList({
       case 'pending':
         return theme.colors.warning;
       case 'completed':
-        return theme.colors.info;
+        return theme.colors.primary;
       case 'cancelled':
         return theme.colors.error;
       default:
@@ -257,7 +257,7 @@ export function AppointmentList({
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <MaterialIcons name="close-circle" size={16} color="#fff" />
+                  <MaterialIcons name="cancel" size={16} color="#fff" />
                   <Text style={styles.actionButtonText}>Cancelar</Text>
                 </>
               )}

@@ -20,6 +20,7 @@ import { updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db, storage } from '../../services/firebase';
+import { signOut } from '../../services/auth';
 import Constants from 'expo-constants';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';

@@ -4,7 +4,14 @@
  * Compatible con expo-calendar (SDK 56).
  */
 
-import * as Calendar from 'expo-calendar'
+// SDK 56: `expo-calendar`'s default export now points at the new class-based
+// "Next" API (ExpoCalendar). The old imperative functions used below
+// (getCalendarsAsync, requestCalendarPermissionsAsync, createEventAsync,
+// getDefaultCalendarAsync) still type-check from the main entrypoint as
+// deprecated shims, but THROW AT RUNTIME. The real implementations now live
+// under the `expo-calendar/legacy` subpath — see
+// https://docs.expo.dev/versions/v56.0.0/sdk/calendar/
+import * as Calendar from 'expo-calendar/legacy'
 import { Platform } from 'react-native';
 import { Alert } from '../components/AppAlert';
 
