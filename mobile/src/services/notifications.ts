@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 Notifications.setNotificationHandler({
@@ -45,7 +45,10 @@ export async function registerForPushNotifications(uid: string): Promise<string 
   });
   const token = tokenData.data;
 
-  await updateDoc(doc(db, 'users', uid), { expoPushToken: token });
+  // setDoc(..., { merge: true }) instead of updateDoc: this must never throw
+  // "No document to update" if the users/{uid} profile hasn't been created
+  // yet (e.g. a brand-new account, or a race with useAuth's profile setup).
+  await setDoc(doc(db, 'users', uid), { expoPushToken: token }, { merge: true });
 
   return token;
 }

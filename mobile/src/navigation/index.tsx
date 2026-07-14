@@ -60,12 +60,15 @@ function RootNavigatorInner({ onReady }: RootNavigatorProps) {
     }
   }, [loading, onReady]);
 
-  // Register push token once authenticated
+  // Register push token once authenticated.
+  // Gated on !loading — must wait until useAuth's getDoc/setDoc has settled,
+  // otherwise this can race the profile-creation write and try to update a
+  // users/{uid} doc that doesn't exist yet ("No document to update").
   useEffect(() => {
-    if (firebaseUser?.uid) {
+    if (firebaseUser?.uid && !loading) {
       registerForPushNotifications(firebaseUser.uid).catch(console.error);
     }
-  }, [firebaseUser?.uid]);
+  }, [firebaseUser?.uid, loading]);
 
   // While loading, show a dark placeholder (native splash covers it)
   if (loading) {

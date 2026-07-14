@@ -97,23 +97,42 @@ export function useAuth(): AuthState {
 
       try {
         const userRef = doc(db, 'users', firebaseUser.uid);
-        // Timeout de 8s para evitar pantalla negra infinita cuando la red es lenta
-        const snap = await Promise.race([
-          getDoc(userRef),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Firestore timeout')), 8000),
-          ),
-        ]);
+        // Timeout de 8s para evitar pantalla negra infinita cuando la red es lenta.
+        // Se reintenta una vez antes de rendirse: en un cold-start (p.ej. tras
+        // force-stop) la reconexión de WiFi puede tardar más de 8s, y el
+        // catch de abajo NO crea el perfil — solo baja al usuario a role:
+        // 'client' en memoria y no vuelve a intentarlo. Sin este reintento,
+        // un único timeout transitorio deja a la cuenta "atascada" como
+        // cliente en blanco hasta el próximo reinicio con red rápida.
+        const getDocWithTimeout = () =>
+          Promise.race([
+            getDoc(userRef),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Firestore timeout')), 8000),
+            ),
+          ]);
+        let snap;
+        try {
+          snap = await getDocWithTimeout();
+        } catch {
+          snap = await getDocWithTimeout();
+        }
 
         if (!snap.exists()) {
-          // New user — create profile
+          // New user — create profile.
+          // IMPORTANT: Firestore's setDoc() throws "Unsupported field value:
+          // undefined" if any field is explicitly undefined (e.g.
+          // firebaseUser.photoURL is null for accounts with no photo, and
+          // `null ?? undefined` evaluates to undefined). That crash used to
+          // abort profile creation entirely, permanently leaving users/{uid}
+          // missing. Only include photoURL when it actually has a value.
           const newProfile: User = {
             uid: firebaseUser.uid,
             email: firebaseUser.email ?? '',
             displayName: firebaseUser.displayName ?? '',
-            photoURL: firebaseUser.photoURL ?? undefined,
             role: 'client',
             memberships: [],
+            ...(firebaseUser.photoURL ? { photoURL: firebaseUser.photoURL } : {}),
           };
           const referralCode = generateReferralCode();
           const referredBy = consumePendingReferralCode(); // UID del referidor (no el código)
