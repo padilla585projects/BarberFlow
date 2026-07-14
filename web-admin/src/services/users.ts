@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, getDoc, updateDoc, query, where, deleteField } from 'firebase/firestore'
+import { collection, doc, getDocs, getDoc, updateDoc, query, where, deleteField, arrayUnion } from 'firebase/firestore'
 import { db } from './firebase'
 import { User, UserRole } from '../types'
 
@@ -34,8 +34,23 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   return snap.docs[0].data() as User
 }
 
-export async function addBarberToShop(uid: string, barbershopId: string): Promise<void> {
-  await updateDoc(doc(db, 'users', uid), { role: 'barber', barbershopId })
+export async function addBarberToShop(uid: string, barbershopId: string, barbershopName: string): Promise<void> {
+  // Keep barbershopId for backward compat, set activeBarbershopId, and append
+  // to memberships[] — must stay in sync with mobile's JoinBarbershopScreen,
+  // otherwise the app's useAuth() (which reads memberships[]) and
+  // firestore.rules (which read barbershopId) disagree and the barber gets
+  // "Missing or insufficient permissions" on their own shop's data.
+  await updateDoc(doc(db, 'users', uid), {
+    role: 'barber',
+    barbershopId,
+    activeBarbershopId: barbershopId,
+    memberships: arrayUnion({
+      barbershopId,
+      barbershopName,
+      role: 'barber',
+      joinedAt: new Date(),
+    }),
+  })
 }
 
 export async function removeBarberFromShop(uid: string): Promise<void> {

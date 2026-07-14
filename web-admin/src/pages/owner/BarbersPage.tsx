@@ -122,7 +122,8 @@ export default function BarbersPage() {
     if (!foundUser) return
     setAdding(true)
     try {
-      await addBarberToShop(foundUser.uid, selectedShop)
+      const shopName = barbershops.find(b => b.id === selectedShop)?.name ?? ''
+      await addBarberToShop(foundUser.uid, selectedShop, shopName)
       const newBarber: User = { ...foundUser, role: 'barber', barbershopId: selectedShop }
       setBarbers(prev => [...prev, newBarber])
       setCapacity(prev => ({ ...prev, [foundUser.uid]: 1 }))
