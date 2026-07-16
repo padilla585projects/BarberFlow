@@ -1,6 +1,10 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore'
 import * as admin from 'firebase-admin'
-import { sendEmail, tplAppointmentReceived, tplAppointmentConfirmed, tplAppointmentCancelled, tplNewAppointmentOwner } from '../utils/email'
+import {
+  sendEmail,
+  tplAppointmentReceived, tplAppointmentConfirmed, tplAppointmentCancelled, tplNewAppointmentOwner,
+  tplOrderReceived, tplNewOrderOwner, tplOrderStatusChanged,
+} from '../utils/email'
 
 if (!admin.apps.length) admin.initializeApp()
 const db = admin.firestore()
@@ -145,5 +149,106 @@ export const onAppointmentStatusChanged = onDocumentUpdated(
         }
       }
     }
+  }
+)
+
+// ─── onCreate: nuevo pedido → email al cliente Y al owner ────────────────────
+export const onOrderCreated = onDocumentCreated(
+  { document: 'orders/{orderId}', region: REGION, secrets: SECRETS },
+  async (event) => {
+    const order = event.data?.data()
+    if (!order) return
+
+    const orderId = event.data!.id
+    const barbershopId = order.barbershopId as string
+
+    const barbershop = await getBarbershop(barbershopId)
+
+    const items = (order.items as Array<{ name: string; quantity: number; price: number }>) ?? []
+    const totalAmount = (order.totalAmount ?? order.originalAmount ?? 0) as number
+    const shippingAddress = (order.shippingAddress as { street: string; city: string; postalCode: string; province: string; country: string } | null) ?? null
+    const clientEmail = order.clientEmail as string | undefined
+    const clientName = (order.clientName as string) || 'Cliente'
+
+    // Email al cliente
+    if (clientEmail) {
+      const html = tplOrderReceived({
+        clientName,
+        barbershopName: barbershop.name,
+        orderId,
+        items,
+        totalAmount,
+        shippingAddress,
+      })
+      await sendEmail(clientEmail, `Pedido recibido — ${barbershop.name}`, html)
+    }
+
+    // Email al owner
+    if (barbershop.ownerId) {
+      const ownerUser = await getUser(barbershop.ownerId)
+      if (ownerUser?.email) {
+        const html = tplNewOrderOwner({
+          ownerName: ownerUser.displayName,
+          clientName,
+          barbershopName: barbershop.name,
+          orderId,
+          items,
+          totalAmount,
+          shippingAddress,
+        })
+        await sendEmail(ownerUser.email, `Nuevo pedido — ${barbershop.name}`, html)
+      }
+    }
+  }
+)
+
+// ─── onUpdate: cambio de estado del pedido → email al cliente ────────────────
+export const onOrderStatusChanged = onDocumentUpdated(
+  { document: 'orders/{orderId}', region: REGION, secrets: SECRETS },
+  async (event) => {
+    const before = event.data?.before.data()
+    const after = event.data?.after.data()
+    if (!before || !after) return
+    if (before.status === after.status) return
+
+    // Only notify on meaningful forward transitions
+    const notifyStatuses = ['processing', 'shipped', 'delivered', 'cancelled'] as const
+    type NotifyStatus = typeof notifyStatuses[number]
+    if (!notifyStatuses.includes(after.status as NotifyStatus)) return
+
+    const orderId = event.data!.after.id
+    const barbershopId = after.barbershopId as string
+    const barbershop = await getBarbershop(barbershopId)
+
+    const clientEmail = after.clientEmail as string | undefined
+    if (!clientEmail) return
+
+    const clientName = (after.clientName as string) || 'Cliente'
+    const items = (after.items as Array<{ name: string; quantity: number; price: number }>) ?? []
+    const totalAmount = (after.totalAmount ?? after.originalAmount ?? 0) as number
+    const shippingAddress = (after.shippingAddress as { street: string; city: string; postalCode: string; province: string; country: string } | null) ?? null
+
+    const statusTitles: Record<NotifyStatus, string> = {
+      processing: 'Pedido en preparación',
+      shipped: 'Pedido enviado',
+      delivered: after.shippingAddress ? '¡Pedido entregado!' : 'Listo para recoger',
+      cancelled: 'Pedido cancelado',
+    }
+
+    const html = tplOrderStatusChanged({
+      clientName,
+      barbershopName: barbershop.name,
+      orderId,
+      status: after.status as NotifyStatus,
+      items,
+      totalAmount,
+      shippingAddress,
+    })
+
+    await sendEmail(
+      clientEmail,
+      `${statusTitles[after.status as NotifyStatus]} — ${barbershop.name}`,
+      html
+    )
   }
 )

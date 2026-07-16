@@ -285,6 +285,271 @@ export function tplAppointmentCancelled(data: {
 </body></html>`
 }
 
+// ─── ORDER TEMPLATES ──────────────────────────────────────────────────────────
+
+export function tplOrderReceived(data: {
+  clientName: string
+  barbershopName: string
+  orderId: string
+  items: Array<{ name: string; quantity: number; price: number }>
+  totalAmount: number
+  shippingAddress: { street: string; city: string; postalCode: string; province: string; country: string } | null
+}): string {
+  const itemRows = data.items.map(i => `
+    <tr>
+      <td style="padding:8px 0;font-size:14px;color:#333">${i.name} × ${i.quantity}</td>
+      <td style="padding:8px 0;font-size:14px;color:#333;text-align:right">${(i.price * i.quantity).toFixed(2)}€</td>
+    </tr>`).join('')
+
+  const shippingBlock = data.shippingAddress
+    ? `<tr>
+        <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Envío a</td>
+        <td style="padding:8px 0;font-size:14px;color:#333">${data.shippingAddress.street}, ${data.shippingAddress.postalCode} ${data.shippingAddress.city}, ${data.shippingAddress.province}</td>
+      </tr>`
+    : `<tr>
+        <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Recogida</td>
+        <td style="padding:8px 0;font-size:14px;color:#333">En barbería</td>
+      </tr>`
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pedido recibido</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:#000;padding:28px 40px;text-align:center">
+          <p style="color:#fff;font-size:22px;font-weight:800;letter-spacing:0.1em;margin:0">🛍️ BARBERFLOW</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px">
+          <p style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px">¡Pedido recibido! 📦</p>
+          <p style="color:#666;font-size:15px;margin:0 0 28px">Hola <strong>${data.clientName}</strong>, hemos recibido tu pedido en <strong>${data.barbershopName}</strong>. Te avisaremos cuando esté en preparación.</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px;margin-bottom:20px">
+            <tr><td style="padding:20px 24px">
+              <p style="margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#999">Productos</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${itemRows}
+                <tr><td colspan="2" style="padding-top:12px;border-top:1px solid #e8e8e8"></td></tr>
+                <tr>
+                  <td style="padding:10px 0 0;font-size:14px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:0.06em">Total</td>
+                  <td style="padding:10px 0 0;font-size:20px;font-weight:800;color:#111;text-align:right">${data.totalAmount.toFixed(2)}€</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px">
+            <tr><td style="padding:20px 24px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${shippingBlock}
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Referencia</td>
+                  <td style="padding:8px 0;font-size:12px;color:#666;font-family:monospace">#${data.orderId.slice(-8).toUpperCase()}</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <p style="margin:28px 0 0;font-size:13px;color:#999;line-height:1.7">
+            Recibirás una notificación cuando el estado de tu pedido cambie.<br>Gracias por tu compra 🙏
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee">
+          <p style="color:#bbb;font-size:12px;margin:0">© ${new Date().getFullYear()} BarberFlow · Gestión de barberías</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
+export function tplNewOrderOwner(data: {
+  ownerName: string
+  clientName: string
+  barbershopName: string
+  orderId: string
+  items: Array<{ name: string; quantity: number; price: number }>
+  totalAmount: number
+  shippingAddress: { street: string; city: string; postalCode: string; province: string; country: string } | null
+}): string {
+  const itemRows = data.items.map(i => `
+    <tr>
+      <td style="padding:8px 0;font-size:14px;color:#333">${i.name} × ${i.quantity}</td>
+      <td style="padding:8px 0;font-size:14px;color:#333;text-align:right">${(i.price * i.quantity).toFixed(2)}€</td>
+    </tr>`).join('')
+
+  const deliveryText = data.shippingAddress
+    ? `Envío a: ${data.shippingAddress.street}, ${data.shippingAddress.postalCode} ${data.shippingAddress.city}`
+    : 'Recogida en barbería'
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nuevo pedido</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:#000;padding:28px 40px;text-align:center">
+          <p style="color:#fff;font-size:22px;font-weight:800;letter-spacing:0.1em;margin:0">🛍️ BARBERFLOW</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px">
+          <p style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px">Nuevo pedido recibido 📦</p>
+          <p style="color:#666;font-size:15px;margin:0 0 28px">
+            Hola <strong>${data.ownerName}</strong>, <strong>${data.clientName}</strong> ha realizado un pedido en <strong>${data.barbershopName}</strong>.
+          </p>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px;margin-bottom:20px">
+            <tr><td style="padding:20px 24px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Cliente</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.clientName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Entrega</td>
+                  <td style="padding:8px 0;font-size:14px;color:#333">${deliveryText}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Referencia</td>
+                  <td style="padding:8px 0;font-size:12px;color:#666;font-family:monospace">#${data.orderId.slice(-8).toUpperCase()}</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px">
+            <tr><td style="padding:20px 24px">
+              <p style="margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#999">Productos</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${itemRows}
+                <tr><td colspan="2" style="padding-top:12px;border-top:1px solid #e8e8e8"></td></tr>
+                <tr>
+                  <td style="padding:10px 0 0;font-size:14px;font-weight:700;color:#111;text-transform:uppercase;letter-spacing:0.06em">Total</td>
+                  <td style="padding:10px 0 0;font-size:20px;font-weight:800;color:#111;text-align:right">${data.totalAmount.toFixed(2)}€</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <p style="margin:28px 0 0;font-size:13px;color:#999;line-height:1.7">
+            Gestiona este pedido desde la app de BarberFlow o el panel web.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee">
+          <p style="color:#bbb;font-size:12px;margin:0">© ${new Date().getFullYear()} BarberFlow · Gestión de barberías</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
+export function tplOrderStatusChanged(data: {
+  clientName: string
+  barbershopName: string
+  orderId: string
+  status: 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  items: Array<{ name: string; quantity: number }>
+  totalAmount: number
+  shippingAddress: { street: string; city: string; postalCode: string; province: string; country: string } | null
+}): string {
+  const statusMap: Record<string, { emoji: string; title: string; body: string; color: string }> = {
+    processing: {
+      emoji: '🔧',
+      title: 'Pedido en preparación',
+      body: 'Tu pedido está siendo preparado. Te avisaremos cuando salga para entrega.',
+      color: '#3B82F6',
+    },
+    shipped: {
+      emoji: '🚚',
+      title: 'Pedido enviado',
+      body: 'Tu pedido está en camino. Pronto lo tendrás en tu puerta.',
+      color: '#A78BFA',
+    },
+    delivered: {
+      emoji: '✅',
+      title: '¡Pedido entregado!',
+      body: data.shippingAddress
+        ? 'Tu pedido ha sido entregado. Esperamos que disfrutes de tus productos.'
+        : 'Tu pedido está listo para recoger en la barbería.',
+      color: '#10B981',
+    },
+    cancelled: {
+      emoji: '❌',
+      title: 'Pedido cancelado',
+      body: 'Tu pedido ha sido cancelado. Si tienes alguna pregunta, contacta con la barbería.',
+      color: '#EF4444',
+    },
+  }
+
+  const s = statusMap[data.status]
+  const itemList = data.items.map(i => `${i.name} × ${i.quantity}`).join(', ')
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${s.title}</title></head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+        <tr><td style="background:#000;padding:28px 40px;text-align:center">
+          <p style="color:#fff;font-size:22px;font-weight:800;letter-spacing:0.1em;margin:0">🛍️ BARBERFLOW</p>
+        </td></tr>
+        <tr><td style="padding:36px 40px">
+          <p style="font-size:22px;font-weight:700;color:#111;margin:0 0 8px">${s.emoji} ${s.title}</p>
+          <p style="color:#666;font-size:15px;margin:0 0 28px">Hola <strong>${data.clientName}</strong>, ${s.body}</p>
+
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#f9f9f9;border:1px solid #e8e8e8;border-radius:10px">
+            <tr><td style="padding:20px 24px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em;width:40%">Barbería</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:#111">${data.barbershopName}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Productos</td>
+                  <td style="padding:8px 0;font-size:14px;color:#333">${itemList}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Total</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:700;color:#111">${data.totalAmount.toFixed(2)}€</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Referencia</td>
+                  <td style="padding:8px 0;font-size:12px;color:#666;font-family:monospace">#${data.orderId.slice(-8).toUpperCase()}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#999;font-size:13px;text-transform:uppercase;letter-spacing:0.06em">Estado</td>
+                  <td style="padding:8px 0">
+                    <span style="display:inline-block;background:${s.color};color:#fff;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">${s.title}</span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+
+          <p style="margin:28px 0 0;font-size:13px;color:#999;line-height:1.7">
+            Consulta tus pedidos en cualquier momento desde la app de BarberFlow.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center;border-top:1px solid #eee">
+          <p style="color:#bbb;font-size:12px;margin:0">© ${new Date().getFullYear()} BarberFlow · Gestión de barberías</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`
+}
+
 export function tplAppointmentReminder(data: {
   clientName: string
   barberName: string
