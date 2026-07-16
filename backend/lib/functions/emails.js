@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
+exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = __importStar(require("firebase-admin"));
 const email_1 = require("../utils/email");
@@ -169,5 +169,88 @@ exports.onAppointmentStatusChanged = (0, firestore_1.onDocumentUpdated)({ docume
             }
         }
     }
+});
+// ─── onCreate: nuevo pedido → email al cliente Y al owner ────────────────────
+exports.onOrderCreated = (0, firestore_1.onDocumentCreated)({ document: 'orders/{orderId}', region: REGION, secrets: SECRETS }, async (event) => {
+    var _a, _b, _c, _d, _e;
+    const order = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
+    if (!order)
+        return;
+    const orderId = event.data.id;
+    const barbershopId = order.barbershopId;
+    const barbershop = await getBarbershop(barbershopId);
+    const items = (_b = order.items) !== null && _b !== void 0 ? _b : [];
+    const totalAmount = ((_d = (_c = order.totalAmount) !== null && _c !== void 0 ? _c : order.originalAmount) !== null && _d !== void 0 ? _d : 0);
+    const shippingAddress = (_e = order.shippingAddress) !== null && _e !== void 0 ? _e : null;
+    const clientEmail = order.clientEmail;
+    const clientName = order.clientName || 'Cliente';
+    // Email al cliente
+    if (clientEmail) {
+        const html = (0, email_1.tplOrderReceived)({
+            clientName,
+            barbershopName: barbershop.name,
+            orderId,
+            items,
+            totalAmount,
+            shippingAddress,
+        });
+        await (0, email_1.sendEmail)(clientEmail, `Pedido recibido — ${barbershop.name}`, html);
+    }
+    // Email al owner
+    if (barbershop.ownerId) {
+        const ownerUser = await getUser(barbershop.ownerId);
+        if (ownerUser === null || ownerUser === void 0 ? void 0 : ownerUser.email) {
+            const html = (0, email_1.tplNewOrderOwner)({
+                ownerName: ownerUser.displayName,
+                clientName,
+                barbershopName: barbershop.name,
+                orderId,
+                items,
+                totalAmount,
+                shippingAddress,
+            });
+            await (0, email_1.sendEmail)(ownerUser.email, `Nuevo pedido — ${barbershop.name}`, html);
+        }
+    }
+});
+// ─── onUpdate: cambio de estado del pedido → email al cliente ────────────────
+exports.onOrderStatusChanged = (0, firestore_1.onDocumentUpdated)({ document: 'orders/{orderId}', region: REGION, secrets: SECRETS }, async (event) => {
+    var _a, _b, _c, _d, _e, _f;
+    const before = (_a = event.data) === null || _a === void 0 ? void 0 : _a.before.data();
+    const after = (_b = event.data) === null || _b === void 0 ? void 0 : _b.after.data();
+    if (!before || !after)
+        return;
+    if (before.status === after.status)
+        return;
+    // Only notify on meaningful forward transitions
+    const notifyStatuses = ['processing', 'shipped', 'delivered', 'cancelled'];
+    if (!notifyStatuses.includes(after.status))
+        return;
+    const orderId = event.data.after.id;
+    const barbershopId = after.barbershopId;
+    const barbershop = await getBarbershop(barbershopId);
+    const clientEmail = after.clientEmail;
+    if (!clientEmail)
+        return;
+    const clientName = after.clientName || 'Cliente';
+    const items = (_c = after.items) !== null && _c !== void 0 ? _c : [];
+    const totalAmount = ((_e = (_d = after.totalAmount) !== null && _d !== void 0 ? _d : after.originalAmount) !== null && _e !== void 0 ? _e : 0);
+    const shippingAddress = (_f = after.shippingAddress) !== null && _f !== void 0 ? _f : null;
+    const statusTitles = {
+        processing: 'Pedido en preparación',
+        shipped: 'Pedido enviado',
+        delivered: after.shippingAddress ? '¡Pedido entregado!' : 'Listo para recoger',
+        cancelled: 'Pedido cancelado',
+    };
+    const html = (0, email_1.tplOrderStatusChanged)({
+        clientName,
+        barbershopName: barbershop.name,
+        orderId,
+        status: after.status,
+        items,
+        totalAmount,
+        shippingAddress,
+    });
+    await (0, email_1.sendEmail)(clientEmail, `${statusTitles[after.status]} — ${barbershop.name}`, html);
 });
 //# sourceMappingURL=emails.js.map

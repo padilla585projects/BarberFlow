@@ -94,15 +94,24 @@ exports.addBarberToShop = functions.https.onRequest(async (req, res) => {
         const currentMemberships = barberData.memberships || [];
         // Check if membership already exists
         const existingMembership = currentMemberships.find((m) => m.barbershopId === barbershopId);
+        // Also sync legacy top-level fields (role, barbershopId, activeBarbershopId).
+        // firestore.rules' isBarberOf()/isOwnerOf() and several client queries still
+        // read these flat fields directly, so they must stay in sync with
+        // memberships[] or the barber ends up with "Missing or insufficient
+        // permissions" errors on their own shop's data.
+        const userUpdate = {
+            role: 'barber',
+            barbershopId,
+            activeBarbershopId: barbershopId
+        };
         if (!existingMembership) {
-            await db.collection('users').doc(barberUID).update({
-                memberships: admin.firestore.FieldValue.arrayUnion(membership)
-            });
-            console.log(`Added membership to barber user ${barberUID}`);
+            userUpdate.memberships = admin.firestore.FieldValue.arrayUnion(membership);
         }
         else {
             console.log(`Membership already exists for barber`);
         }
+        await db.collection('users').doc(barberUID).update(userUpdate);
+        console.log(`Synced role/barbershopId/activeBarbershopId and membership for barber user ${barberUID}`);
         console.log(`Successfully added barber ${barberUID} to barbershop ${barbershopId}`);
         res.status(200).json({
             success: true,
