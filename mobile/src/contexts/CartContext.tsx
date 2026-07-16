@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from '../components/AppAlert';
 
 export interface CartItem {
@@ -23,9 +24,44 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const CART_STORAGE_KEY = '@barberflow_cart';
+
+interface PersistedCart {
+  items: CartItem[];
+  barbershopId: string | null;
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load cart from AsyncStorage on mount
+  useEffect(() => {
+    AsyncStorage.getItem(CART_STORAGE_KEY)
+      .then((raw) => {
+        if (raw) {
+          try {
+            const saved: PersistedCart = JSON.parse(raw);
+            if (Array.isArray(saved.items)) {
+              setItems(saved.items);
+              setBarbershopId(saved.barbershopId ?? null);
+            }
+          } catch {
+            // Corrupted data — start fresh
+          }
+        }
+      })
+      .catch(() => {})
+      .finally(() => setHydrated(true));
+  }, []);
+
+  // Persist cart whenever items or barbershopId change (after hydration)
+  useEffect(() => {
+    if (!hydrated) return;
+    const payload: PersistedCart = { items, barbershopId };
+    AsyncStorage.setItem(CART_STORAGE_KEY, JSON.stringify(payload)).catch(() => {});
+  }, [items, barbershopId, hydrated]);
 
   const clearCart = useCallback(() => {
     setItems([]);
@@ -119,6 +155,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }),
     [items, barbershopId, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice],
   );
+
+  // Don't render children until cart is hydrated to avoid flicker
+  if (!hydrated) return null;
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
