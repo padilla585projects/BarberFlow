@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,22 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
 import { Alert } from '../../components/AppAlert';
 import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   doc,
   updateDoc,
   orderBy,
-  increment,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
-import type { PaymentMethod, PaymentStatus } from '../../types';
 
 type Props = NativeStackScreenProps<OwnerStackParamList, 'ProductOrders'>;
 
@@ -34,7 +33,27 @@ const TEXT    = '#FFFFFF';
 const MUTED   = '#888888';
 const BORDER  = '#282828';
 
-type OrderStatus = 'reserved' | 'ready' | 'picked_up' | 'cancelled';
+// ── Status unificado con web-admin y CheckoutScreen ──────────────────────────
+type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+const STATUS_CONFIG: Record<OrderStatus, { color: string; label: string; emoji: string }> = {
+  pending:    { color: '#F59E0B', label: 'Pendiente',   emoji: '⏳' },
+  processing: { color: '#3B82F6', label: 'Preparando',  emoji: '🔧' },
+  shipped:    { color: '#A78BFA', label: 'Enviado',     emoji: '🚚' },
+  delivered:  { color: '#10B981', label: 'Entregado',   emoji: '✅' },
+  cancelled:  { color: '#EF4444', label: 'Cancelado',   emoji: '❌' },
+};
+
+type FilterTab = 'all' | OrderStatus;
+
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: 'all',        label: 'Todos'      },
+  { key: 'pending',    label: 'Pendientes' },
+  { key: 'processing', label: 'Preparando' },
+  { key: 'shipped',    label: 'Enviados'   },
+  { key: 'delivered',  label: 'Entregados' },
+  { key: 'cancelled',  label: 'Cancelados' },
+];
 
 interface OrderItem {
   productId: string;
@@ -43,115 +62,94 @@ interface OrderItem {
   quantity: number;
 }
 
+interface ShippingAddress {
+  street: string;
+  city: string;
+  postalCode: string;
+  province: string;
+  country?: string;
+}
+
 interface ProductOrder {
   id: string;
   clientId: string;
   clientName: string;
   clientEmail: string;
   items: OrderItem[];
-  totalPrice: number;
-  notes: string;
+  totalAmount: number;
+  notes?: string;
   status: OrderStatus;
   createdAt: Date;
   barbershopId: string;
-  paymentMethod?: PaymentMethod;
-  paymentStatus?: PaymentStatus;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  shippingAddress?: ShippingAddress;
 }
 
-type FilterTab = 'all' | OrderStatus;
-
-const TABS: { key: FilterTab; label: string }[] = [
-  { key: 'all', label: 'Todos' },
-  { key: 'reserved', label: 'Reservados' },
-  { key: 'ready', label: 'Listos' },
-  { key: 'picked_up', label: 'Recogidos' },
-  { key: 'cancelled', label: 'Cancelados' },
-];
-
-const STATUS_CONFIG: Record<OrderStatus, { color: string; label: string }> = {
-  reserved:  { color: '#F59E0B', label: 'Reservado' },
-  ready:     { color: '#3B82F6', label: 'Listo para recoger' },
-  picked_up: { color: '#10B981', label: 'Recogido' },
-  cancelled: { color: '#EF4444', label: 'Cancelado' },
-};
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function ProductOrdersScreen({ navigation: _navigation }: Props) {
   const { activeBarbershopId } = useAuthContext();
-  const [orders, setOrders] = useState<ProductOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders]       = useState<ProductOrder[]>([]);
+  const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [expanded, setExpanded]   = useState<string | null>(null);
 
-  const fetchOrders = useCallback(async () => {
+  // ── Real-time listener on the shared `orders` collection ─────────────────
+  useEffect(() => {
     if (!activeBarbershopId) return;
-    try {
-      const q = query(
-        collection(db, `barbershops/${activeBarbershopId}/productOrders`),
-        orderBy('createdAt', 'desc'),
-      );
-      const snap = await getDocs(q);
 
+    setLoading(true);
+
+    const q = query(
+      collection(db, 'orders'),
+      where('barbershopId', '==', activeBarbershopId),
+      orderBy('createdAt', 'desc'),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
       const fetched: ProductOrder[] = snap.docs.map((d) => {
         const data = d.data();
         return {
-          id: d.id,
-          clientId: data.clientId ?? '',
-          clientName: data.clientName ?? 'Cliente',
-          clientEmail: data.clientEmail ?? '',
-          items: data.items ?? [],
-          totalPrice: data.totalPrice ?? 0,
-          notes: data.notes ?? '',
-          status: data.status ?? 'reserved',
-          createdAt: data.createdAt?.toDate?.() ?? new Date(0),
-          barbershopId: data.barbershopId ?? activeBarbershopId,
-          paymentMethod: data.paymentMethod,
-          paymentStatus: data.paymentStatus,
+          id:              d.id,
+          clientId:        data.clientId        ?? '',
+          clientName:      data.clientName      ?? 'Cliente',
+          clientEmail:     data.clientEmail     ?? '',
+          items:           data.items           ?? [],
+          // web-admin usa totalAmount; checkout legacy puede usar totalPrice
+          totalAmount:     data.totalAmount     ?? data.totalPrice ?? 0,
+          notes:           data.notes           ?? '',
+          status:          (data.status as OrderStatus) ?? 'pending',
+          createdAt:       data.createdAt?.toDate?.() ?? new Date(0),
+          barbershopId:    data.barbershopId    ?? activeBarbershopId,
+          paymentMethod:   data.paymentMethod,
+          paymentStatus:   data.paymentStatus,
+          shippingAddress: data.shippingAddress,
         };
       });
 
       setOrders(fetched);
-    } catch (err) {
-      console.error('[ProductOrdersScreen] Error:', err);
-    } finally {
       setLoading(false);
       setRefreshing(false);
-    }
+    }, (err) => {
+      console.error('[ProductOrdersScreen] Listener error:', err);
+      setLoading(false);
+      setRefreshing(false);
+    });
+
+    return () => unsub();
   }, [activeBarbershopId]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const onRefresh = () => setRefreshing(true); // el listener recarga solo
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchOrders();
-  };
-
-  const updateOrderStatus = async (order: ProductOrder, newStatus: OrderStatus) => {
-    if (!activeBarbershopId) return;
+  // ── Status transitions ───────────────────────────────────────────────────
+  const changeStatus = async (order: ProductOrder, newStatus: OrderStatus) => {
     try {
       setUpdatingId(order.id);
-
-      const orderRef = doc(db, `barbershops/${activeBarbershopId}/productOrders`, order.id);
-      await updateDoc(orderRef, { status: newStatus });
-
-      // Decrement stock when marking as picked_up
-      if (newStatus === 'picked_up') {
-        for (const item of order.items) {
-          if (item.productId) {
-            const productRef = doc(db, 'products', item.productId);
-            await updateDoc(productRef, {
-              stock: increment(-item.quantity),
-            });
-          }
-        }
-      }
-
-      // Update local state
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)),
-      );
+      await updateDoc(doc(db, 'orders', order.id), { status: newStatus });
+      // El listener onSnapshot actualizará el estado local automáticamente
     } catch (err) {
       console.error('[ProductOrdersScreen] Update error:', err);
       Alert.alert('Error', 'No se pudo actualizar el pedido.');
@@ -160,123 +158,195 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
     }
   };
 
-  const handleMarkReady = (order: ProductOrder) => {
-    Alert.alert('Marcar como listo', 'El cliente sera notificado de que su pedido esta listo.', [
+  const handleConfirm = (order: ProductOrder) =>
+    Alert.alert('Confirmar pedido', '¿Empezar a preparar este pedido?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => updateOrderStatus(order, 'ready') },
+      { text: 'Confirmar', onPress: () => changeStatus(order, 'processing') },
     ]);
-  };
 
-  const handleMarkPickedUp = (order: ProductOrder) => {
-    Alert.alert(
-      'Marcar como recogido',
-      'Se descontara el stock de los productos. Continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: () => updateOrderStatus(order, 'picked_up') },
-      ],
-    );
-  };
+  const handleShip = (order: ProductOrder) =>
+    Alert.alert('Marcar como enviado', 'El cliente recibirá una notificación.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Marcar enviado', onPress: () => changeStatus(order, 'shipped') },
+    ]);
 
-  const handleCancel = (order: ProductOrder) => {
-    Alert.alert('Cancelar pedido', 'Esta seguro de que quiere cancelar este pedido?', [
+  const handleReady = (order: ProductOrder) =>
+    Alert.alert('Listo para recoger', 'El cliente recibirá una notificación.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Confirmar', onPress: () => changeStatus(order, 'delivered') },
+    ]);
+
+  const handleDelivered = (order: ProductOrder) =>
+    Alert.alert('Marcar como entregado', '¿Confirmar entrega al cliente?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Confirmar', onPress: () => changeStatus(order, 'delivered') },
+    ]);
+
+  const handleCancel = (order: ProductOrder) =>
+    Alert.alert('Cancelar pedido', '¿Seguro que quieres cancelar este pedido?', [
       { text: 'No', style: 'cancel' },
-      {
-        text: 'Cancelar pedido',
-        style: 'destructive',
-        onPress: () => updateOrderStatus(order, 'cancelled'),
-      },
+      { text: 'Cancelar pedido', style: 'destructive', onPress: () => changeStatus(order, 'cancelled') },
     ]);
-  };
 
-  const filtered = activeTab === 'all' ? orders : orders.filter((o) => o.status === activeTab);
-
+  // ── Helpers ──────────────────────────────────────────────────────────────
   const formatDate = (d: Date) => {
-    const day = d.getDate().toString().padStart(2, '0');
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const year = d.getFullYear();
-    const hours = d.getHours().toString().padStart(2, '0');
-    const mins = d.getMinutes().toString().padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${mins}`;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
+  const isDelivery = (order: ProductOrder) => !!order.shippingAddress?.street;
+
+  const filtered = activeTab === 'all'
+    ? orders
+    : orders.filter((o) => o.status === activeTab);
+
+  // ── Action buttons per status ─────────────────────────────────────────────
+  const renderActions = (order: ProductOrder) => {
+    if (updatingId === order.id) return <ActivityIndicator color={GOLD} style={{ marginTop: 12 }} />;
+
+    const delivery = isDelivery(order);
+
+    switch (order.status) {
+      case 'pending':
+        return (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]} onPress={() => handleConfirm(order)}>
+              <Text style={styles.actionBtnText}>✓ Confirmar pedido</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EF4444' }]} onPress={() => handleCancel(order)}>
+              <Text style={styles.actionBtnText}>✕ Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      case 'processing':
+        return (
+          <View style={styles.actionsRow}>
+            {delivery ? (
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#A78BFA' }]} onPress={() => handleShip(order)}>
+                <Text style={styles.actionBtnText}>🚚 Marcar enviado</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10B981' }]} onPress={() => handleReady(order)}>
+                <Text style={styles.actionBtnText}>✅ Listo para recoger</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EF4444' }]} onPress={() => handleCancel(order)}>
+              <Text style={styles.actionBtnText}>✕ Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      case 'shipped':
+        return (
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10B981', flex: 1 }]} onPress={() => handleDelivered(order)}>
+              <Text style={styles.actionBtnText}>✅ Marcar entregado</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // ── Card ─────────────────────────────────────────────────────────────────
   const renderOrder = ({ item: order }: { item: ProductOrder }) => {
-    const cfg = STATUS_CONFIG[order.status];
-    const isUpdating = updatingId === order.id;
+    const cfg  = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+    const open = expanded === order.id;
 
     return (
       <View style={styles.card}>
-        {/* Header */}
-        <View style={styles.cardHeader}>
+        {/* Header — siempre visible */}
+        <TouchableOpacity
+          style={styles.cardHeader}
+          onPress={() => setExpanded(open ? null : order.id)}
+          activeOpacity={0.7}
+        >
           <View style={{ flex: 1 }}>
-            <Text style={styles.orderNumber}>Pedido #{order.id.substring(0, 6).toUpperCase()}</Text>
+            <View style={styles.headerTop}>
+              <Text style={styles.orderNumber}>#{order.id.slice(-6).toUpperCase()}</Text>
+              <View style={[styles.badge, { backgroundColor: cfg.color + '22' }]}>
+                <Text style={[styles.badgeText, { color: cfg.color }]}>
+                  {cfg.emoji} {cfg.label}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.clientName}>{order.clientName}</Text>
             <Text style={styles.clientEmail}>{order.clientEmail}</Text>
-            <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
-          </View>
-          <View style={[styles.badge, { backgroundColor: cfg.color + '22' }]}>
-            <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
-          </View>
-        </View>
-
-        {/* Items */}
-        <View style={styles.itemsContainer}>
-          {order.items.map((item, idx) => (
-            <View key={`${item.productId}-${idx}`} style={styles.itemRow}>
-              <Text style={styles.itemName} numberOfLines={1}>
-                {item.quantity}x {item.name}
-              </Text>
-              <Text style={styles.itemPrice}>{(item.price * item.quantity).toFixed(2)} EUR</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+              {isDelivery(order)
+                ? <Text style={styles.metaTag}>📦 Envío</Text>
+                : <Text style={styles.metaTag}>🏠 Recogida</Text>
+              }
+              {order.paymentMethod && (
+                <Text style={styles.metaTag}>
+                  {order.paymentMethod === 'cash' ? '💵 Efectivo'
+                    : order.paymentMethod === 'bizum' ? '📱 Bizum'
+                    : '💻 PayPal'}
+                </Text>
+              )}
             </View>
-          ))}
-        </View>
+          </View>
+          <View style={styles.toggleCol}>
+            <Text style={styles.totalValue}>{order.totalAmount.toFixed(2)} €</Text>
+            <Text style={styles.toggle}>{open ? '▲' : '▼'}</Text>
+          </View>
+        </TouchableOpacity>
 
-        {/* Total */}
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{order.totalPrice.toFixed(2)} EUR</Text>
-        </View>
+        {/* Detalle expandible */}
+        {open && (
+          <View style={styles.cardBody}>
+            {/* Items */}
+            <View style={styles.itemsContainer}>
+              {order.items.map((item, idx) => (
+                <View key={`${item.productId}-${idx}`} style={styles.itemRow}>
+                  <Text style={styles.itemName} numberOfLines={1}>
+                    {item.quantity}× {item.name}
+                  </Text>
+                  <Text style={styles.itemPrice}>{(item.price * item.quantity).toFixed(2)} €</Text>
+                </View>
+              ))}
+            </View>
 
-        {/* Notes */}
-        {order.notes ? (
-          <Text style={styles.notes}>Nota: {order.notes}</Text>
-        ) : null}
+            {/* Total */}
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalValueLg}>{order.totalAmount.toFixed(2)} €</Text>
+            </View>
 
-        {/* Actions */}
-        {isUpdating ? (
-          <ActivityIndicator color={GOLD} style={{ marginTop: 12 }} />
-        ) : (
-          <View style={styles.actionsRow}>
-            {order.status === 'reserved' && (
-              <>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]}
-                  onPress={() => handleMarkReady(order)}
-                >
-                  <Text style={styles.actionBtnText}>Marcar como listo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
-                  onPress={() => handleCancel(order)}
-                >
-                  <Text style={styles.actionBtnText}>Cancelar</Text>
-                </TouchableOpacity>
-              </>
+            {/* Dirección de envío */}
+            {isDelivery(order) && order.shippingAddress && (
+              <View style={styles.addressBlock}>
+                <Text style={styles.addressTitle}>📦 Dirección de envío</Text>
+                <Text style={styles.addressLine}>{order.shippingAddress.street}</Text>
+                <Text style={styles.addressLine}>
+                  {order.shippingAddress.postalCode} {order.shippingAddress.city}
+                </Text>
+                <Text style={styles.addressLine}>
+                  {order.shippingAddress.province}
+                  {order.shippingAddress.country ? `, ${order.shippingAddress.country}` : ''}
+                </Text>
+              </View>
             )}
-            {order.status === 'ready' && (
-              <TouchableOpacity
-                style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
-                onPress={() => handleMarkPickedUp(order)}
-              >
-                <Text style={styles.actionBtnText}>Marcar como recogido</Text>
-              </TouchableOpacity>
+
+            {/* Notas */}
+            {!!order.notes && (
+              <Text style={styles.notes}>📝 {order.notes}</Text>
             )}
+
+            {/* Botones de acción */}
+            {renderActions(order)}
           </View>
         )}
       </View>
     );
   };
 
+  // ── Stats header ─────────────────────────────────────────────────────────
+  const pendingCount    = orders.filter(o => o.status === 'pending').length;
+  const processingCount = orders.filter(o => o.status === 'processing').length;
+
+  // ── Render ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -287,20 +357,46 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
 
   return (
     <View style={styles.container}>
+
+      {/* Stats rápidas */}
+      {(pendingCount > 0 || processingCount > 0) && (
+        <View style={styles.alertBanner}>
+          {pendingCount > 0 && (
+            <Text style={styles.alertText}>⏳ {pendingCount} pendiente{pendingCount > 1 ? 's' : ''} sin confirmar</Text>
+          )}
+          {processingCount > 0 && (
+            <Text style={styles.alertText}>🔧 {processingCount} en preparación</Text>
+          )}
+        </View>
+      )}
+
       {/* Filter tabs */}
-      <View style={styles.tabsRow}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
+        contentContainerStyle={styles.tabsRow}
+      >
+        {TABS.map((tab) => {
+          const count = tab.key === 'all' ? orders.length : orders.filter(o => o.status === tab.key).length;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.tabBadge, activeTab === tab.key && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, activeTab === tab.key && { color: GOLD }]}>{count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       <FlatList
         data={filtered}
@@ -313,7 +409,9 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>📦</Text>
-            <Text style={styles.emptyText}>No hay pedidos</Text>
+            <Text style={styles.emptyText}>
+              {activeTab === 'all' ? 'No hay pedidos aún' : `No hay pedidos ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()}`}
+            </Text>
           </View>
         }
       />
@@ -321,33 +419,59 @@ export function ProductOrdersScreen({ navigation: _navigation }: Props) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
-  listContent: { padding: 16, gap: 12, paddingBottom: 40 },
+  centered:  { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BG },
+
+  // Alert banner
+  alertBanner: {
+    backgroundColor: '#F59E0B22',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F59E0B44',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  alertText: { fontSize: 13, color: '#F59E0B', fontWeight: '600' },
 
   // Tabs
+  tabsScroll: { flexGrow: 0 },
   tabsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingTop: 10,
     paddingBottom: 8,
-    gap: 8,
+    gap: 6,
   },
   tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: SURFACE,
     borderWidth: 1,
     borderColor: BORDER,
+    gap: 5,
   },
-  tabActive: {
-    backgroundColor: GOLD + '22',
-    borderColor: GOLD,
-  },
-  tabText: { fontSize: 12, color: MUTED, fontWeight: '600' },
+  tabActive:     { backgroundColor: GOLD + '22', borderColor: GOLD },
+  tabText:       { fontSize: 12, color: MUTED, fontWeight: '600' },
   tabTextActive: { color: GOLD },
+  tabBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  tabBadgeActive:  { backgroundColor: GOLD + '33' },
+  tabBadgeText:    { fontSize: 10, color: MUTED, fontWeight: '700' },
+
+  listContent: { padding: 12, gap: 10, paddingBottom: 40 },
 
   // Card
   card: {
@@ -355,38 +479,54 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 16,
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    padding: 14,
+    gap: 8,
   },
-  orderNumber: { fontSize: 15, fontWeight: '800', color: TEXT },
-  clientName: { fontSize: 14, fontWeight: '600', color: TEXT, marginTop: 4 },
-  clientEmail: { fontSize: 12, color: MUTED, marginTop: 2 },
-  orderDate: { fontSize: 11, color: MUTED, marginTop: 2 },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  orderNumber:  { fontSize: 15, fontWeight: '800', color: TEXT },
+  clientName:   { fontSize: 14, fontWeight: '600', color: TEXT, marginTop: 2 },
+  clientEmail:  { fontSize: 12, color: MUTED, marginTop: 1 },
+  metaRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  orderDate:    { fontSize: 11, color: MUTED },
+  metaTag:      { fontSize: 11, color: MUTED },
+
+  toggleCol:    { alignItems: 'flex-end', gap: 8 },
+  totalValue:   { fontSize: 15, fontWeight: '800', color: GOLD },
+  toggle:       { fontSize: 10, color: MUTED },
+
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   badgeText: { fontSize: 11, fontWeight: '700' },
 
-  // Items
-  itemsContainer: {
+  // Card body
+  cardBody: {
     borderTopWidth: 1,
     borderTopColor: BORDER,
-    paddingTop: 10,
-    gap: 6,
+    padding: 14,
+    gap: 10,
   },
+
+  // Items
+  itemsContainer: { gap: 6 },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  itemName: { fontSize: 13, color: TEXT, flex: 1, marginRight: 8 },
+  itemName:  { fontSize: 13, color: TEXT, flex: 1, marginRight: 8 },
   itemPrice: { fontSize: 13, color: MUTED, fontWeight: '600' },
 
   // Total
@@ -394,29 +534,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: BORDER,
   },
-  totalLabel: { fontSize: 14, fontWeight: '700', color: TEXT },
-  totalValue: { fontSize: 16, fontWeight: '800', color: GOLD },
+  totalLabel:   { fontSize: 14, fontWeight: '700', color: TEXT },
+  totalValueLg: { fontSize: 17, fontWeight: '800', color: GOLD },
+
+  // Address
+  addressBlock: {
+    backgroundColor: BG,
+    borderRadius: 10,
+    padding: 12,
+    gap: 2,
+  },
+  addressTitle: { fontSize: 12, fontWeight: '700', color: TEXT, marginBottom: 4 },
+  addressLine:  { fontSize: 12, color: MUTED },
 
   // Notes
-  notes: { fontSize: 12, color: MUTED, fontStyle: 'italic', marginTop: 8 },
+  notes: { fontSize: 12, color: MUTED, fontStyle: 'italic' },
 
   // Actions
-  actionsRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  actionBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  actionsRow:     { flexDirection: 'row', gap: 8, paddingTop: 4 },
+  actionBtn:      { flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: 'center' },
+  actionBtnText:  { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 
   // Empty
-  emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 8 },
-  emptyEmoji: { fontSize: 48 },
-  emptyText: { fontSize: 15, color: MUTED, fontWeight: '600' },
+  emptyContainer: { alignItems: 'center', paddingTop: 80, gap: 8 },
+  emptyEmoji:     { fontSize: 48 },
+  emptyText:      { fontSize: 15, color: MUTED, fontWeight: '600', textAlign: 'center' },
 });
