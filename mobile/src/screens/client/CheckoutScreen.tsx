@@ -119,6 +119,17 @@ export function CheckoutScreen({ route, navigation }: Props) {
     fetchData();
   }, [barbershopId, user]);
 
+  // Actualiza el método de pago seleccionado al primero disponible cuando carga la config
+  useEffect(() => {
+    if (!paymentConfig) return;
+    const { cash, bizum, paypal } = paymentConfig.paymentMethods;
+    if (selectedPayment === 'cash' && !cash) {
+      // Cash no disponible — elige el primero habilitado
+      if (bizum) setSelectedPayment('bizum');
+      else if (paypal) setSelectedPayment('paypal');
+    }
+  }, [paymentConfig]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const effectiveTotal = giftCard
     ? Math.max(0, cart.totalPrice - giftCard.applied)
     : cart.totalPrice;
@@ -189,6 +200,30 @@ export function CheckoutScreen({ route, navigation }: Props) {
     setSubmitting(true);
 
     try {
+      // ── Verificación de stock en tiempo real antes de confirmar ──────────────
+      // Leemos todos los productos en paralelo para detectar stock insuficiente
+      // antes de lanzar el batch (evita stock negativo por race conditions).
+      const stockChecks = await Promise.all(
+        cart.items.map(async (item) => {
+          const snap = await getDoc(doc(db, 'products', item.productId));
+          const currentStock = (snap.data()?.stock as number) ?? 0;
+          return { name: item.name, requested: item.quantity, available: currentStock };
+        }),
+      );
+      const outOfStock = stockChecks.filter((s) => s.available < s.requested);
+      if (outOfStock.length > 0) {
+        const names = outOfStock
+          .map((s) => `• ${s.name} (disponible: ${s.available}, pedido: ${s.requested})`)
+          .join('\n');
+        Alert.alert(
+          'Stock insuficiente',
+          `Algunos productos ya no tienen suficiente stock:\n\n${names}\n\nActualiza tu carrito e inténtalo de nuevo.`,
+        );
+        setSubmitting(false);
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────────────
+
       const batch = writeBatch(db);
 
       const shippingAddress = wantsDelivery ? {

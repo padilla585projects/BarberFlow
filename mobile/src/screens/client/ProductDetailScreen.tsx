@@ -130,21 +130,8 @@ export function ProductDetailScreen({ route, navigation }: Props) {
     setAlertLoading(true);
     try {
       if (alertSubscribed && alertDocId) {
-        // Unsubscribe
-        await deleteDoc(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (db as any).collection
-            ? (db as any).doc(`stockAlerts/${alertDocId}`)
-            : collection(db, 'stockAlerts'),
-        );
-        // Use getDocs to find the doc and delete it
-        const q = query(
-          collection(db, 'stockAlerts'),
-          where('userId', '==', user.uid),
-          where('productId', '==', product.id),
-        );
-        const snap = await getDocs(q);
-        for (const d of snap.docs) await deleteDoc(d.ref);
+        // Unsubscribe — delete the known doc directly by ID
+        await deleteDoc(doc(db, 'stockAlerts', alertDocId));
         setAlertSubscribed(false);
         setAlertDocId(null);
         Alert.alert('Aviso cancelado', 'Ya no recibirás notificaciones sobre este producto.');

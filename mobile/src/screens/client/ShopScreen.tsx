@@ -76,6 +76,7 @@ export function ShopScreen({ route, navigation }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
@@ -104,7 +105,7 @@ export function ShopScreen({ route, navigation }: Props) {
       setRefreshing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barbershopId]);
+  }, [barbershopId, refreshKey]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -151,7 +152,7 @@ export function ShopScreen({ route, navigation }: Props) {
 
   const onRefresh = () => {
     setRefreshing(true);
-    setLoading(false);
+    setRefreshKey((k) => k + 1);
   };
 
   const handleAdd = (product: Product) => {

@@ -216,6 +216,7 @@ export function OrderHistoryScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   useEffect(() => {
@@ -246,11 +247,11 @@ export function OrderHistoryScreen() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [refreshKey]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Pull-to-refresh will trigger re-subscription, manual refresh is handled by FlatList
+    setRefreshKey((k) => k + 1);
   };
 
   const handleDownloadReceipt = async (order: Order) => {
