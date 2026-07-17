@@ -253,6 +253,7 @@ export function ShopScreen({ route, navigation }: Props) {
             onPress={() =>
               navigation.navigate('ProductDetail', {
                 barbershopId,
+                barbershopName,
                 product: JSON.stringify(item),
               })
             }

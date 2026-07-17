@@ -37,7 +37,7 @@ export type ClientStackParamList = {
   Loyalty: undefined;
   Profile: undefined;
   Shop: { barbershopId: string; barbershopName: string };
-  ProductDetail: { barbershopId: string; product: string };
+  ProductDetail: { barbershopId: string; barbershopName: string; product: string };
   Cart: { barbershopId: string; barbershopName: string };
   Checkout: { barbershopId: string; barbershopName: string };
   BarberPortfolio: { barberId: string; barberName: string };

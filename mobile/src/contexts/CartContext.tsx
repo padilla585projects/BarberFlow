@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from '../components/AppAlert';
 
@@ -156,8 +157,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [items, barbershopId, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice],
   );
 
-  // Don't render children until cart is hydrated to avoid flicker
-  if (!hydrated) return null;
+  // Muestra spinner mientras AsyncStorage hidrata el carrito (evita pantalla en blanco)
+  if (!hydrated) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#C9A84C" />
+      </View>
+    );
+  }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

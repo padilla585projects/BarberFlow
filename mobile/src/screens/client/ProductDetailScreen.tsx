@@ -67,7 +67,7 @@ function getCategoryEmoji(category: string): string {
 }
 
 export function ProductDetailScreen({ route, navigation }: Props) {
-  const { barbershopId, product: productJson } = route.params;
+  const { barbershopId, barbershopName, product: productJson } = route.params;
   const initialProduct: Product = useMemo(() => JSON.parse(productJson), [productJson]);
   const [product, setProduct] = useState<Product>(initialProduct);
   const cart = useCart();
@@ -198,13 +198,6 @@ export function ProductDetailScreen({ route, navigation }: Props) {
         barbershopId,
       );
     }
-    // Navigate needs barbershopName - get from navigation state
-    const parentRoute = navigation.getState().routes.find(
-      (r) => r.name === 'Shop',
-    );
-    const barbershopName =
-      (parentRoute?.params as { barbershopName?: string } | undefined)?.barbershopName ??
-      'Barberia';
     navigation.navigate('Checkout', { barbershopId, barbershopName });
   };
 

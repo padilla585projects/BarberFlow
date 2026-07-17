@@ -130,6 +130,17 @@ export function CheckoutScreen({ route, navigation }: Props) {
     }
   }, [paymentConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Recalcula el importe aplicado de la gift card cuando el total del carrito cambia
+  // (el usuario puede añadir/quitar ítems después de aplicar la tarjeta)
+  useEffect(() => {
+    setGiftCard((prev) => {
+      if (!prev) return null;
+      const newApplied = Math.min(prev.balance, cart.totalPrice);
+      if (newApplied === prev.applied) return prev; // sin cambios
+      return { ...prev, applied: newApplied };
+    });
+  }, [cart.totalPrice]);
+
   const effectiveTotal = giftCard
     ? Math.max(0, cart.totalPrice - giftCard.applied)
     : cart.totalPrice;
