@@ -337,6 +337,22 @@ export function HomeScreen({ navigation }: Props) {
               </View>
               <Text style={styles.loyaltyArrow}>›</Text>
             </TouchableOpacity>
+
+            {/* Orders banner */}
+            <TouchableOpacity
+              style={styles.ordersBanner}
+              onPress={() => navigation.navigate('OrderHistory')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.loyaltyLeft}>
+                <Text style={styles.loyaltyEmoji}>{'📦'}</Text>
+                <View>
+                  <Text style={styles.loyaltyLabel}>Mis compras</Text>
+                  <Text style={styles.ordersValue}>Ver historial de pedidos</Text>
+                </View>
+              </View>
+              <Text style={styles.loyaltyArrow}>{'›'}</Text>
+            </TouchableOpacity>
           </View>
         }
         ListFooterComponent={<View style={{ height: 24 }} />}
@@ -520,6 +536,20 @@ const styles = StyleSheet.create({
   loyaltyLabel: { fontSize: 12, color: MUTED, fontWeight: '600' },
   loyaltyValue: { fontSize: 18, fontWeight: '800', color: GOLD },
   loyaltyArrow: { fontSize: 22, color: GOLD, opacity: 0.6 },
+
+  // Orders banner (same layout as loyalty but accent color is muted)
+  ordersBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: SURFACE,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    marginTop: 8,
+  },
+  ordersValue: { fontSize: 13, fontWeight: '700', color: TEXT },
 
   // Empty state
   empty: { alignItems: 'center', paddingTop: 72, gap: 12 },

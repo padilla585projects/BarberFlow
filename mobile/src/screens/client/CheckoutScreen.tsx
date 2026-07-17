@@ -312,6 +312,13 @@ export function CheckoutScreen({ route, navigation }: Props) {
         >
           <Text style={styles.successBtnText}>Volver al inicio</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.successBtnSecondary}
+          onPress={() => navigation.navigate('OrderHistory')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.successBtnSecondaryText}>{'📦'} Ver mis pedidos</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -853,6 +860,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   successBtnText: { color: BG, fontSize: 15, fontWeight: '700' },
+  successBtnSecondary: {
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  successBtnSecondaryText: { color: MUTED, fontSize: 14, fontWeight: '600' },
 
   /* Gift card */
   giftRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
