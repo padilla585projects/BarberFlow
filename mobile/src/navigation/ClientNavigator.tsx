@@ -155,7 +155,7 @@ export function ClientNavigator() {
         name="Home"
         component={HomeScreen}
         options={({ navigation }) => ({
-          title: 'BarberFlow',
+          title: '',
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <NotificationBell onPress={() => navigation.navigate('Notifications')} />
@@ -166,9 +166,6 @@ export function ClientNavigator() {
                 <Text style={headerStyles.btnText}>Mis citas</Text>
               </TouchableOpacity>
             </View>
-          ),
-          headerLeft: () => (
-            <ProfileAvatar onPress={() => navigation.navigate('Profile')} />
           ),
         })}
       />

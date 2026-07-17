@@ -62,6 +62,14 @@ function formatDist(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
+// ── Greeting helper ──────────────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 14) return 'Buenos días';
+  if (h < 21) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 export function HomeScreen({ navigation }: Props) {
   const [barbershops, setBarbershops]       = useState<Barbershop[]>([]);
@@ -74,6 +82,8 @@ export function HomeScreen({ navigation }: Props) {
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied'>('idle');
   const [favoriteShops, setFavoriteShops]   = useState<string[]>([]);
   const [togglingFav, setTogglingFav]       = useState<string | null>(null);
+  const [userName, setUserName]             = useState<string>('');
+  const [userPhotoURL, setUserPhotoURL]     = useState<string | null>(null);
 
   // ── Geolocation ────────────────────────────────────────────────────────────
   const requestLocation = useCallback(async () => {
@@ -109,10 +119,13 @@ export function HomeScreen({ navigation }: Props) {
     });
   }, [requestLocation]);
 
-  // ── User doc (loyalty + favorites) ──────────────────────────────────────
+  // ── User doc (loyalty + favorites + profile) ────────────────────────────
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
+    // Seed name/photo immediately from auth (no latency)
+    if (user.displayName) setUserName(user.displayName.split(' ')[0]);
+    if (user.photoURL)    setUserPhotoURL(user.photoURL);
     const unsub = onSnapshot(
       doc(db, 'users', user.uid),
       (snap) => {
@@ -120,6 +133,8 @@ export function HomeScreen({ navigation }: Props) {
           const data = snap.data();
           setLoyaltyPoints(data?.loyaltyPoints ?? 0);
           setFavoriteShops(data?.favoriteShops ?? []);
+          if (data?.displayName) setUserName((data.displayName as string).split(' ')[0]);
+          if (data?.photoURL)    setUserPhotoURL(data.photoURL as string);
         }
       },
       (err) => console.error('[HomeScreen] user listener:', err),
@@ -241,10 +256,29 @@ export function HomeScreen({ navigation }: Props) {
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            {/* Title */}
-            <Text style={styles.greeting}>Barberías cerca</Text>
-            <View style={styles.greetingAccent} />
-            <Text style={styles.sub}>Elige tu barbería favorita</Text>
+            {/* Personalized greeting with avatar */}
+            <TouchableOpacity
+              style={styles.greetingRow}
+              onPress={() => navigation.navigate('Profile')}
+              activeOpacity={0.8}
+            >
+              {userPhotoURL ? (
+                <Image source={{ uri: userPhotoURL }} style={styles.greetingAvatar} />
+              ) : (
+                <View style={[styles.greetingAvatar, styles.greetingAvatarFallback]}>
+                  <Text style={styles.greetingAvatarInitial}>
+                    {(userName || '?').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.greetingText}>
+                  {getGreeting()}{userName ? `, ${userName}` : ''} {'👋'}
+                </Text>
+                <Text style={styles.greetingSub}>¿Qué barbería visitas hoy?</Text>
+              </View>
+              <Text style={styles.greetingChevron}>{'›'}</Text>
+            </TouchableOpacity>
 
             {/* Filter tabs */}
             <View style={styles.filterRow}>
@@ -439,9 +473,47 @@ const styles = StyleSheet.create({
 
   // Header
   header: { marginBottom: 12, gap: 6 },
-  greeting: { fontSize: 26, fontWeight: '800', color: TEXT, letterSpacing: 0.2 },
-  greetingAccent: { width: 32, height: 2, backgroundColor: GOLD, borderRadius: 2 },
-  sub: { fontSize: 14, color: MUTED },
+  // Personalized greeting row
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 18,
+    paddingVertical: 4,
+  },
+  greetingAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 2,
+    borderColor: GOLD,
+  },
+  greetingAvatarFallback: {
+    backgroundColor: SURFACE,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  greetingAvatarInitial: {
+    color: GOLD,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  greetingText: {
+    color: TEXT,
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: 0.1,
+  },
+  greetingSub: {
+    color: MUTED,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  greetingChevron: {
+    fontSize: 22,
+    color: MUTED,
+    opacity: 0.5,
+  },
 
   // Filter chips
   filterRow: {
