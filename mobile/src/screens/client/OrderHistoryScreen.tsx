@@ -24,6 +24,7 @@ import {
 import { auth, db } from '../../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
@@ -264,10 +265,47 @@ export function OrderHistoryScreen() {
       } catch { /* usa nombre por defecto */ }
 
       const html = buildReceiptHtml(order, shopName);
-      // Usa el diálogo de impresión del sistema (visor PDF integrado en Android,
-      // AirPrint en iOS) — evita el share sheet que muestra apps irrelevantes
-      // cuando el móvil no tiene lector de PDF instalado.
-      await Print.printAsync({ html });
+      const orderId = `#${order.id.slice(-8).toUpperCase()}`;
+
+      // Ofrecemos dos opciones: ver/imprimir (visor PDF nativo del sistema)
+      // o compartir (genera fichero y abre el share sheet para enviarlo).
+      Alert.alert(
+        `Recibo ${orderId}`,
+        '¿Qué quieres hacer con el recibo?',
+        [
+          {
+            text: '📄 Ver / Imprimir',
+            onPress: async () => {
+              try {
+                await Print.printAsync({ html });
+              } catch (e) {
+                console.error('[Receipt] print error:', e);
+              }
+            },
+          },
+          {
+            text: '↑ Compartir',
+            onPress: async () => {
+              try {
+                const { uri } = await Print.printToFileAsync({ html, base64: false });
+                const canShare = await Sharing.isAvailableAsync();
+                if (canShare) {
+                  await Sharing.shareAsync(uri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: `Recibo ${orderId}`,
+                    UTI: 'com.adobe.pdf',
+                  });
+                } else {
+                  Alert.alert('No disponible', 'Compartir no está disponible en este dispositivo.');
+                }
+              } catch (e) {
+                console.error('[Receipt] share error:', e);
+              }
+            },
+          },
+          { text: 'Cancelar', style: 'cancel' },
+        ],
+      );
     } catch (err) {
       console.error('[OrderHistoryScreen] Error generating receipt:', err);
       Alert.alert('Error', 'No se pudo generar el recibo. Intenta de nuevo.');
