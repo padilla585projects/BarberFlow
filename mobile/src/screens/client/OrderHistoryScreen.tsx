@@ -24,7 +24,6 @@ import {
 import { auth, db } from '../../services/firebase';
 import { useNavigation } from '@react-navigation/native';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
@@ -265,18 +264,10 @@ export function OrderHistoryScreen() {
       } catch { /* usa nombre por defecto */ }
 
       const html = buildReceiptHtml(order, shopName);
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: `Recibo pedido #${order.id.slice(-8).toUpperCase()}`,
-          UTI: 'com.adobe.pdf',
-        });
-      } else {
-        await Print.printAsync({ uri });
-      }
+      // Usa el diálogo de impresión del sistema (visor PDF integrado en Android,
+      // AirPrint en iOS) — evita el share sheet que muestra apps irrelevantes
+      // cuando el móvil no tiene lector de PDF instalado.
+      await Print.printAsync({ html });
     } catch (err) {
       console.error('[OrderHistoryScreen] Error generating receipt:', err);
       Alert.alert('Error', 'No se pudo generar el recibo. Intenta de nuevo.');
