@@ -29,12 +29,20 @@ import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
-type PaymentMethod = 'cash' | 'bizum' | 'paypal';
+type PaymentMethod = 'cash' | 'stripe' | 'bizum' | 'bankTransfer' | 'paypal';
 
 interface BarbershopPaymentConfig {
-  paymentMethods: { cash: boolean; bizum: boolean; paypal: boolean };
-  bizumPhone?: string;
-  paypalUsername?: string;
+  paymentMethods: {
+    cash: boolean;
+    stripe: boolean;
+    bizum: boolean;
+    bankTransfer: boolean;
+    paypal: boolean;
+  };
+  stripePublishableKey?: string;
+  bankIBAN?: string;
+  bankAccountHolder?: string;
+  paypalEmail?: string;
 }
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'Checkout'>;
@@ -88,15 +96,19 @@ export function CheckoutScreen({ route, navigation }: Props) {
 
         if (shopSnap.exists()) {
           const shopData = shopSnap.data();
-          const pm = shopData.paymentMethods as { cash?: boolean; bizum?: boolean; paypal?: boolean } | undefined;
+          const pm = shopData.paymentMethods;
           setPaymentConfig({
             paymentMethods: {
-              cash: pm?.cash !== false,
-              bizum: pm?.bizum === true,
-              paypal: pm?.paypal === true,
+              cash: pm?.cash?.enabled ?? true, // cash siempre habilitado por defecto
+              stripe: pm?.stripe?.enabled ?? false,
+              bizum: pm?.bizum?.enabled ?? false, // automático si stripe está activo
+              bankTransfer: pm?.bankTransfer?.enabled ?? false,
+              paypal: pm?.paypal?.enabled ?? false,
             },
-            bizumPhone: (shopData.bizumPhone as string) ?? undefined,
-            paypalUsername: (shopData.paypalUsername as string) ?? undefined,
+            stripePublishableKey: pm?.stripe?.publishableKey ?? undefined,
+            bankIBAN: pm?.bankTransfer?.iban ?? undefined,
+            bankAccountHolder: pm?.bankTransfer?.accountHolder ?? undefined,
+            paypalEmail: pm?.paypal?.email ?? undefined,
           });
         }
 
@@ -122,11 +134,17 @@ export function CheckoutScreen({ route, navigation }: Props) {
   // Actualiza el método de pago seleccionado al primero disponible cuando carga la config
   useEffect(() => {
     if (!paymentConfig) return;
-    const { cash, bizum, paypal } = paymentConfig.paymentMethods;
-    if (selectedPayment === 'cash' && !cash) {
-      // Cash no disponible — elige el primero habilitado
-      if (bizum) setSelectedPayment('bizum');
-      else if (paypal) setSelectedPayment('paypal');
+    const { cash, stripe, bizum, bankTransfer, paypal } = paymentConfig.paymentMethods;
+
+    // Prioridad: stripe (con Bizum) → bankTransfer → paypal → cash
+    if (stripe) {
+      setSelectedPayment('stripe');
+    } else if (bankTransfer) {
+      setSelectedPayment('bankTransfer');
+    } else if (paypal) {
+      setSelectedPayment('paypal');
+    } else if (cash) {
+      setSelectedPayment('cash');
     }
   }, [paymentConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -587,6 +605,78 @@ export function CheckoutScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
 
+              {paymentConfig.paymentMethods.stripe?.enabled && (
+                <TouchableOpacity
+                  style={[
+                    styles.paymentCard,
+                    selectedPayment === 'stripe' && styles.paymentCardSelected,
+                  ]}
+                  onPress={() => setSelectedPayment('stripe')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.paymentCardHeader}>
+                    <Text style={styles.paymentIcon}>{'💳'}</Text>
+                    <View style={styles.paymentCardInfo}>
+                      <Text
+                        style={[
+                          styles.paymentCardTitle,
+                          selectedPayment === 'stripe' && styles.paymentCardTitleSelected,
+                        ]}
+                      >
+                        Tarjeta & Bizum
+                      </Text>
+                      <Text style={styles.paymentCardDesc}>
+                        Paga con tarjeta de crédito o Bizum
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.paymentRadio,
+                        selectedPayment === 'stripe' && styles.paymentRadioSelected,
+                      ]}
+                    >
+                      {selectedPayment === 'stripe' && <View style={styles.paymentRadioDot} />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              {paymentConfig.paymentMethods.bankTransfer?.enabled && (
+                <TouchableOpacity
+                  style={[
+                    styles.paymentCard,
+                    selectedPayment === 'bankTransfer' && styles.paymentCardSelected,
+                  ]}
+                  onPress={() => setSelectedPayment('bankTransfer')}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.paymentCardHeader}>
+                    <Text style={styles.paymentIcon}>{'🏦'}</Text>
+                    <View style={styles.paymentCardInfo}>
+                      <Text
+                        style={[
+                          styles.paymentCardTitle,
+                          selectedPayment === 'bankTransfer' && styles.paymentCardTitleSelected,
+                        ]}
+                      >
+                        Transferencia Bancaria
+                      </Text>
+                      <Text style={styles.paymentCardDesc}>
+                        Transfera a: {paymentConfig.bankIBAN ?? 'IBAN no configurado'}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.paymentRadio,
+                        selectedPayment === 'bankTransfer' && styles.paymentRadioSelected,
+                      ]}
+                    >
+                      {selectedPayment === 'bankTransfer' && <View style={styles.paymentRadioDot} />}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+
               {paymentConfig.paymentMethods.paypal && (
                 <TouchableOpacity
                   style={[
@@ -658,6 +748,17 @@ export function CheckoutScreen({ route, navigation }: Props) {
             <Text style={styles.modalCheckmark}>{'✓'}</Text>
             <Text style={styles.modalTitle}>Reserva confirmada</Text>
 
+            {selectedPayment === 'stripe' && (
+              <>
+                <Text style={styles.modalDesc}>
+                  Completar pago de {effectiveTotal.toFixed(2)}{'€'}
+                </Text>
+                <Text style={styles.modalSubDesc}>
+                  Sera redirigido a Stripe para completar su compra con tarjeta o Bizum
+                </Text>
+              </>
+            )}
+
             {selectedPayment === 'bizum' && (
               <>
                 <Text style={styles.modalDesc}>
@@ -667,6 +768,20 @@ export function CheckoutScreen({ route, navigation }: Props) {
                   {paymentConfig?.bizumPhone ?? ''}
                 </Text>
                 <Text style={styles.modalSubDesc}>mediante Bizum</Text>
+              </>
+            )}
+
+            {selectedPayment === 'bankTransfer' && (
+              <>
+                <Text style={styles.modalDesc}>
+                  Transfera {effectiveTotal.toFixed(2)}{'€'} a:
+                </Text>
+                <Text style={styles.modalHighlight}>
+                  {paymentConfig?.bankIBAN ?? ''}
+                </Text>
+                <Text style={styles.modalSubDesc}>
+                  Titular: {paymentConfig?.bankAccountHolder ?? ''}
+                </Text>
               </>
             )}
 
