@@ -594,6 +594,15 @@ export function ShopSettingsScreen({ navigation }: Props) {
         )}
       </TouchableOpacity>
 
+      {/* ── Payment Methods ────────────────────────– */}
+      <TouchableOpacity
+        style={styles.paymentMethodsBtn}
+        onPress={() => navigation.navigate('PaymentMethods')}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.paymentMethodsText}>💳 Métodos de pago</Text>
+      </TouchableOpacity>
+
       {/* ── Sign Out ──────────────────────────────── */}
       <TouchableOpacity
         style={styles.signOutBtn}
@@ -813,6 +822,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#EF4444',
+  },
+  paymentMethodsBtn: {
+    backgroundColor: GOLD + '20',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paymentMethodsText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: GOLD,
   },
 });
 

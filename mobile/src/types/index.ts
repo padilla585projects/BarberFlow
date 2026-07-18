@@ -41,6 +41,47 @@ export interface NotificationSettings {
   pushNewBooking: boolean;
 }
 
+export interface StripeConfig {
+  enabled: boolean;
+  publishableKey?: string;
+  merchantEmail?: string;
+  lastValidated?: Date;
+}
+
+export interface BizumConfig {
+  enabled: boolean; // automático si Stripe está activo
+}
+
+export interface BankTransferConfig {
+  enabled: boolean;
+  iban?: string;
+  accountHolder?: string;
+  lastValidated?: Date;
+}
+
+export interface PayPalConfig {
+  enabled: boolean;
+  email?: string;
+  lastValidated?: Date;
+}
+
+export interface CashConfig {
+  enabled: boolean; // siempre disponible
+}
+
+export interface PaymentMethods {
+  stripe?: StripeConfig;
+  bizum?: BizumConfig;
+  bankTransfer?: BankTransferConfig;
+  paypal?: PayPalConfig;
+  cash?: CashConfig;
+}
+
+export interface FeatureFlags {
+  team?: boolean;    // gestión de barberos/equipo
+  store?: boolean;   // tienda de productos
+}
+
 export interface Barbershop {
   id: string;
   name: string;
@@ -59,6 +100,8 @@ export interface Barbershop {
   ratingSum?: number;
   latitude?: number;   // GPS latitude (set by owner in admin panel)
   longitude?: number;  // GPS longitude
+  paymentMethods?: PaymentMethods;
+  featureFlags?: FeatureFlags;
   createdAt: Date;
 }
 

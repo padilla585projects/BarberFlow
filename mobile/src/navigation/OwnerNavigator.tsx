@@ -25,6 +25,7 @@ import { ProductOrdersScreen } from '../screens/owner/ProductOrdersScreen';
 import { PaymentHistoryScreen } from '../screens/owner/PaymentHistoryScreen';
 import { ClientPaymentsScreen } from '../screens/owner/ClientPaymentsScreen';
 import { CreateBarbershopScreen } from '../screens/owner/CreateBarbershopScreen';
+import { OwnerPaymentMethodsScreen } from '../screens/owner/OwnerPaymentMethodsScreen';
 import { MessagesScreen } from '../screens/common/MessagesScreen';
 import { NotificationSettingsScreen } from '../screens/common/NotificationSettingsScreen';
 import { BugReportScreen } from '../screens/common/BugReportScreen';
@@ -51,6 +52,7 @@ export type OwnerStackParamList = {
   PaymentHistory: undefined;
   ClientPayments: undefined;
   ShopSettings: undefined;
+  PaymentMethods: undefined;
   Messages: undefined;
   Notifications: undefined;
   NotificationSettings: undefined;
@@ -230,6 +232,11 @@ export function OwnerNavigator() {
         name="ShopSettings"
         component={ShopSettingsScreen}
         options={{ title: 'Configuración' }}
+      />
+      <Stack.Screen
+        name="PaymentMethods"
+        component={OwnerPaymentMethodsScreen}
+        options={{ title: 'Métodos de pago' }}
       />
       <Stack.Screen
         name="Messages"
