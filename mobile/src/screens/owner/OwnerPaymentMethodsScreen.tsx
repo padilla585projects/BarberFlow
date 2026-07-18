@@ -13,8 +13,9 @@ import {
   Platform,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { db, auth } from '../../services/firebase';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
 import type {
@@ -138,16 +139,28 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
         throw new Error('La clave debe empezar con "pk_"');
       }
 
-      // TODO: hacer un request a Cloud Function para validar contra Stripe API
-      // Por ahora, simulamos que es válido
-      setStripeValidated(true);
-      setStripeMerchantEmail('shop@example.com'); // Simulado
-      setStripeError('');
-      Alert.alert('✓', 'Stripe conectado correctamente');
+      // Call Cloud Function to validate Stripe key
+      const functions = getFunctions();
+      const validateStripeKeyFn = httpsCallable(functions, 'validateStripeKey');
+
+      const result: any = await validateStripeKeyFn({
+        barbershopId: activeBarbershopId,
+        publishableKey: stripeKey.trim(),
+      });
+
+      if (result.data.valid) {
+        setStripeValidated(true);
+        setStripeMerchantEmail(result.data.merchantEmail);
+        setStripeError('');
+        Alert.alert('✓', 'Stripe conectado correctamente');
+      } else {
+        throw new Error(result.data.error || 'Stripe key inválida');
+      }
     } catch (err: any) {
-      setStripeError(err.message || 'Error validando Stripe');
+      const errorMessage = err.message || 'Error validando Stripe';
+      setStripeError(errorMessage);
       setStripeValidated(false);
-      Alert.alert('Error', err.message || 'No se pudo validar Stripe');
+      Alert.alert('Error', errorMessage);
     } finally {
       setValidatingStripe(false);
     }
@@ -222,15 +235,27 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
         throw new Error('Email no válido');
       }
 
-      // TODO: hacer un request a Cloud Function para validar contra PayPal API (test charge de $0.01)
-      // Por ahora, simulamos que es válido
-      setPaypalValidated(true);
-      setPaypalError('');
-      Alert.alert('✓', 'PayPal verificado correctamente');
+      // Call Cloud Function to validate PayPal email
+      const functions = getFunctions();
+      const validatePayPalEmailFn = httpsCallable(functions, 'validatePayPalEmail');
+
+      const result: any = await validatePayPalEmailFn({
+        barbershopId: activeBarbershopId,
+        email: paypalEmail.trim(),
+      });
+
+      if (result.data.valid) {
+        setPaypalValidated(true);
+        setPaypalError('');
+        Alert.alert('✓', 'PayPal verificado correctamente');
+      } else {
+        throw new Error(result.data.error || 'PayPal email inválido');
+      }
     } catch (err: any) {
-      setPaypalError(err.message);
+      const errorMessage = err.message || 'Error validando PayPal';
+      setPaypalError(errorMessage);
       setPaypalValidated(false);
-      Alert.alert('Error', err.message);
+      Alert.alert('Error', errorMessage);
     } finally {
       setValidatingPayPal(false);
     }
