@@ -27,6 +27,7 @@ import {
 let Location: typeof import('expo-location') | null = null;
 try { Location = require('expo-location'); } catch { /* native module not in current build */ }
 import { db, auth } from '../../services/firebase';
+import { consumePendingInitialRole } from '../../utils/pendingInitialRole';
 import type { Barbershop } from '../../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
@@ -84,6 +85,16 @@ export function HomeScreen({ navigation }: Props) {
   const [togglingFav, setTogglingFav]       = useState<string | null>(null);
   const [userName, setUserName]             = useState<string>('');
   const [userPhotoURL, setUserPhotoURL]     = useState<string | null>(null);
+
+  // ── Redirect new owners to CreateBarbershop ───────────────────────────────
+  useEffect(() => {
+    const role = consumePendingInitialRole();
+    if (role === 'owner') {
+      // Small delay so the navigator finishes mounting before we push
+      const t = setTimeout(() => navigation.navigate('CreateBarbershop'), 300);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   // ── Geolocation ────────────────────────────────────────────────────────────
   const requestLocation = useCallback(async () => {

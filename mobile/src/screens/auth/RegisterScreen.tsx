@@ -17,6 +17,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import { setPendingReferralCode } from '../../utils/pendingReferral';
+import { setPendingInitialRole, consumePendingInitialRole } from '../../utils/pendingInitialRole';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation';
 
@@ -39,6 +40,7 @@ export function RegisterScreen({ navigation }: Props) {
   const [loading, setLoading]         = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [validatingCode, setValidatingCode] = useState(false);
+  const [intentOwner, setIntentOwner] = useState(false);
 
   const handleRegister = async () => {
     // Validaciones
@@ -84,6 +86,13 @@ export function RegisterScreen({ navigation }: Props) {
       setPendingReferralCode(null);
     }
 
+    // Store owner intent so HomeScreen can redirect to CreateBarbershop after auth
+    if (intentOwner) {
+      setPendingInitialRole('owner');
+    } else {
+      consumePendingInitialRole(); // clear any stale value
+    }
+
     try {
       setLoading(true);
       const { user } = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -121,7 +130,36 @@ export function RegisterScreen({ navigation }: Props) {
           <View style={styles.header}>
             <Text style={styles.title}>Crear cuenta</Text>
             <View style={styles.titleAccent} />
-            <Text style={styles.subtitle}>Regístrate para reservar citas</Text>
+            <Text style={styles.subtitle}>Clientes, barberos y dueños de barbería</Text>
+          </View>
+
+          {/* ── Role selector ───────────────────────────────────────────── */}
+          <View style={styles.roleSection}>
+            <Text style={styles.roleTitle}>¿Cómo usarás BarberFlow?</Text>
+            <View style={styles.roleRow}>
+              <TouchableOpacity
+                style={[styles.roleCard, !intentOwner && styles.roleCardActive]}
+                onPress={() => setIntentOwner(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.roleCardEmoji}>{'👤'}</Text>
+                <Text style={[styles.roleCardLabel, !intentOwner && styles.roleCardLabelActive]}>
+                  Soy cliente
+                </Text>
+                <Text style={styles.roleCardSub}>Reservo citas</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.roleCard, intentOwner && styles.roleCardActive]}
+                onPress={() => setIntentOwner(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.roleCardEmoji}>{'✂️'}</Text>
+                <Text style={[styles.roleCardLabel, intentOwner && styles.roleCardLabelActive]}>
+                  Tengo mi barbería
+                </Text>
+                <Text style={styles.roleCardSub}>Gestiono mi negocio</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* ── Form ────────────────────────────────────────────────────── */}
@@ -292,6 +330,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+
+  // Role selector
+  roleSection: {
+    gap: 10,
+  },
+  roleTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT,
+    textAlign: 'center',
+  },
+  roleRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roleCard: {
+    flex: 1,
+    backgroundColor: SURFACE,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    paddingVertical: 16,
+    alignItems: 'center',
+    gap: 4,
+  },
+  roleCardActive: {
+    borderColor: GOLD,
+    backgroundColor: GOLD + '14',
+  },
+  roleCardEmoji: {
+    fontSize: 28,
+    marginBottom: 2,
+  },
+  roleCardLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: MUTED,
+    textAlign: 'center',
+  },
+  roleCardLabelActive: {
+    color: GOLD,
+  },
+  roleCardSub: {
+    fontSize: 11,
+    color: MUTED,
+    textAlign: 'center',
   },
 
   loginLink: {

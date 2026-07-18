@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { OwnerStackParamList } from '../../navigation/OwnerNavigator';
@@ -34,8 +34,15 @@ interface Stats {
   revenue: number;
 }
 
+interface Onboarding {
+  hasServices: boolean;
+  hasBarbers: boolean;
+  hasProducts: boolean;
+}
+
 export function DashboardScreen({ navigation }: Props) {
   const [stats, setStats] = useState<Stats>({ today: 0, pending: 0, total: 0, revenue: 0 });
+  const [onboarding, setOnboarding] = useState<Onboarding>({ hasServices: true, hasBarbers: true, hasProducts: true });
   const [shopName, setShopName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,6 +66,18 @@ export function DashboardScreen({ navigation }: Props) {
 
       const shopDoc = await getDoc(doc(db, 'barbershops', activeBarbershopId));
       if (shopDoc.exists()) setShopName(shopDoc.data()?.name ?? '');
+
+      // Onboarding checks — quick limit(1) queries to avoid reading entire collections
+      const [servicesSnap, barbersSnap, productsSnap] = await Promise.all([
+        getDocs(query(collection(db, 'barbershops', activeBarbershopId, 'services'), limit(1))),
+        getDocs(query(collection(db, 'users'), where('barbershopId', '==', activeBarbershopId), where('role', 'in', ['barber', 'owner']), limit(2))),
+        getDocs(query(collection(db, 'products'), where('barbershopId', '==', activeBarbershopId), limit(1))),
+      ]);
+      setOnboarding({
+        hasServices: !servicesSnap.empty,
+        hasBarbers:  barbersSnap.size > 1, // >1 because owner themselves counts
+        hasProducts: !productsSnap.empty,
+      });
 
       const allSnap = await getDocs(query(
         collection(db, 'appointments'),
@@ -161,6 +180,12 @@ export function DashboardScreen({ navigation }: Props) {
           </View>
         </View>
 
+        {/* ── Onboarding checklist ────────────────────────────────────────── */}
+        <OnboardingCard
+          onboarding={onboarding}
+          onNavigate={(screen) => navigation.navigate(screen as any)}
+        />
+
         {/* ── Stats row ───────────────────────────────────────────────────── */}
         <View style={styles.statsRow}>
           <TouchableOpacity
@@ -242,6 +267,134 @@ export function DashboardScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+/* ── Onboarding checklist ─────────────────────────────────────────────────── */
+
+function OnboardingCard({
+  onboarding,
+  onNavigate,
+}: {
+  onboarding: Onboarding;
+  onNavigate: (screen: string) => void;
+}) {
+  const allDone = onboarding.hasServices && onboarding.hasBarbers && onboarding.hasProducts;
+  if (allDone) return null;
+
+  const steps = [
+    {
+      done: onboarding.hasServices,
+      emoji: '✂️',
+      label: 'Añade tus servicios',
+      sub: 'Para que los clientes puedan reservar',
+      screen: 'ShopServices',
+    },
+    {
+      done: onboarding.hasBarbers,
+      emoji: '👥',
+      label: 'Invita a tu equipo',
+      sub: 'Barberos que gestionarán las citas',
+      screen: 'ShopBarbers',
+    },
+    {
+      done: onboarding.hasProducts,
+      emoji: '📦',
+      label: 'Añade productos a la tienda',
+      sub: 'Opcional — vende productos online',
+      screen: 'Inventory',
+    },
+  ];
+
+  const done = steps.filter((s) => s.done).length;
+  const total = steps.length;
+
+  return (
+    <View style={obStyles.card}>
+      <View style={obStyles.header}>
+        <Text style={obStyles.title}>{'🚀'} Primeros pasos</Text>
+        <Text style={obStyles.counter}>{done}/{total}</Text>
+      </View>
+      <View style={obStyles.progressBar}>
+        <View style={[obStyles.progressFill, { width: `${(done / total) * 100}%` as any }]} />
+      </View>
+      {steps.map((step) => (
+        <TouchableOpacity
+          key={step.screen}
+          style={obStyles.row}
+          onPress={() => !step.done && onNavigate(step.screen)}
+          activeOpacity={step.done ? 1 : 0.6}
+        >
+          <View style={[obStyles.check, step.done && obStyles.checkDone]}>
+            <Text style={obStyles.checkText}>{step.done ? '✓' : ''}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[obStyles.stepLabel, step.done && obStyles.stepLabelDone]}>
+              {step.emoji} {step.label}
+            </Text>
+            {!step.done && <Text style={obStyles.stepSub}>{step.sub}</Text>}
+          </View>
+          {!step.done && <Text style={obStyles.chevron}>›</Text>}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+const obStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#141414',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C9A84C44',
+    padding: 16,
+    gap: 0,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  title: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  counter: { fontSize: 13, fontWeight: '600', color: '#C9A84C' },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#282828',
+    borderRadius: 2,
+    marginBottom: 14,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#C9A84C',
+    borderRadius: 2,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#282828',
+  },
+  check: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkDone: {
+    backgroundColor: '#C9A84C',
+    borderColor: '#C9A84C',
+  },
+  checkText: { fontSize: 13, fontWeight: '800', color: '#000' },
+  stepLabel: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  stepLabelDone: { color: '#888888', textDecorationLine: 'line-through' },
+  stepSub: { fontSize: 11, color: '#888888', marginTop: 1 },
+  chevron: { fontSize: 20, color: '#888888' },
+});
 
 /* ── Section title ─────────────────────────────────────────────────────────── */
 
