@@ -84,6 +84,12 @@ service cloud.firestore {
       allow update: if isDeveloper() || isOwnerOf(barbershopId);
       allow delete: if isDeveloper();
 
+      // Services subcollection (clients need to read for booking; owner manages)
+      match /services/{serviceId} {
+        allow read: if isAuth();
+        allow create, update, delete: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
+      }
+
       // Payments subcollection (owner pays barbers)
       match /payments/{paymentId} {
         allow read: if isAuth() && (isOwnerOf(barbershopId) || isDeveloper());
