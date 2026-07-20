@@ -40,6 +40,7 @@ interface BarbershopPaymentConfig {
     paypal: boolean;
   };
   stripePublishableKey?: string;
+  bizumPhone?: string;
   bankIBAN?: string;
   bankAccountHolder?: string;
   paypalEmail?: string;
@@ -106,6 +107,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
               paypal: pm?.paypal?.enabled ?? false,
             },
             stripePublishableKey: pm?.stripe?.publishableKey ?? undefined,
+            bizumPhone: pm?.bizum?.phone ?? pm?.stripe?.phone ?? undefined,
             bankIBAN: pm?.bankTransfer?.iban ?? undefined,
             bankAccountHolder: pm?.bankTransfer?.accountHolder ?? undefined,
             paypalEmail: pm?.paypal?.email ?? undefined,
@@ -590,7 +592,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
                         Bizum
                       </Text>
                       <Text style={styles.paymentCardDesc}>
-                        Envia un Bizum al {paymentConfig.bizumPhone ?? ''}
+                        Envia un Bizum al {paymentConfig.bizumPhone ?? 'número de la barbería'}
                       </Text>
                     </View>
                     <View
@@ -605,7 +607,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
 
-              {paymentConfig.paymentMethods.stripe?.enabled && (
+              {paymentConfig.paymentMethods.stripe && (
                 <TouchableOpacity
                   style={[
                     styles.paymentCard,
@@ -641,7 +643,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
 
-              {paymentConfig.paymentMethods.bankTransfer?.enabled && (
+              {paymentConfig.paymentMethods.bankTransfer && (
                 <TouchableOpacity
                   style={[
                     styles.paymentCard,
@@ -765,7 +767,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
                   Envia {effectiveTotal.toFixed(2)}{'€'} al numero
                 </Text>
                 <Text style={styles.modalHighlight}>
-                  {paymentConfig?.bizumPhone ?? ''}
+                  {paymentConfig?.bizumPhone ?? 'número de la barbería'}
                 </Text>
                 <Text style={styles.modalSubDesc}>mediante Bizum</Text>
               </>
@@ -793,7 +795,7 @@ export function CheckoutScreen({ route, navigation }: Props) {
                 <TouchableOpacity
                   style={styles.modalPaypalBtn}
                   onPress={() => {
-                    const url = `https://paypal.me/${paymentConfig?.paypalUsername ?? ''}/${effectiveTotal.toFixed(2)}`;
+                    const url = `https://paypal.me/${paymentConfig?.paypalEmail ?? ''}/${effectiveTotal.toFixed(2)}`;
                     Linking.openURL(url);
                   }}
                   activeOpacity={0.8}

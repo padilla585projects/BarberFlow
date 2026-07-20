@@ -87,7 +87,8 @@ export function ClientPaymentsScreen() {
         ),
         getDocs(
           query(
-            collection(db, `barbershops/${activeBarbershopId}/productOrders`),
+            collection(db, 'orders'),
+            where('barbershopId', '==', activeBarbershopId),
             orderBy('createdAt', 'desc'),
           ),
         ),
@@ -114,9 +115,9 @@ export function ClientPaymentsScreen() {
           .join(', ');
         return {
           id: d.id,
-          collectionPath: `barbershops/${activeBarbershopId}/productOrders/${d.id}`,
+          collectionPath: `orders/${d.id}`,
           clientName: data.clientName ?? 'Cliente',
-          amount: data.totalPrice ?? 0,
+          amount: data.totalAmount ?? data.totalPrice ?? 0,
           detail: summary || 'Pedido de productos',
           paymentMethod: (data.paymentMethod ?? 'cash') as PaymentMethod,
           paymentStatus: (data.paymentStatus ?? 'pending') as PaymentStatus,
