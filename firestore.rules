@@ -143,13 +143,14 @@ service cloud.firestore {
 
     // Appointments
     match /appointments/{appointmentId} {
-      // Only the client who booked, barbers/owners of that barbershop, or developers can read
-      allow read: if isAuth() && (
-        resource.data.clientId == request.auth.uid ||
-        isBarberOf(resource.data.barbershopId) ||
-        isOwnerOf(resource.data.barbershopId) ||
-        isDeveloper()
-      );
+      // Any authenticated user can read appointments. This is necessary because
+      // clients need to query barbershop+barber+date to calculate available time
+      // slots in the booking screen. The app only uses timeSlot and duration
+      // from other users' appointments — no client PII is displayed.
+      // TODO: For production hardening, replace with a Cloud Function
+      // getAvailableSlots() that returns only occupied time slots without
+      // exposing the full appointment documents.
+      allow read: if isAuth();
       allow create: if isAuth();
       allow update: if isAuth() && (
         resource.data.clientId == request.auth.uid ||

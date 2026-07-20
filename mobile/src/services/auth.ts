@@ -1,18 +1,36 @@
 import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
-import {
   GoogleAuthProvider,
   signInWithCredential,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
+import Constants from 'expo-constants';
 import { auth } from './firebase';
 
-// Configure Google Sign-In — called once at module load
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// @react-native-google-signin/google-signin requires a native build
+// (expo run:android / eas build). In Expo Go the native module is missing and
+// even *importing* the package throws "TurboModuleRegistry.getEnforcing(...)
+// 'RNGoogleSignin' could not be found", crashing the entire import chain.
+// Use a lazy require() so the module is never loaded in Expo Go.
+const isExpoGo = Constants.appOwnership === 'expo';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let GoogleSignin: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let statusCodes: any = null;
+
+if (!isExpoGo) {
+  try {
+    const gsi = require('@react-native-google-signin/google-signin');
+    GoogleSignin = gsi.GoogleSignin;
+    statusCodes = gsi.statusCodes;
+
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
+  } catch (e) {
+    console.warn('[auth] Failed to initialize Google Sign-In:', e);
+  }
+}
 
 /**
  * Google Sign-In flow:
@@ -24,6 +42,13 @@ GoogleSignin.configure({
  * Does NOT work inside Expo Go.
  */
 export async function signInWithGoogle() {
+  if (!GoogleSignin) {
+    throw new Error(
+      'Google Sign-In no está disponible en Expo Go. ' +
+      'Usa email/contraseña o genera un development build.',
+    );
+  }
+
   await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
   const response = await GoogleSignin.signIn();
@@ -43,7 +68,9 @@ export async function signInWithGoogle() {
 
 export async function signOut() {
   try {
-    await GoogleSignin.signOut();
+    if (GoogleSignin) {
+      await GoogleSignin.signOut();
+    }
   } catch {
     // Google sign-out may fail if user signed in via another method — that's OK
   }
