@@ -282,6 +282,13 @@ export function LoginScreen() {
                 >
                   <Text style={styles.devBtnText}>✂️ Barbero Test</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.devBtn}
+                  onPress={() => devLogin('dueno@barberflow.dev', 'TestPass123')}
+                  disabled={loading}
+                >
+                  <Text style={styles.devBtnText}>🏪 Dueño Test</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
