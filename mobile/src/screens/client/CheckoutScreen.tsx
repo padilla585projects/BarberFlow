@@ -24,7 +24,9 @@ import {
   writeBatch,
   increment,
 } from 'firebase/firestore';
-import { db, auth } from '../../services/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { initStripe, initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native';
+import app, { db, auth } from '../../services/firebase';
 import { useCart } from '../../contexts/CartContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
@@ -39,7 +41,6 @@ interface BarbershopPaymentConfig {
     bankTransfer: boolean;
     paypal: boolean;
   };
-  stripePublishableKey?: string;
   bizumPhone?: string;
   bankIBAN?: string;
   bankAccountHolder?: string;
@@ -106,7 +107,6 @@ export function CheckoutScreen({ route, navigation }: Props) {
               bankTransfer: pm?.bankTransfer?.enabled ?? false,
               paypal: pm?.paypal?.enabled ?? false,
             },
-            stripePublishableKey: pm?.stripe?.publishableKey ?? undefined,
             bizumPhone: pm?.bizum?.phone ?? pm?.stripe?.phone ?? undefined,
             bankIBAN: pm?.bankTransfer?.iban ?? undefined,
             bankAccountHolder: pm?.bankTransfer?.accountHolder ?? undefined,
@@ -207,6 +207,57 @@ export function CheckoutScreen({ route, navigation }: Props) {
     setGiftCard(null);
     setGiftCode('');
     setGiftError('');
+  };
+
+  // Cobro REAL con Stripe: crea un PaymentIntent server-side (Cloud Function
+  // con la clave secreta) y abre el PaymentSheet nativo de Stripe. El pedido
+  // solo se marca como 'paid' cuando el webhook de Stripe lo confirma
+  // server-side — el cliente nunca puede autodeclararse pagado aquí.
+  const processStripePayment = async (orderIdParam: string): Promise<boolean> => {
+    try {
+      // Clave PÚBLICA de la plataforma BarberFlow (no cambia por barbería).
+      // El dinero igualmente va a la cuenta Stripe Connect de la barbería
+      // porque el PaymentIntent se crea con transfer_data.destination
+      // server-side (ver Cloud Function createPaymentIntent).
+      const platformPublishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+      if (!platformPublishableKey) {
+        Alert.alert('Error', 'Stripe no está configurado en la app (falta la clave pública).');
+        return false;
+      }
+
+      await initStripe({ publishableKey: platformPublishableKey });
+
+      const functionsInstance = getFunctions(app, 'europe-west1');
+      const createPaymentIntentFn = httpsCallable(functionsInstance, 'createPaymentIntent');
+      const result: any = await createPaymentIntentFn({ orderId: orderIdParam });
+      const clientSecret = result?.data?.clientSecret;
+      if (!clientSecret) {
+        throw new Error('No se pudo iniciar el pago con Stripe.');
+      }
+
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: barbershopName,
+        paymentIntentClientSecret: clientSecret,
+      });
+      if (initError) {
+        Alert.alert('Error al iniciar el pago', initError.message);
+        return false;
+      }
+
+      const { error: presentError } = await presentPaymentSheet();
+      if (presentError) {
+        if (presentError.code !== 'Canceled') {
+          Alert.alert('Pago no completado', presentError.message);
+        }
+        return false;
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error('[CheckoutScreen] Stripe payment error:', err);
+      Alert.alert('Error', err.message || 'No se pudo procesar el pago con Stripe.');
+      return false;
+    }
   };
 
   const handleConfirm = async () => {
@@ -311,7 +362,21 @@ export function CheckoutScreen({ route, navigation }: Props) {
       setCreatedOrderId(orderRef.id);
       cart.clearCart();
 
-      if (selectedPayment === 'bizum' || selectedPayment === 'paypal') {
+      if (selectedPayment === 'stripe') {
+        // Cobro real: no avanzamos a "éxito" hasta que el PaymentSheet de
+        // Stripe confirme el pago. Si falla/cancela, el pedido queda creado
+        // con paymentStatus 'processing'/'pending' para reintentar después.
+        const paid = await processStripePayment(orderRef.id);
+        if (!paid) {
+          setSubmitting(false);
+          return;
+        }
+        setSuccess(true);
+      } else if (
+        selectedPayment === 'bizum' ||
+        selectedPayment === 'paypal' ||
+        selectedPayment === 'bankTransfer'
+      ) {
         setShowPaymentModal(true);
       } else {
         setSuccess(true);
@@ -750,17 +815,6 @@ export function CheckoutScreen({ route, navigation }: Props) {
             <Text style={styles.modalCheckmark}>{'✓'}</Text>
             <Text style={styles.modalTitle}>Reserva confirmada</Text>
 
-            {selectedPayment === 'stripe' && (
-              <>
-                <Text style={styles.modalDesc}>
-                  Completar pago de {effectiveTotal.toFixed(2)}{'€'}
-                </Text>
-                <Text style={styles.modalSubDesc}>
-                  Sera redirigido a Stripe para completar su compra con tarjeta o Bizum
-                </Text>
-              </>
-            )}
-
             {selectedPayment === 'bizum' && (
               <>
                 <Text style={styles.modalDesc}>
@@ -770,6 +824,14 @@ export function CheckoutScreen({ route, navigation }: Props) {
                   {paymentConfig?.bizumPhone ?? 'número de la barbería'}
                 </Text>
                 <Text style={styles.modalSubDesc}>mediante Bizum</Text>
+                {!!createdOrderId && (
+                  <View style={styles.modalRefBox}>
+                    <Text style={styles.modalRefLabel}>Pon este número como concepto</Text>
+                    <Text style={styles.modalRefValue}>
+                      {createdOrderId.slice(-8).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
               </>
             )}
 
@@ -784,6 +846,14 @@ export function CheckoutScreen({ route, navigation }: Props) {
                 <Text style={styles.modalSubDesc}>
                   Titular: {paymentConfig?.bankAccountHolder ?? ''}
                 </Text>
+                {!!createdOrderId && (
+                  <View style={styles.modalRefBox}>
+                    <Text style={styles.modalRefLabel}>Pon este número como concepto</Text>
+                    <Text style={styles.modalRefValue}>
+                      {createdOrderId.slice(-8).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
               </>
             )}
 
@@ -1125,6 +1195,19 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   modalSubDesc: { fontSize: 13, color: MUTED },
+  modalRefBox: {
+    backgroundColor: BG,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GOLD + '55',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
+    marginTop: 6,
+    gap: 2,
+  },
+  modalRefLabel: { fontSize: 11, color: MUTED, fontWeight: '600' as const },
+  modalRefValue: { fontSize: 18, fontWeight: '800' as const, color: GOLD, letterSpacing: 2 },
   modalPaypalBtn: {
     backgroundColor: '#0070BA',
     borderRadius: 12,

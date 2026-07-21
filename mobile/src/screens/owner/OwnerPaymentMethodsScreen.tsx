@@ -11,6 +11,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../../services/firebase';
@@ -40,15 +41,15 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
   const { activeBarbershopId } = useAuthContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [validatingStripe, setValidatingStripe] = useState(false);
   const [validatingIBAN, setValidatingIBAN] = useState(false);
   const [validatingPayPal, setValidatingPayPal] = useState(false);
 
-  // Stripe
+  // Stripe Connect
   const [stripeEnabled, setStripeEnabled] = useState(false);
-  const [stripeKey, setStripeKey] = useState('');
-  const [stripeMerchantEmail, setStripeMerchantEmail] = useState('');
-  const [stripeValidated, setStripeValidated] = useState(false);
+  const [stripeConnectAccountId, setStripeConnectAccountId] = useState('');
+  const [stripeChargesEnabled, setStripeChargesEnabled] = useState(false);
+  const [connectingStripe, setConnectingStripe] = useState(false);
+  const [checkingStripeStatus, setCheckingStripeStatus] = useState(false);
   const [stripeError, setStripeError] = useState('');
 
   // Bizum (automático con Stripe)
@@ -80,12 +81,11 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
       const data = shopDoc.data();
       const pm = data.paymentMethods || {};
 
-      // Stripe
+      // Stripe Connect
       if (pm.stripe) {
         setStripeEnabled(pm.stripe.enabled ?? false);
-        setStripeKey(pm.stripe.publishableKey ?? '');
-        setStripeMerchantEmail(pm.stripe.merchantEmail ?? '');
-        setStripeValidated(!!pm.stripe.lastValidated);
+        setStripeConnectAccountId(pm.stripe.connectAccountId ?? '');
+        setStripeChargesEnabled(pm.stripe.chargesEnabled ?? false);
       }
 
       // Bizum
@@ -123,46 +123,62 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
 
-  // ── Stripe validation ──────────────────────────────────────────────────
-  const handleValidateStripe = async () => {
-    if (!stripeKey.trim()) {
-      setStripeError('Pega tu Stripe Publishable Key');
-      return;
-    }
-
-    setValidatingStripe(true);
+  // ── Stripe Connect: abrir onboarding de Stripe ─────────────────────────
+  const handleConnectStripe = async () => {
+    if (!activeBarbershopId) return;
+    setConnectingStripe(true);
     setStripeError('');
-
     try {
-      // Validar formato básico
-      if (!stripeKey.startsWith('pk_')) {
-        throw new Error('La clave debe empezar con "pk_"');
-      }
+      const functions = getFunctions(undefined, 'europe-west1');
+      const createLinkFn = httpsCallable(functions, 'createConnectAccountLink');
+      const result: any = await createLinkFn({ barbershopId: activeBarbershopId });
+      const url = result?.data?.url;
+      const accountId = result?.data?.accountId;
+      if (!url) throw new Error('No se pudo generar el enlace de Stripe.');
+      if (accountId) setStripeConnectAccountId(accountId);
 
-      // Call Cloud Function to validate Stripe key
-      const functions = getFunctions();
-      const validateStripeKeyFn = httpsCallable(functions, 'validateStripeKey');
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) throw new Error('No se pudo abrir el navegador.');
+      await Linking.openURL(url);
 
-      const result: any = await validateStripeKeyFn({
-        barbershopId: activeBarbershopId,
-        publishableKey: stripeKey.trim(),
-      });
-
-      if (result.data.valid) {
-        setStripeValidated(true);
-        setStripeMerchantEmail(result.data.merchantEmail);
-        setStripeError('');
-        Alert.alert('✓', 'Stripe conectado correctamente');
-      } else {
-        throw new Error(result.data.error || 'Stripe key inválida');
-      }
+      Alert.alert(
+        'Completa el registro en Stripe',
+        'Se ha abierto el navegador. Cuando termines de rellenar tus datos en Stripe, vuelve aquí y pulsa "Comprobar estado".',
+      );
     } catch (err: any) {
-      const errorMessage = err.message || 'Error validando Stripe';
+      const errorMessage = err.message || 'Error conectando con Stripe';
       setStripeError(errorMessage);
-      setStripeValidated(false);
       Alert.alert('Error', errorMessage);
     } finally {
-      setValidatingStripe(false);
+      setConnectingStripe(false);
+    }
+  };
+
+  // ── Stripe Connect: comprobar si ya se puede cobrar ────────────────────
+  const handleCheckStripeStatus = async () => {
+    if (!activeBarbershopId) return;
+    setCheckingStripeStatus(true);
+    setStripeError('');
+    try {
+      const functions = getFunctions(undefined, 'europe-west1');
+      const checkFn = httpsCallable(functions, 'checkStripeConnectStatus');
+      const result: any = await checkFn({ barbershopId: activeBarbershopId });
+      const chargesEnabled = !!result?.data?.chargesEnabled;
+      setStripeChargesEnabled(chargesEnabled);
+      if (chargesEnabled) {
+        Alert.alert('✓', 'Stripe conectado. Ya puedes cobrar con tarjeta y Bizum.');
+      } else {
+        Alert.alert(
+          'Todavía no',
+          'Stripe aún no ha terminado de verificar tu cuenta. Completa el registro y vuelve a comprobar en unos minutos.',
+        );
+      }
+    } catch (err: any) {
+      const errorMessage = err.message || 'Error comprobando el estado de Stripe';
+      setStripeError(errorMessage);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setCheckingStripeStatus(false);
     }
   };
 
@@ -271,9 +287,9 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
       return;
     }
 
-    // Si Stripe está habilitado, debe estar validado
-    if (stripeEnabled && !stripeValidated) {
-      Alert.alert('Error', 'Valida tu Stripe antes de guardar');
+    // Si Stripe está habilitado, la cuenta Connect debe estar operativa
+    if (stripeEnabled && !stripeChargesEnabled) {
+      Alert.alert('Error', 'Completa la conexión con Stripe antes de guardar (pulsa "Comprobar estado")');
       return;
     }
 
@@ -296,11 +312,10 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
         stripe: stripeEnabled
           ? {
               enabled: true,
-              publishableKey: stripeKey,
-              merchantEmail: stripeMerchantEmail,
-              lastValidated: new Date(),
+              connectAccountId: stripeConnectAccountId,
+              chargesEnabled: stripeChargesEnabled,
             }
-          : { enabled: false },
+          : { enabled: false, connectAccountId: stripeConnectAccountId },
         bizum: {
           enabled: bizumEnabled && stripeEnabled, // Bizum automático si Stripe está activo
         },
@@ -367,40 +382,49 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
 
             {stripeEnabled && (
               <View style={styles.sectionContent}>
-                <Text style={styles.label}>Stripe Publishable Key</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="pk_live_XXXXXXXXXXX"
-                  placeholderTextColor={MUTED}
-                  value={stripeKey}
-                  onChangeText={setStripeKey}
-                  autoCapitalize="none"
-                  editable={!validatingStripe}
-                />
+                {stripeChargesEnabled ? (
+                  <View style={styles.successBox}>
+                    <Text style={styles.successText}>
+                      ✓ Cuenta de Stripe conectada — ya puedes cobrar
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.infoText}>
+                    {stripeConnectAccountId
+                      ? 'Registro iniciado. Completa tus datos en Stripe y comprueba el estado.'
+                      : 'Conecta tu propia cuenta de Stripe. El dinero de tus ventas entrará directamente en tu cuenta, no en la de BarberFlow.'}
+                  </Text>
+                )}
 
                 <TouchableOpacity
-                  style={[styles.validateBtn, validatingStripe && styles.btnDisabled]}
-                  onPress={handleValidateStripe}
-                  disabled={validatingStripe}
+                  style={[styles.validateBtn, connectingStripe && styles.btnDisabled]}
+                  onPress={handleConnectStripe}
+                  disabled={connectingStripe}
                 >
-                  {validatingStripe ? (
+                  {connectingStripe ? (
                     <ActivityIndicator color={TEXT_C} size="small" />
                   ) : (
-                    <Text style={styles.validateBtnText}>Validar</Text>
+                    <Text style={styles.validateBtnText}>
+                      {stripeConnectAccountId ? 'Continuar registro en Stripe' : 'Conectar con Stripe'}
+                    </Text>
                   )}
                 </TouchableOpacity>
 
-                {stripeError && <Text style={styles.errorText}>{stripeError}</Text>}
-                {stripeValidated && (
-                  <View style={styles.successBox}>
-                    <Text style={styles.successText}>✓ {stripeMerchantEmail}</Text>
-                  </View>
+                {!!stripeConnectAccountId && !stripeChargesEnabled && (
+                  <TouchableOpacity
+                    style={[styles.validateBtn, styles.secondaryBtn, checkingStripeStatus && styles.btnDisabled]}
+                    onPress={handleCheckStripeStatus}
+                    disabled={checkingStripeStatus}
+                  >
+                    {checkingStripeStatus ? (
+                      <ActivityIndicator color={GOLD} size="small" />
+                    ) : (
+                      <Text style={[styles.validateBtnText, { color: GOLD }]}>Comprobar estado</Text>
+                    )}
+                  </TouchableOpacity>
                 )}
 
-                <Text style={styles.helpText}>
-                  📖 Copia tu clave desde{'\n'}
-                  dashboard.stripe.com → Developers → API Keys
-                </Text>
+                {stripeError && <Text style={styles.errorText}>{stripeError}</Text>}
               </View>
             )}
 
@@ -671,6 +695,12 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 14,
     fontWeight: '700',
+  },
+  secondaryBtn: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: GOLD,
+    marginTop: 8,
   },
 
   errorText: {

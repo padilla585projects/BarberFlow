@@ -208,8 +208,13 @@ service cloud.firestore {
         isDeveloper()
       );
       allow create: if isAuth();
+      // El cliente puede actualizar su propio pedido (p.ej. autodeclararse
+      // "client_confirmed" para Bizum/transferencia), pero NUNCA puede
+      // ponerlo en 'paid' él mismo — ese estado solo lo puede escribir el
+      // webhook de Stripe (Admin SDK, que ignora estas reglas) o el dueño.
       allow update: if isAuth() && (
-        resource.data.clientId == request.auth.uid ||
+        (resource.data.clientId == request.auth.uid &&
+          request.resource.data.paymentStatus != 'paid') ||
         isOwnerOf(resource.data.barbershopId) ||
         isDeveloper()
       );

@@ -43,9 +43,10 @@ export interface NotificationSettings {
 
 export interface StripeConfig {
   enabled: boolean;
-  publishableKey?: string;
-  merchantEmail?: string;
-  lastValidated?: Date;
+  // Stripe Connect: cada barbería tiene su propia cuenta Express. El dinero
+  // de sus ventas va directo a esa cuenta (no a la de BarberFlow).
+  connectAccountId?: string;
+  chargesEnabled?: boolean; // true cuando la barbería completó el onboarding de Stripe
 }
 
 export interface BizumConfig {

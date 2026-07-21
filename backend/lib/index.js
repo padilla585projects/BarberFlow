@@ -3,7 +3,7 @@
 // Deploy: npm run deploy (desde /backend)
 // Secrets: npx firebase-tools secrets:set RESEND_API_KEY
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validatePayPalEmail = exports.validateStripeKey = exports.fixProductImages = exports.addBarberToShop = exports.updateUserRole = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
+exports.checkStripeConnectStatus = exports.createConnectAccountLink = exports.stripeWebhook = exports.createPaymentIntent = exports.validatePayPalEmail = exports.fixProductImages = exports.addBarberToShop = exports.updateUserRole = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
 var emails_1 = require("./functions/emails");
 Object.defineProperty(exports, "onAppointmentCreated", { enumerable: true, get: function () { return emails_1.onAppointmentCreated; } });
 Object.defineProperty(exports, "onAppointmentStatusChanged", { enumerable: true, get: function () { return emails_1.onAppointmentStatusChanged; } });
@@ -42,6 +42,11 @@ Object.defineProperty(exports, "addBarberToShop", { enumerable: true, get: funct
 var fixProductImages_1 = require("./functions/fixProductImages");
 Object.defineProperty(exports, "fixProductImages", { enumerable: true, get: function () { return fixProductImages_1.fixProductImages; } });
 var validatePaymentMethods_1 = require("./functions/validatePaymentMethods");
-Object.defineProperty(exports, "validateStripeKey", { enumerable: true, get: function () { return validatePaymentMethods_1.validateStripeKey; } });
 Object.defineProperty(exports, "validatePayPalEmail", { enumerable: true, get: function () { return validatePaymentMethods_1.validatePayPalEmail; } });
+var stripePayments_1 = require("./functions/stripePayments");
+Object.defineProperty(exports, "createPaymentIntent", { enumerable: true, get: function () { return stripePayments_1.createPaymentIntent; } });
+Object.defineProperty(exports, "stripeWebhook", { enumerable: true, get: function () { return stripePayments_1.stripeWebhook; } });
+var stripeConnect_1 = require("./functions/stripeConnect");
+Object.defineProperty(exports, "createConnectAccountLink", { enumerable: true, get: function () { return stripeConnect_1.createConnectAccountLink; } });
+Object.defineProperty(exports, "checkStripeConnectStatus", { enumerable: true, get: function () { return stripeConnect_1.checkStripeConnectStatus; } });
 //# sourceMappingURL=index.js.map

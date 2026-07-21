@@ -86,6 +86,13 @@
         {
           "locationWhenInUsePermission": "BarberFlow usa tu ubicación para mostrarte las barberías más cercanas."
         }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.barberflow.app",
+          "enableGooglePay": false
+        }
       ]
     ],
     "extra": {

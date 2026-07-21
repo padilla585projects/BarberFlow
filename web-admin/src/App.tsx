@@ -30,6 +30,8 @@ import OwnerDashboard from './pages/owner/OwnerDashboard'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivacyPage from './pages/PrivacyPage'
 import LandingPage from './pages/LandingPage'
+import StripeConnectDonePage from './pages/stripeConnect/StripeConnectDonePage'
+import StripeConnectRefreshPage from './pages/stripeConnect/StripeConnectRefreshPage'
 // Onboarding
 import OnboardingOwnerPage from './pages/onboarding/OnboardingOwnerPage'
 import OnboardingBarberPage from './pages/onboarding/OnboardingBarberPage'
@@ -59,6 +61,8 @@ function AppRoutes() {
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/admin/utils" element={<AdminUtilsPage />} />
+      <Route path="/stripe-connect/done" element={<StripeConnectDonePage />} />
+      <Route path="/stripe-connect/refresh" element={<StripeConnectRefreshPage />} />
 
       {/* Onboarding (requiere auth, sin Layout principal) */}
       <Route
