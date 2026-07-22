@@ -33,12 +33,14 @@ import { addAppointmentToCalendar } from '../../utils/calendarHelper';
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
-type PaymentMethod = 'cash' | 'bizum' | 'paypal';
+type PaymentMethod = 'cash' | 'bizum' | 'paypal' | 'bankTransfer';
 
 interface BarbershopPaymentConfig {
-  paymentMethods: { cash: boolean; bizum: boolean; paypal: boolean };
+  paymentMethods: { cash: boolean; bizum: boolean; paypal: boolean; bankTransfer: boolean };
   bizumPhone?: string;
   paypalUsername?: string;
+  bankIBAN?: string;
+  bankAccountHolder?: string;
 }
 
 type Props = NativeStackScreenProps<ClientStackParamList, 'Book'>;
@@ -256,6 +258,8 @@ export function BookScreen({ route, navigation }: Props) {
     amount: number;
     bizumPhone?: string;
     paypalUsername?: string;
+    bankIBAN?: string;
+    bankAccountHolder?: string;
   } | null>(null);
 
   // Calendar
@@ -421,15 +425,25 @@ export function BookScreen({ route, navigation }: Props) {
           setServices(serviceList);
 
           // Payment methods config
-          const pm = shopData.paymentMethods as { cash?: boolean; bizum?: boolean; paypal?: boolean } | undefined;
+          const pm = shopData.paymentMethods as
+            | {
+                cash?: { enabled?: boolean };
+                bizum?: { enabled?: boolean; phone?: string };
+                paypal?: { enabled?: boolean; email?: string };
+                bankTransfer?: { enabled?: boolean; iban?: string; accountHolder?: string };
+              }
+            | undefined;
           setPaymentConfig({
             paymentMethods: {
-              cash: pm?.cash !== false, // default true
-              bizum: pm?.bizum === true,
-              paypal: pm?.paypal === true,
+              cash: pm?.cash?.enabled ?? true, // default true
+              bizum: pm?.bizum?.enabled === true,
+              paypal: pm?.paypal?.enabled === true,
+              bankTransfer: pm?.bankTransfer?.enabled === true,
             },
-            bizumPhone: (shopData.bizumPhone as string) ?? undefined,
-            paypalUsername: (shopData.paypalUsername as string) ?? undefined,
+            bizumPhone: pm?.bizum?.phone ?? undefined,
+            paypalUsername: pm?.paypal?.email ?? undefined,
+            bankIBAN: pm?.bankTransfer?.iban ?? undefined,
+            bankAccountHolder: pm?.bankTransfer?.accountHolder ?? undefined,
           });
 
           if (shopData.openingHours) {
@@ -743,12 +757,14 @@ export function BookScreen({ route, navigation }: Props) {
       };
       setPendingCalendarEvent(calEvent);
 
-      if (selectedPayment === 'bizum' || selectedPayment === 'paypal') {
+      if (selectedPayment === 'bizum' || selectedPayment === 'paypal' || selectedPayment === 'bankTransfer') {
         setPaymentModalInfo({
           method: selectedPayment,
           amount: finalPrice,
           bizumPhone: paymentConfig?.bizumPhone,
           paypalUsername: paymentConfig?.paypalUsername,
+          bankIBAN: paymentConfig?.bankIBAN,
+          bankAccountHolder: paymentConfig?.bankAccountHolder,
         });
         setShowPaymentModal(true);
       } else {
@@ -1271,6 +1287,42 @@ export function BookScreen({ route, navigation }: Props) {
                 </View>
               </TouchableOpacity>
             )}
+
+            {paymentConfig.paymentMethods.bankTransfer && (
+              <TouchableOpacity
+                style={[
+                  styles.paymentCard,
+                  selectedPayment === 'bankTransfer' && styles.paymentCardSelected,
+                ]}
+                onPress={() => setSelectedPayment('bankTransfer')}
+                activeOpacity={0.8}
+              >
+                <View style={styles.paymentCardHeader}>
+                  <Text style={styles.paymentIcon}>{'🏦'}</Text>
+                  <View style={styles.paymentCardInfo}>
+                    <Text
+                      style={[
+                        styles.paymentCardTitle,
+                        selectedPayment === 'bankTransfer' && styles.paymentCardTitleSelected,
+                      ]}
+                    >
+                      Transferencia Bancaria
+                    </Text>
+                    <Text style={styles.paymentCardDesc}>
+                      Transfera a: {paymentConfig.bankIBAN ?? 'IBAN no configurado'}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.paymentRadio,
+                      selectedPayment === 'bankTransfer' && styles.paymentRadioSelected,
+                    ]}
+                  >
+                    {selectedPayment === 'bankTransfer' && <View style={styles.paymentRadioDot} />}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </>
       )}
@@ -1317,6 +1369,36 @@ export function BookScreen({ route, navigation }: Props) {
                   {paymentModalInfo.bizumPhone ?? ''}
                 </Text>
                 <Text style={styles.modalSubDesc}>mediante Bizum</Text>
+                {!!createdAppointmentId && (
+                  <View style={styles.modalRefBox}>
+                    <Text style={styles.modalRefLabel}>Pon este número como concepto</Text>
+                    <Text style={styles.modalRefValue}>
+                      {createdAppointmentId.slice(-8).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+
+            {paymentModalInfo?.method === 'bankTransfer' && (
+              <>
+                <Text style={styles.modalDesc}>
+                  Transfera {paymentModalInfo.amount.toFixed(2)}{'€'} a:
+                </Text>
+                <Text style={styles.modalHighlight}>
+                  {paymentModalInfo.bankIBAN ?? ''}
+                </Text>
+                <Text style={styles.modalSubDesc}>
+                  Titular: {paymentModalInfo.bankAccountHolder ?? ''}
+                </Text>
+                {!!createdAppointmentId && (
+                  <View style={styles.modalRefBox}>
+                    <Text style={styles.modalRefLabel}>Pon este número como concepto</Text>
+                    <Text style={styles.modalRefValue}>
+                      {createdAppointmentId.slice(-8).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
               </>
             )}
 
@@ -1716,6 +1798,19 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   modalSubDesc: { fontSize: 13, color: MUTED },
+  modalRefBox: {
+    backgroundColor: BG,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GOLD + '55',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center' as const,
+    marginTop: 6,
+    gap: 2,
+  },
+  modalRefLabel: { fontSize: 11, color: MUTED, fontWeight: '600' as const },
+  modalRefValue: { fontSize: 18, fontWeight: '800' as const, color: GOLD, letterSpacing: 2 },
   modalPaypalBtn: {
     backgroundColor: '#0070BA',
     borderRadius: 12,
