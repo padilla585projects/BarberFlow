@@ -157,6 +157,16 @@ service cloud.firestore {
       // getAvailableSlots() that returns only occupied time slots without
       // exposing the full appointment documents.
       allow read: if isAuth();
+      // ESCALONADO — no endurecer hasta que la actualización de la app esté
+      // extendida. Las citas ya se crean y se mueven con la Cloud Function
+      // `bookAppointment`, que es quien decide el precio (leyéndolo del
+      // catálogo de la barbería) y quien comprueba el solapamiento dentro de
+      // la misma transacción que escribe. Cuando la versión antigua deje de
+      // usarse, esto pasa a `if false` y la función queda como único escritor:
+      //   allow create: if false;
+      //   allow update: if isAuth() && (... sin date/timeSlot para el cliente);
+      // Mientras tanto, un cliente todavía puede escribir directamente y
+      // saltarse la validación de precio (C-03 de la auditoría).
       allow create: if isAuth();
       allow update: if isAuth() && (
         resource.data.clientId == request.auth.uid ||

@@ -10,7 +10,10 @@ interface ExpoPushMessage {
   sound?: 'default'
 }
 
-export async function getExpoPushToken(uid: string): Promise<string | null> {
+export async function getExpoPushToken(uid: string | null | undefined): Promise<string | null> {
+  // Walk-in appointments carry no client account, so uid can legitimately be
+  // null here. doc(null) throws, so bail out before touching Firestore.
+  if (!uid) return null
   const snap = await db.collection('users').doc(uid).get()
   return snap.data()?.expoPushToken ?? null
 }

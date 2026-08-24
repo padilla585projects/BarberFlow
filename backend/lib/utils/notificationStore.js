@@ -36,6 +36,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.storeNotification = storeNotification;
 const admin = __importStar(require("firebase-admin"));
 async function storeNotification(uid, notification) {
+    // Walk-in appointments carry no client account.
+    if (!uid)
+        return;
     await admin.firestore()
         .collection('users')
         .doc(uid)

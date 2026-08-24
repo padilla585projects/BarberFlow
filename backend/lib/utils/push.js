@@ -39,6 +39,10 @@ const admin = __importStar(require("firebase-admin"));
 const db = admin.firestore();
 async function getExpoPushToken(uid) {
     var _a, _b;
+    // Walk-in appointments carry no client account, so uid can legitimately be
+    // null here. doc(null) throws, so bail out before touching Firestore.
+    if (!uid)
+        return null;
     const snap = await db.collection('users').doc(uid).get();
     return (_b = (_a = snap.data()) === null || _a === void 0 ? void 0 : _a.expoPushToken) !== null && _b !== void 0 ? _b : null;
 }

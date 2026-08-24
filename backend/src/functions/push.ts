@@ -22,11 +22,13 @@ async function getOwnerId(barbershopId: string): Promise<string | null> {
 
 /** Send push + store in-app notification for a user (skips if no token). */
 async function notifyUser(
-  uid: string,
+  uid: string | null | undefined,
   title: string,
   body: string,
   pushData: Record<string, string>,
 ): Promise<void> {
+  // Walk-in appointments carry no client account.
+  if (!uid) return
   const token = await getExpoPushToken(uid)
   if (token) {
     await sendPushNotification(token, title, body, pushData)
@@ -88,6 +90,9 @@ export const onAppointmentCreatedPush = onDocumentCreated(
   async (event) => {
     const apt = event.data?.data()
     if (!apt) return
+
+    // The barber created this one by hand, standing next to the customer.
+    if (apt.isWalkIn) return
 
     const barberId = apt.barberId as string | undefined
     const barbershopId = apt.barbershopId as string | undefined

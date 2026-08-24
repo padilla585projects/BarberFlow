@@ -13,7 +13,9 @@ const REGION = 'europe-west1'
 const SECRETS = ['RESEND_API_KEY']
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-async function getUser(uid: string) {
+async function getUser(uid: string | null | undefined) {
+  // Walk-in appointments carry no client account.
+  if (!uid) return null
   const snap = await db.collection('users').doc(uid).get()
   return snap.exists ? (snap.data() as { email: string; displayName: string }) : null
 }
@@ -38,6 +40,11 @@ export const onAppointmentCreated = onDocumentCreated(
   async (event) => {
     const apt = event.data?.data()
     if (!apt) return
+
+    // Walk-ins are registered by the barber for someone already in the shop:
+    // there is no client account to email, and the owner gains nothing from a
+    // notification about a customer their own barber just served.
+    if (apt.isWalkIn) return
 
     const barbershopId = apt.barbershopId as string
     const [client, barber, barbershop] = await Promise.all([

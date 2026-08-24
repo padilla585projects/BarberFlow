@@ -4,6 +4,7 @@
 
 export { onAppointmentCreated, onAppointmentStatusChanged, onOrderCreated, onOrderStatusChanged } from './functions/emails'
 export { onAppointmentCreatedPush, onAppointmentStatusChangedPush, onOrderStatusChangedPush } from './functions/push'
+export { bookAppointment } from './functions/booking'
 export { generateReport, generateBarberReport } from './functions/reports'
 export { sendAppointmentReminders } from './functions/reminders'
 export { onAppointmentCompletedLoyalty } from './functions/loyalty'

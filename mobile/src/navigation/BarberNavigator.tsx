@@ -9,6 +9,7 @@ import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { BarberHomeScreen } from '../screens/barber/BarberHomeScreen';
 import { AgendaScreen } from '../screens/barber/AgendaScreen';
 import { PaymentsScreen } from '../screens/barber/PaymentsScreen';
+import { WalkInScreen } from '../screens/barber/WalkInScreen';
 import { BarberStatsScreen } from '../screens/barber/BarberStatsScreen';
 import { BarberScheduleScreen } from '../screens/barber/BarberScheduleScreen';
 import { ScheduleTemplatesScreen } from '../screens/barber/ScheduleTemplatesScreen';
@@ -28,6 +29,7 @@ import { useUnreadCount } from '../screens/common/NotificationsScreen';
 export type BarberStackParamList = {
   Home: undefined;
   Agenda: undefined;
+  WalkIn: undefined;
   Payments: undefined;
   Stats: undefined;
   Reports: undefined;
@@ -177,6 +179,11 @@ function AgendaTabStack() {
               )
             : undefined,
         })}
+      />
+      <Stack.Screen
+        name="WalkIn"
+        component={WalkInScreen}
+        options={{ title: 'Cita sin reserva' }}
       />
       <Stack.Screen
         name="Payments"

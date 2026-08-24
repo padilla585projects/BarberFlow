@@ -3,7 +3,7 @@
 // Deploy: npm run deploy (desde /backend)
 // Secrets: npx firebase-tools secrets:set RESEND_API_KEY
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkStripeConnectStatus = exports.createConnectAccountLink = exports.stripeWebhook = exports.createPaymentIntent = exports.validatePayPalEmail = exports.fixProductImages = exports.addBarberToShop = exports.updateUserRole = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
+exports.checkStripeConnectStatus = exports.createConnectAccountLink = exports.stripeWebhook = exports.createPaymentIntent = exports.validatePayPalEmail = exports.fixProductImages = exports.addBarberToShop = exports.updateUserRole = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.bookAppointment = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
 var emails_1 = require("./functions/emails");
 Object.defineProperty(exports, "onAppointmentCreated", { enumerable: true, get: function () { return emails_1.onAppointmentCreated; } });
 Object.defineProperty(exports, "onAppointmentStatusChanged", { enumerable: true, get: function () { return emails_1.onAppointmentStatusChanged; } });
@@ -13,6 +13,8 @@ var push_1 = require("./functions/push");
 Object.defineProperty(exports, "onAppointmentCreatedPush", { enumerable: true, get: function () { return push_1.onAppointmentCreatedPush; } });
 Object.defineProperty(exports, "onAppointmentStatusChangedPush", { enumerable: true, get: function () { return push_1.onAppointmentStatusChangedPush; } });
 Object.defineProperty(exports, "onOrderStatusChangedPush", { enumerable: true, get: function () { return push_1.onOrderStatusChangedPush; } });
+var booking_1 = require("./functions/booking");
+Object.defineProperty(exports, "bookAppointment", { enumerable: true, get: function () { return booking_1.bookAppointment; } });
 var reports_1 = require("./functions/reports");
 Object.defineProperty(exports, "generateReport", { enumerable: true, get: function () { return reports_1.generateReport; } });
 Object.defineProperty(exports, "generateBarberReport", { enumerable: true, get: function () { return reports_1.generateBarberReport; } });

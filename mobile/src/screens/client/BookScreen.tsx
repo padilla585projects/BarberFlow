@@ -27,6 +27,8 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { auth, db } from '../../services/firebase';
+import app from '../../services/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 import { addAppointmentToCalendar } from '../../utils/calendarHelper';
@@ -705,43 +707,25 @@ export function BookScreen({ route, navigation }: Props) {
         duration: s.duration,
       }));
 
-      const appointmentData: Record<string, unknown> = {
-        clientId: user.uid,
-        clientEmail: user.email,
-        clientName: user.displayName,
-        barberId: selectedBarber.uid,
-        barberName: selectedBarber.displayName,
+      // The server owns the booking: it re-reads prices from the shop's own
+      // catalogue, revalidates the promo, and checks the slot inside the same
+      // transaction that writes the appointment. We only propose a slot.
+      const bookFn = httpsCallable<
+        Record<string, unknown>,
+        { appointmentId: string }
+      >(getFunctions(app, 'europe-west1'), 'bookAppointment');
+
+      const { data: booking } = await bookFn({
         barbershopId,
-        barbershopName,
+        barberId: selectedBarber.uid,
+        date: formatDateKey(selectedDate),
         timeSlot: selectedSlot,
-        date: Timestamp.fromDate(appointmentDate),
-        status: 'pending',
-        services: servicesPayload,
-        totalPrice: finalPrice,
-        originalPrice: totalPrice,
+        serviceIds: selectedServicesList.map((s) => s.id),
+        promoCode: promoApplied?.code,
         paymentMethod: selectedPayment,
-        paymentStatus: 'pending',
-        createdAt: serverTimestamp(),
-      };
+      });
 
-      if (promoApplied) {
-        appointmentData.promoCode = promoApplied.code;
-        appointmentData.discount = discountAmount;
-        appointmentData.promoType = promoApplied.type;
-        appointmentData.promoValue = promoApplied.value;
-      }
-
-      const appointmentRef = await addDoc(collection(db, 'appointments'), appointmentData);
-
-      // Increment promo usage
-      if (promoApplied) {
-        await updateDoc(
-          doc(db, 'barbershops', barbershopId, 'promos', promoApplied.id),
-          { currentUses: increment(1) },
-        );
-      }
-
-      setCreatedAppointmentId(appointmentRef.id);
+      setCreatedAppointmentId(booking.appointmentId);
 
       // Build calendar event info for this appointment
       const calEvent = {
@@ -789,6 +773,23 @@ export function BookScreen({ route, navigation }: Props) {
         );
       }
     } catch (err) {
+      const code = (err as { code?: string })?.code;
+      const message = (err as { message?: string })?.message;
+
+      // The slot went while the form was open, or the server rejected the
+      // proposal (price changed, barber stopped working that day...). Either
+      // way the grid on screen is stale, so refresh it.
+      if (code === 'functions/already-exists') {
+        Alert.alert('Hueco ocupado', message ?? 'Ese hueco acaba de ocuparse. Elige otra hora.');
+        setSelectedSlot(null);
+        return;
+      }
+      if (code === 'functions/invalid-argument' || code === 'functions/permission-denied') {
+        Alert.alert('No se pudo reservar', message ?? 'Revisa los datos de la cita.');
+        setSelectedSlot(null);
+        return;
+      }
+
       console.error('[BookScreen] Error creating appointment:', err);
       Alert.alert('Error', 'No se pudo reservar la cita. Intenta de nuevo.');
     } finally {

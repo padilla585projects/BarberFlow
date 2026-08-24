@@ -175,6 +175,9 @@ export function AgendaScreen() {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: '60%' }}>
           <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
+            <TouchableOpacity onPress={() => navigation.navigate('WalkIn')}>
+              <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>＋ Cita</Text>
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Availability')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🔒 Dispon.</Text>
             </TouchableOpacity>

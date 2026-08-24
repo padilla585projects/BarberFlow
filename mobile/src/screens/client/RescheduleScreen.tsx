@@ -21,6 +21,8 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import app from '../../services/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ClientStackParamList } from '../../navigation/ClientNavigator';
 
@@ -335,8 +337,16 @@ export function RescheduleScreen({ route, navigation }: Props) {
       const newDate = new Date(selectedDate);
       newDate.setHours(hours, minutes, 0, 0);
 
-      await updateDoc(doc(db, 'appointments', appointmentId), {
-        date: Timestamp.fromDate(newDate),
+      // Same server path as booking: the slot is checked and written inside a
+      // single transaction, so a move cannot land on top of another cita.
+      const bookFn = httpsCallable<Record<string, unknown>, { appointmentId: string }>(
+        getFunctions(app, 'europe-west1'),
+        'bookAppointment',
+      );
+
+      await bookFn({
+        rescheduleId: appointmentId,
+        date: formatDateKey(newDate),
         timeSlot: selectedSlot,
       });
 
@@ -344,6 +354,20 @@ export function RescheduleScreen({ route, navigation }: Props) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
+      const code = (err as { code?: string })?.code;
+      const message = (err as { message?: string })?.message;
+
+      if (code === 'functions/already-exists') {
+        Alert.alert('Hueco ocupado', message ?? 'Ese hueco acaba de ocuparse. Elige otra hora.');
+        setSelectedSlot(null);
+        return;
+      }
+      if (code === 'functions/invalid-argument' || code === 'functions/permission-denied') {
+        Alert.alert('No se pudo reprogramar', message ?? 'Revisa los datos de la cita.');
+        setSelectedSlot(null);
+        return;
+      }
+
       console.error('[RescheduleScreen] Error rescheduling:', err);
       Alert.alert('Error', 'No se pudo reprogramar la cita. Intenta de nuevo.');
     } finally {

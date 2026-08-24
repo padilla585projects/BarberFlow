@@ -44,6 +44,9 @@ const REGION = 'europe-west1';
 const SECRETS = ['RESEND_API_KEY'];
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function getUser(uid) {
+    // Walk-in appointments carry no client account.
+    if (!uid)
+        return null;
     const snap = await db.collection('users').doc(uid).get();
     return snap.exists ? snap.data() : null;
 }
@@ -65,6 +68,11 @@ exports.onAppointmentCreated = (0, firestore_1.onDocumentCreated)({ document: 'a
     var _a, _b, _c;
     const apt = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
     if (!apt)
+        return;
+    // Walk-ins are registered by the barber for someone already in the shop:
+    // there is no client account to email, and the owner gains nothing from a
+    // notification about a customer their own barber just served.
+    if (apt.isWalkIn)
         return;
     const barbershopId = apt.barbershopId;
     const [client, barber, barbershop] = await Promise.all([

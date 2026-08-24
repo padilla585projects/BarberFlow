@@ -56,6 +56,9 @@ async function getOwnerId(barbershopId) {
 }
 /** Send push + store in-app notification for a user (skips if no token). */
 async function notifyUser(uid, title, body, pushData) {
+    // Walk-in appointments carry no client account.
+    if (!uid)
+        return;
     const token = await (0, push_1.getExpoPushToken)(uid);
     if (token) {
         await (0, push_1.sendPushNotification)(token, title, body, pushData);
@@ -109,6 +112,9 @@ exports.onAppointmentCreatedPush = (0, firestore_1.onDocumentCreated)({ document
     var _a;
     const apt = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
     if (!apt)
+        return;
+    // The barber created this one by hand, standing next to the customer.
+    if (apt.isWalkIn)
         return;
     const barberId = apt.barberId;
     const barbershopId = apt.barbershopId;
