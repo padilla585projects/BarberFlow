@@ -72,6 +72,21 @@ export default function LoginPage() {
   const switchMethod = (m: Method) => { setMethod(m); reset(); setResetSent(false) }
   const switchMode = (m: Mode) => { setMode(m); reset(); setResetSent(false) }
 
+  // ── Dev-only quick login (never reaches a production build) ─────────────
+  // Same test accounts as the mobile LoginScreen, so QA can move between the
+  // app and the panel without retyping credentials.
+  const devLogin = async (testEmail: string) => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithEmail(testEmail, 'TestPass123')
+    } catch (err: any) {
+      setError(getFirebaseError(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleGoogle = async () => {
     setLoading(true)
     setError('')
@@ -343,6 +358,24 @@ export default function LoginPage() {
                 </div>
               </>)}
             </form>
+          )}
+
+          {import.meta.env.DEV && (
+            <div className={styles.devPanel}>
+              <span className={styles.devLabel}>🧪 Dev login</span>
+              <button type="button" className={styles.devBtn} disabled={loading}
+                onClick={() => devLogin('dueno@barberflow.dev')}>
+                🏪 Dueño Test
+              </button>
+              <button type="button" className={styles.devBtn} disabled={loading}
+                onClick={() => devLogin('barbero@barberflow.dev')}>
+                ✂️ Barbero Test
+              </button>
+              <button type="button" className={styles.devBtn} disabled={loading}
+                onClick={() => devLogin('cliente@barberflow.dev')}>
+                👤 Cliente Test
+              </button>
+            </div>
           )}
 
           {error && <p className={styles.error}>{error}</p>}

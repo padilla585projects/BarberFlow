@@ -149,6 +149,26 @@ async function resolveDayWindow(
   }
 }
 
+/**
+ * Does this user work at that barbershop?
+ *
+ * The source of truth is the user document, not `barbershops.barbers`. The
+ * client's booking screen queries `users where barbershopId == X`, and
+ * firestore.rules' isBarberOf()/isOwnerOf() read the same flat fields. The
+ * shop's `barbers` array is only maintained by addBarberToShop, so anyone
+ * onboarded by another path is missing from it.
+ */
+function worksAt(user: admin.firestore.DocumentData, barbershopId: string): boolean {
+  const role = user.role as string | undefined
+  if (role !== 'barber' && role !== 'owner' && role !== 'developer') return false
+
+  if (user.barbershopId === barbershopId || user.activeBarbershopId === barbershopId) {
+    return true
+  }
+  const memberships = (user.memberships as { barbershopId?: string }[] | undefined) ?? []
+  return memberships.some((m) => m.barbershopId === barbershopId)
+}
+
 /** Reject a slot that falls outside the working window or inside the break. */
 function assertSlotFitsWindow(window: DayWindow, startMin: number, endMin: number): void {
   if (startMin < window.openMin || endMin > window.closeMin) {
@@ -286,11 +306,14 @@ export const bookAppointment = onCall({ region: REGION }, async (request) => {
   const basePrice = services.reduce((sum, s) => sum + s.price, 0)
   if (totalDuration <= 0) bad('Los servicios elegidos no tienen duración.')
 
-  const barbers = (shop.barbers as string[] | undefined) ?? []
-  if (!barbers.includes(barberId)) bad('Ese barbero no trabaja en esta barbería.')
-
   const barberSnap = await db.collection('users').doc(barberId).get()
-  const barberName = (barberSnap.data()?.displayName as string) ?? null
+  if (!barberSnap.exists) bad('Ese barbero no existe.')
+  const barber = barberSnap.data()!
+  const barberName = (barber.displayName as string) ?? null
+
+  if (!worksAt(barber, barbershopId)) {
+    bad('Ese barbero no trabaja en esta barbería.')
+  }
 
   let clientId: string | null = uid
   let clientName: string | null = null
@@ -306,7 +329,7 @@ export const bookAppointment = onCall({ region: REGION }, async (request) => {
         'Solo el barbero o el dueño pueden registrar una cita sin reserva.',
       )
     }
-    if (!isOwner && !barbers.includes(uid)) {
+    if (!isOwner && !worksAt(barber, barbershopId)) {
       throw new HttpsError('permission-denied', 'No trabajas en esta barbería.')
     }
     // No account behind a walk-in: leaving clientId null keeps it out of every

@@ -132,6 +132,26 @@ async function resolveDayWindow(barberId, date, shopOpeningHours) {
         breakEndMin: null,
     };
 }
+/**
+ * Does this user work at that barbershop?
+ *
+ * The source of truth is the user document, not `barbershops.barbers`. The
+ * client's booking screen queries `users where barbershopId == X`, and
+ * firestore.rules' isBarberOf()/isOwnerOf() read the same flat fields. The
+ * shop's `barbers` array is only maintained by addBarberToShop, so anyone
+ * onboarded by another path is missing from it.
+ */
+function worksAt(user, barbershopId) {
+    var _a;
+    const role = user.role;
+    if (role !== 'barber' && role !== 'owner' && role !== 'developer')
+        return false;
+    if (user.barbershopId === barbershopId || user.activeBarbershopId === barbershopId) {
+        return true;
+    }
+    const memberships = (_a = user.memberships) !== null && _a !== void 0 ? _a : [];
+    return memberships.some((m) => m.barbershopId === barbershopId);
+}
 /** Reject a slot that falls outside the working window or inside the break. */
 function assertSlotFitsWindow(window, startMin, endMin) {
     if (startMin < window.openMin || endMin > window.closeMin) {
@@ -160,7 +180,7 @@ function assertSlotFitsWindow(window, startMin, endMin) {
  * start times, which a deterministic document id cannot catch.
  */
 exports.bookAppointment = (0, https_1.onCall)({ region: REGION }, async (request) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     if (!request.auth)
         throw new https_1.HttpsError('unauthenticated', 'Debes iniciar sesión.');
     const uid = request.auth.uid;
@@ -256,11 +276,14 @@ exports.bookAppointment = (0, https_1.onCall)({ region: REGION }, async (request
     const basePrice = services.reduce((sum, s) => sum + s.price, 0);
     if (totalDuration <= 0)
         bad('Los servicios elegidos no tienen duración.');
-    const barbers = (_d = shop.barbers) !== null && _d !== void 0 ? _d : [];
-    if (!barbers.includes(barberId))
-        bad('Ese barbero no trabaja en esta barbería.');
     const barberSnap = await db.collection('users').doc(barberId).get();
-    const barberName = (_f = (_e = barberSnap.data()) === null || _e === void 0 ? void 0 : _e.displayName) !== null && _f !== void 0 ? _f : null;
+    if (!barberSnap.exists)
+        bad('Ese barbero no existe.');
+    const barber = barberSnap.data();
+    const barberName = (_d = barber.displayName) !== null && _d !== void 0 ? _d : null;
+    if (!worksAt(barber, barbershopId)) {
+        bad('Ese barbero no trabaja en esta barbería.');
+    }
     let clientId = uid;
     let clientName = null;
     let clientEmail = null;
@@ -271,21 +294,21 @@ exports.bookAppointment = (0, https_1.onCall)({ region: REGION }, async (request
         if (!isOwner && uid !== barberId) {
             throw new https_1.HttpsError('permission-denied', 'Solo el barbero o el dueño pueden registrar una cita sin reserva.');
         }
-        if (!isOwner && !barbers.includes(uid)) {
+        if (!isOwner && !worksAt(barber, barbershopId)) {
             throw new https_1.HttpsError('permission-denied', 'No trabajas en esta barbería.');
         }
         // No account behind a walk-in: leaving clientId null keeps it out of every
         // client's history and stops the loyalty trigger crediting points.
         clientId = null;
-        clientName = ((_g = body.clientName) !== null && _g !== void 0 ? _g : '').trim().slice(0, 60) || 'Cliente sin cita';
+        clientName = ((_e = body.clientName) !== null && _e !== void 0 ? _e : '').trim().slice(0, 60) || 'Cliente sin cita';
         // The customer is already in the chair; there is nothing left to confirm.
         status = 'confirmed';
     }
     else {
         const userSnap = await db.collection('users').doc(uid).get();
         const user = userSnap.data();
-        clientName = (_h = user === null || user === void 0 ? void 0 : user.displayName) !== null && _h !== void 0 ? _h : 'Cliente';
-        clientEmail = (_j = user === null || user === void 0 ? void 0 : user.email) !== null && _j !== void 0 ? _j : null;
+        clientName = (_f = user === null || user === void 0 ? void 0 : user.displayName) !== null && _f !== void 0 ? _f : 'Cliente';
+        clientEmail = (_g = user === null || user === void 0 ? void 0 : user.email) !== null && _g !== void 0 ? _g : null;
         if (startDate.getTime() < Date.now()) {
             bad('No puedes reservar una hora que ya ha pasado.');
         }
@@ -311,13 +334,13 @@ exports.bookAppointment = (0, https_1.onCall)({ region: REGION }, async (request
         const promoDoc = promoSnap.docs[0];
         const p = promoDoc.data();
         // The catalogue has used both field names over time; honour either.
-        const expiry = ((_k = p.expiresAt) !== null && _k !== void 0 ? _k : p.expiryDate);
+        const expiry = ((_h = p.expiresAt) !== null && _h !== void 0 ? _h : p.expiryDate);
         if (expiry && expiry.toDate().getTime() < Date.now())
             bad('Ese código ha caducado.');
-        if (p.singleUse === true && ((_l = p.currentUses) !== null && _l !== void 0 ? _l : 0) > 0) {
+        if (p.singleUse === true && ((_j = p.currentUses) !== null && _j !== void 0 ? _j : 0) > 0) {
             bad('Ese código ya ha sido utilizado.');
         }
-        if (typeof p.maxUses === 'number' && ((_m = p.currentUses) !== null && _m !== void 0 ? _m : 0) >= p.maxUses) {
+        if (typeof p.maxUses === 'number' && ((_k = p.currentUses) !== null && _k !== void 0 ? _k : 0) >= p.maxUses) {
             bad('Ese código ha alcanzado su límite de usos.');
         }
         promo = {
