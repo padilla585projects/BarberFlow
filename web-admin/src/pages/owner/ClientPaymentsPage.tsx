@@ -95,7 +95,9 @@ export default function ClientPaymentsPage() {
     id: a.id,
     clientId: a.clientId,
     clientLabel: clientNames[a.clientId] ?? (a.clientId ? a.clientId.slice(0, 8) : 'Cliente'),
-    amount: a.totalPrice,
+    // Legacy appointments were stored without totalPrice; one of them was
+    // enough to take the whole page down on .toFixed().
+    amount: a.totalPrice ?? 0,
     date: a.date,
     paymentMethod: (a.paymentMethod ?? 'cash') as PaymentMethod,
     paymentStatus: (a.paymentStatus ?? 'pending') as PaymentStatus,
@@ -105,7 +107,7 @@ export default function ClientPaymentsPage() {
     id: o.id,
     clientId: o.clientId,
     clientLabel: o.clientName || 'Cliente',
-    amount: o.totalAmount,
+    amount: o.totalAmount ?? 0,
     date: o.createdAt,
     paymentMethod: (o.paymentMethod ?? 'cash') as PaymentMethod,
     paymentStatus: (o.paymentStatus ?? 'pending') as PaymentStatus,
