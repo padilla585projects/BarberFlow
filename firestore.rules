@@ -38,7 +38,13 @@ service cloud.firestore {
         (getRole() == 'owner' && (
           resource.data.get('barbershopId', '') ==
             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barbershopId ||
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'barbershopId']) &&
+          // web-admin's addBarberToShop() and mobile's JoinBarbershopScreen both
+          // write activeBarbershopId and memberships[] alongside the legacy flat
+          // fields — the app reads memberships[], these rules read barbershopId,
+          // and they must not drift apart. Listing only role+barbershopId here
+          // made every "Añadir barbero" from the owner panel fail on hasOnly().
+          (request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['role', 'barbershopId', 'activeBarbershopId', 'memberships']) &&
            request.resource.data.get('barbershopId', '') ==
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.barbershopId)
         ))

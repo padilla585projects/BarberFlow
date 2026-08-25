@@ -191,15 +191,17 @@ export default function AppointmentsPage() {
               <span className={styles.cell}>{(apt.clientId ?? '').slice(0, 8)}...</span>
               <span className={styles.cell}>{getBarberName(apt.barberId)}</span>
               <div className={styles.services}>
-                {apt.services.map(s => (
-                  <span key={s.id} className={styles.serviceTag}>{s.name}</span>
+                {/* Legacy appointments were stored without a services array, and
+                    one of them used to take the whole page down with it. */}
+                {(apt.services ?? []).map((s, i) => (
+                  <span key={s.id ?? `${s.name}-${i}`} className={styles.serviceTag}>{s.name}</span>
                 ))}
               </div>
               <div className={styles.dateCell}>
                 <span>{new Date(apt.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 <span className={styles.time}>{apt.timeSlot}</span>
               </div>
-              <span className={styles.price}>{apt.totalPrice.toFixed(2)}€</span>
+              <span className={styles.price}>{(apt.totalPrice ?? 0).toFixed(2)}€</span>
               <div className={styles.statusCell}>
                 <select
                   className={styles.statusSelect}
