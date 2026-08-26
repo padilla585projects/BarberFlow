@@ -252,7 +252,9 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
       }
 
       // Call Cloud Function to validate PayPal email
-      const functions = getFunctions();
+      // Misma región que el resto del backend; sin el segundo argumento el
+      // SDK apunta a us-central1.
+      const functions = getFunctions(undefined, 'europe-west1');
       const validatePayPalEmailFn = httpsCallable(functions, 'validatePayPalEmail');
 
       const result: any = await validatePayPalEmailFn({
