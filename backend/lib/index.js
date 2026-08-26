@@ -3,7 +3,7 @@
 // Deploy: npm run deploy (desde /backend)
 // Secrets: npx firebase-tools secrets:set RESEND_API_KEY
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkStripeConnectStatus = exports.createConnectAccountLink = exports.stripeWebhook = exports.createPaymentIntent = exports.validatePayPalEmail = exports.fixProductImages = exports.addBarberToShop = exports.updateUserRole = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.bookAppointment = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
+exports.checkStripeConnectStatus = exports.createConnectAccountLink = exports.stripeWebhook = exports.createPaymentIntent = exports.validatePayPalEmail = exports.onProductStockRestored = exports.onReferralUserCreated = exports.processAccountDeletions = exports.onMessageCreated = exports.sendWeeklySummary = exports.sendDailySummary = exports.onProductReviewCreated = exports.onReviewCreatedPush = exports.onAppointmentCompletedLoyalty = exports.sendAppointmentReminders = exports.generateBarberReport = exports.generateReport = exports.bookAppointment = exports.onOrderStatusChangedPush = exports.onAppointmentStatusChangedPush = exports.onAppointmentCreatedPush = exports.onOrderStatusChanged = exports.onOrderCreated = exports.onAppointmentStatusChanged = exports.onAppointmentCreated = void 0;
 var emails_1 = require("./functions/emails");
 Object.defineProperty(exports, "onAppointmentCreated", { enumerable: true, get: function () { return emails_1.onAppointmentCreated; } });
 Object.defineProperty(exports, "onAppointmentStatusChanged", { enumerable: true, get: function () { return emails_1.onAppointmentStatusChanged; } });
@@ -37,12 +37,20 @@ var referrals_1 = require("./functions/referrals");
 Object.defineProperty(exports, "onReferralUserCreated", { enumerable: true, get: function () { return referrals_1.onReferralUserCreated; } });
 var stockAlerts_1 = require("./functions/stockAlerts");
 Object.defineProperty(exports, "onProductStockRestored", { enumerable: true, get: function () { return stockAlerts_1.onProductStockRestored; } });
-var updateUserRole_1 = require("./functions/updateUserRole");
-Object.defineProperty(exports, "updateUserRole", { enumerable: true, get: function () { return updateUserRole_1.updateUserRole; } });
-var addBarberToShop_1 = require("./functions/addBarberToShop");
-Object.defineProperty(exports, "addBarberToShop", { enumerable: true, get: function () { return addBarberToShop_1.addBarberToShop; } });
-var fixProductImages_1 = require("./functions/fixProductImages");
-Object.defineProperty(exports, "fixProductImages", { enumerable: true, get: function () { return fixProductImages_1.fixProductImages; } });
+// NO EXPORTAR — updateUserRole, addBarberToShop y fixProductImages son
+// funciones onRequest sin ninguna comprobación de autenticación y con
+// Access-Control-Allow-Origin: *. Cualquiera que conociera la URL (que sigue un
+// formato predecible) podía llamarlas desde el navegador. updateUserRole era la
+// peor con diferencia: acepta {uid, role} y escribe con el Admin SDK, saltándose
+// las reglas, así que bastaba un POST para autoasignarse el rol 'developer' —
+// que firestore.rules acepta como bypass en toda la base de datos.
+//
+// Ninguna de las tres tenía un solo llamante: el panel y la app hacen esas
+// operaciones desde el cliente contra Firestore. Eran restos de scripts de
+// migración que se desplegaron como endpoints públicos.
+//
+// Al no exportarse dejan de desplegarse. Sus ficheros siguen en
+// src/functions/ y conviene borrarlos.
 var validatePaymentMethods_1 = require("./functions/validatePaymentMethods");
 Object.defineProperty(exports, "validatePayPalEmail", { enumerable: true, get: function () { return validatePaymentMethods_1.validatePayPalEmail; } });
 var stripePayments_1 = require("./functions/stripePayments");
