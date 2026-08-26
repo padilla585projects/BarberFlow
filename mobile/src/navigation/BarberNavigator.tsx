@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthContext } from '../contexts/AuthContext';
+import type { BarberStackParamList, BarberTabParamList } from './barberRoutes';
 import { NotificationsScreen } from '../screens/common/NotificationsScreen';
 import { ShopSelectorScreen } from '../screens/common/ShopSelectorScreen';
 import { BarberHomeScreen } from '../screens/barber/BarberHomeScreen';
@@ -26,31 +27,11 @@ import { AvailabilityScreen } from '../screens/barber/AvailabilityScreen';
 import { BarberCommissionSettingsScreen } from '../screens/barber/BarberCommissionSettingsScreen';
 import { useUnreadCount } from '../screens/common/NotificationsScreen';
 
-export type BarberStackParamList = {
-  Home: undefined;
-  Agenda: undefined;
-  WalkIn: undefined;
-  Payments: undefined;
-  Stats: undefined;
-  Reports: undefined;
-  Schedule: undefined;
-  ScheduleTemplates: undefined;
-  Portfolio: undefined;
-  BeforeAfter: undefined;
-  Messages: undefined;
-  Notifications: undefined;
-  NotificationSettings: undefined;
-  ShopSelector: undefined;
-  BugReport: undefined;
-  Availability: undefined;
-  Profile: undefined;
-  Reviews: undefined;
-  FrequentClients: undefined;
-  CommissionSettings: undefined;
-};
+export type { BarberStackParamList, BarberTabParamList } from './barberRoutes';
+export { goToBarberScreen } from './barberRoutes';
 
 const Stack = createNativeStackNavigator<BarberStackParamList>();
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<BarberTabParamList>();
 
 const BG   = '#0A0A0A';
 const GOLD = '#C9A84C';

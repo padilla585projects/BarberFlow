@@ -25,6 +25,7 @@ import { auth, db } from "../../services/firebase";
 import { useAuthContext } from "../../contexts/AuthContext";
 import { useBarberTheme } from "../../theme/barberTheme";
 import type { BarberStackParamList } from "../../navigation/BarberNavigator";
+import { goToBarberScreen } from "../../navigation/barberRoutes";
 import type { Appointment } from "../../types";
 import { AppointmentList } from "../../components/AppointmentList";
 
@@ -643,7 +644,7 @@ export function BarberHomeScreen() {
                 marginBottom: theme.spacing.xxl,
               },
             ]}
-            onPress={() => navigation.navigate("Agenda")}
+            onPress={() => goToBarberScreen(navigation, "Agenda")}
             activeOpacity={0.7}
           >
             <Text

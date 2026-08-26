@@ -27,6 +27,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../../contexts/AuthContext';
 import type { BarberStackParamList } from '../../navigation/BarberNavigator';
+import { goToBarberScreen } from '../../navigation/barberRoutes';
 import type { Appointment } from '../../types';
 import { useUnreadCount } from '../common/NotificationsScreen';
 import { useBarberTheme, BARBER_COLORS, BARBER_SPACING } from '../../theme/barberTheme';
@@ -175,28 +176,28 @@ export function AgendaScreen() {
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxWidth: '60%' }}>
           <View style={{ flexDirection: 'row', gap: 16, paddingRight: 8 }}>
-            <TouchableOpacity onPress={() => navigation.navigate('WalkIn')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'WalkIn')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>＋ Cita</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Availability')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Availability')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🔒 Dispon.</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Schedule')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Schedule')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🕐 Horario</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Payments')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Payments')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💳</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Portfolio')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Portfolio')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📸</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Stats')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Stats')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>📊 Stats</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Messages')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Messages')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>💬</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={{ position: 'relative' }}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'Notifications')} style={{ position: 'relative' }}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>🔔</Text>
               {unreadCount > 0 && (
                 <View style={styles.notifBadge}>
@@ -204,7 +205,7 @@ export function AgendaScreen() {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('BugReport')}>
+            <TouchableOpacity onPress={() => goToBarberScreen(navigation, 'BugReport')}>
               <Text style={{ fontSize: 14, color: GOLD, fontWeight: '600' }}>{'🐛'}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
@@ -231,9 +232,6 @@ export function AgendaScreen() {
         renderItem={({ item }) => {
           return (
             <View style={styles.card}>
-              {/* Left gold border accent */}
-              <View style={styles.cardBorder} />
-
               {/* Main content */}
               <View style={styles.cardContent}>
                 {/* Time + Status Row */}
@@ -366,7 +364,10 @@ const styles = StyleSheet.create({
 
   /* Card styling */
   card: {
-    flexDirection: 'row',
+    // Column, not row: cardContent and actionsContainer are meant to stack, and
+    // actionsContainer's borderTopWidth only reads as a divider that way. As a
+    // row the buttons became an off-screen side column and stretched the card.
+    flexDirection: 'column',
     backgroundColor: SURFACE,
     borderRadius: 12,
     borderTopLeftRadius: 12,
