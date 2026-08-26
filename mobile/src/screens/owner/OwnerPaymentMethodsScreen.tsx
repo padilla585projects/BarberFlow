@@ -265,7 +265,7 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
       if (result.data.valid) {
         setPaypalValidated(true);
         setPaypalError('');
-        Alert.alert('✓', 'PayPal verificado correctamente');
+        Alert.alert('✓', 'Email de PayPal guardado. Comprueba que es correcto: no se verifica contra PayPal.');
       } else {
         throw new Error(result.data.error || 'PayPal email inválido');
       }
@@ -563,7 +563,7 @@ export function OwnerPaymentMethodsScreen({ navigation }: Props) {
                 {paypalError && <Text style={styles.errorText}>{paypalError}</Text>}
                 {paypalValidated && (
                   <View style={styles.successBox}>
-                    <Text style={styles.successText}>✓ Cuenta verificada</Text>
+                    <Text style={styles.successText}>✓ Email guardado</Text>
                   </View>
                 )}
 
