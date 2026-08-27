@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { LogBox } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { RootNavigator } from './src/navigation';
 import { CartProvider } from './src/contexts/CartContext';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -32,6 +33,12 @@ function App() {
 
   return (
     <ErrorBoundary>
+      {/* La app es oscura de arriba abajo y el tema pone statusBarColor
+          transparente, así que los iconos de la barra tienen que ser claros.
+          Solo lo declaraban Login, Register y WorkWithUs: en el resto de
+          pantallas la barra volvía al valor del sistema, y en un móvil con
+          tema claro salían iconos oscuros sobre fondo negro. */}
+      <StatusBar style="light" />
       <SafeAreaProvider>
         <CartProvider>
           <RootNavigator onReady={onReady} />

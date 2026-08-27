@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A0A",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.barberflow.app",
@@ -60,7 +61,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 260,
+          "imageWidth": 280,
           "resizeMode": "contain",
           "backgroundColor": "#0A0A0A"
         }
