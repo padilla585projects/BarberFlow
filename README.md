@@ -18,9 +18,12 @@ BarberFlow es una aplicación móvil y panel web diseñada para modernizar la ge
 - Seleccionar servicios (corte, barba, etc.) con precios
 - Reservar cita en calendario con horario disponible
 - Historial de visitas y compras
+- Reprogramar una cita ya reservada
 
 ### Para barberos
 - Ver agenda del día en tiempo real
+- Registrar una **cita sin reserva** para quien entra sin cita previa, que ocupa
+  el hueco al instante y entra en caja y en los informes
 - Registrar venta de servicios y productos al terminar con el cliente
 - Consultar sus propios stats (clientes, ingresos)
 
@@ -42,6 +45,14 @@ BarberFlow es una aplicación móvil y panel web diseñada para modernizar la ge
 | Autenticación | Firebase Auth (Google Sign-In) |
 | Almacenamiento | Firebase Storage |
 | Backend / Reportes | Firebase Cloud Functions + ExcelJS |
+| Pagos | Stripe Connect, Bizum, transferencia, PayPal y efectivo |
+
+Las citas se crean, mueven y validan en la Cloud Function `bookAppointment`, que
+es el único escritor de `appointments`: decide el precio leyendo el catálogo de
+la barbería y comprueba el solapamiento dentro de la misma transacción que
+escribe, de modo que dos personas no pueden reservar el mismo hueco.
+
+El historial de cambios está en [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
